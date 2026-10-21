@@ -1,0 +1,5 @@
+# Laragon / Apache: semua URL yang bukan file atau folder asli diarahkan ke index.php
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^(admin|user|event-owner)/.*\.php$ index.php [L]
+RewriteRule ^ index.php [L]
