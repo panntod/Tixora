@@ -1,150 +1,108 @@
 <?php
-declare(strict_types=1);
-
 /**
- * TIXORA front controller.
+ * TIXORA — Front Controller (satu-satunya pintu masuk aplikasi)
+ *
+ * Alur:
+ *   1. Browser membuka URL, mis. localhost/tixora/jelajah-acara
+ *   2. .htaccess mengarahkan semua URL (yang bukan file/folder asli) ke file ini
+ *   3. File ini membaca path URL, mencocokkannya dengan tabel $routes
+ *   4. Jika cocok  -> file di folder pages/ di-include (HANYA SATU file)
+ *      Jika tidak  -> tampilkan 404
+ *
+ * Aturan penting: file di pages/ TIDAK BOLEH memanggil require ke index.php ini.
+ * Router yang memanggil halaman, bukan sebaliknya.
  */
-$path = parse_url($_SERVER["REQUEST_URI"] ?? "/", PHP_URL_PATH) ?: "/";
-$path = "/" . trim($path, "/");
-if ($path === "//") {
-  $path = "/";
+
+// Folder tempat proyek berada, dihitung dari lokasi file ini terhadap document root
+// (mis. "/tixora_fixed" di Laragon, "" di Herd). Tidak bergantung pada SCRIPT_NAME.
+$docRoot = rtrim(str_replace('\\', '/', realpath($_SERVER['DOCUMENT_ROOT']) ?: $_SERVER['DOCUMENT_ROOT']), '/');
+$dir     = str_replace('\\', '/', __DIR__);
+if ($docRoot !== '' && stripos($dir, $docRoot) === 0) {
+    $base = substr($dir, strlen($docRoot));
+} else {
+    $base = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
 }
+$base = '/' . trim($base, '/');
+if ($base === '/') {
+    $base = '';
+}
+define('BASE_URL', $base);
+define('PAGES_DIR', __DIR__ . '/');
 
+// Ambil path bersih: buang query string, folder proyek, dan "index.php".
+$path = rawurldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '/');
+if ($base !== '' && stripos($path, $base) === 0) {
+    $path = substr($path, strlen($base));
+}
+$path = trim($path, '/');
+$path = preg_replace('#^index\.php(/|$)#', '', $path);
+
+// Tabel route: URL bersih => file halaman (relatif terhadap folder pages/)
 $routes = [
-  "/" => __DIR__ . "/pages/user/landing-page.php",
-  "/jelajah-acara" => __DIR__ . "/pages/user/jelajah-acara.php",
-  "/detail-acara" => __DIR__ . "/pages/user/detail-acara.php",
-  "/masuk-daftar" => __DIR__ . "/pages/user/masuk-daftar.php",
-  "/pendaftaran" => __DIR__ . "/pages/user/pendaftaran.php",
-  "/konfirmasi" => __DIR__ . "/pages/user/konfirmasi.php",
-  "/tiket-saya" => __DIR__ . "/pages/user/tiket-saya.php",
-  "/tiket-digital" => __DIR__ . "/pages/user/tiket-digital.php",
-  "/akun" => __DIR__ . "/pages/user/akun.php",
-  "/kondisi-antarmuka" => __DIR__ . "/pages/user/kondisi-antarmuka.php",
-  "/riwayat-pendaftaran" => __DIR__ . "/pages/user/riwayat-pendaftaran.php",
-  "/detail-acara/selesai" => __DIR__ . "/pages/user/detail-acara-selesai.php",
-  "/detail-acara/dibatalkan" =>
-    __DIR__ . "/pages/user/detail-acara-dibatalkan.php",
-  "/detail-acara/tiket-habis" =>
-    __DIR__ . "/pages/user/detail-acara-tiket-habis.php",
-  "/tiket-digital/sudah-dipakai" =>
-    __DIR__ . "/pages/user/tiket-digital-sudah-dipakai.php",
-  "/tiket-digital/dibatalkan" =>
-    __DIR__ . "/pages/user/tiket-digital-dibatalkan.php",
-  "/tiket-digital/menunggu-pembayaran" =>
-    __DIR__ . "/pages/user/tiket-digital-menunggu-pembayaran.php",
-  "/lupa-kata-sandi" => __DIR__ . "/pages/user/lupa-kata-sandi.php",
-  "/lupa-kata-sandi/terkirim" =>
-    __DIR__ . "/pages/user/lupa-kata-sandi-terkirim.php",
-  // Alias URL untuk layar masuk/daftar gabungan pada desain HTML asli
-  "/login" => __DIR__ . "/pages/user/masuk.php",
-  "/register" => __DIR__ . "/pages/user/daftar.php",
-
-  // Event owner / organizer TIXORA
-  "/event-owner" => __DIR__ . "/pages/organization/index.php",
-  "/event-owner/acara-saya" => __DIR__ . "/pages/organization/acara-saya.php",
-  "/event-owner/buat-acara" => __DIR__ . "/pages/organization/buat-acara.php",
-  "/event-owner/ringkasan" => __DIR__ . "/pages/organization/ringkasan.php",
-  "/event-owner/tiket" => __DIR__ . "/pages/organization/tiket.php",
-  "/event-owner/rundown" => __DIR__ . "/pages/organization/rundown.php",
-  "/event-owner/peserta" => __DIR__ . "/pages/organization/peserta.php",
-  "/event-owner/rab" => __DIR__ . "/pages/organization/rab.php",
-  "/event-owner/panitia" => __DIR__ . "/pages/organization/panitia.php",
-  "/event-owner/analitik" => __DIR__ . "/pages/organization/analitik.php",
-  "/event-owner/pengajuan" => __DIR__ . "/pages/organization/pengajuan.php",
-  "/event-owner/buat-acara/tiket" =>
-    __DIR__ . "/pages/organization/buat-acara-tiket.php",
-  "/event-owner/buat-acara/rundown" =>
-    __DIR__ . "/pages/organization/buat-acara-rundown.php",
-  "/event-owner/buat-acara/tinjau" =>
-    __DIR__ . "/pages/organization/buat-acara-tinjau.php",
-  "/event-owner/dialog-dan-kondisi" =>
-    __DIR__ . "/pages/organization/dialog-dan-kondisi.php",
-  "/event-owner/edit-informasi" =>
-    __DIR__ . "/pages/organization/edit-informasi.php",
-  "/event-owner/pengaturan-acara" =>
-    __DIR__ . "/pages/organization/pengaturan-acara.php",
-  "/event-owner/dialog-publikasi" =>
-    __DIR__ . "/pages/organization/dialog-publikasi.php",
-
-  // Admin TIXORA
-  "/admin" => __DIR__ . "/pages/admin/index.php",
-  "/admin/antrean-acara" => __DIR__ . "/pages/admin/antrean-acara.php",
-  "/admin/tinjauan-acara" => __DIR__ . "/pages/admin/tinjauan-acara.php",
-  "/admin/dialog-dan-umpan-balik" =>
-    __DIR__ . "/pages/admin/dialog-dan-umpan-balik.php",
-  "/admin/setelah-disetujui" =>
-    __DIR__ . "/pages/admin/setelah-disetujui.php",
-  "/admin/setelah-ditolak" => __DIR__ . "/pages/admin/setelah-ditolak.php",
-  "/admin/tinjauan-revisi" => __DIR__ . "/pages/admin/tinjauan-revisi.php",
-  "/admin/pengguna" => __DIR__ . "/pages/admin/pengguna.php",
-  "/admin/detail-pengguna" => __DIR__ . "/pages/admin/detail-pengguna.php",
-  "/admin/penyelenggara" => __DIR__ . "/pages/admin/penyelenggara.php",
-  "/admin/laporan" => __DIR__ . "/pages/admin/laporan.php",
-  "/admin/notifikasi" => __DIR__ . "/pages/admin/notifikasi.php",
-  "/admin/riwayat-moderasi" => __DIR__ . "/pages/admin/riwayat-moderasi.php",
+    ''                                  => 'user/landing-page.php',
+    'admin'                             => 'admin/index.php',
+    'admin/antrean-acara'               => 'admin/antrean-acara/index.php',
+    'admin/detail-pengguna'             => 'admin/detail-pengguna/index.php',
+    'admin/dialog-dan-umpan-balik'      => 'admin/dialog-dan-umpan-balik/index.php',
+    'admin/laporan'                     => 'admin/laporan/index.php',
+    'admin/notifikasi'                  => 'admin/notifikasi/index.php',
+    'admin/pengguna'                    => 'admin/pengguna/index.php',
+    'admin/penyelenggara'               => 'admin/penyelenggara/index.php',
+    'admin/riwayat-moderasi'            => 'admin/riwayat-moderasi/index.php',
+    'admin/setelah-disetujui'           => 'admin/setelah-disetujui/index.php',
+    'admin/setelah-ditolak'             => 'admin/setelah-ditolak/index.php',
+    'admin/tinjauan-acara'              => 'admin/tinjauan-acara/index.php',
+    'admin/tinjauan-revisi'             => 'admin/tinjauan-revisi/index.php',
+    'akun'                              => 'user/akun/index.php',
+    'detail-acara'                      => 'user/detail-acara/index.php',
+    'detail-acara/dibatalkan'           => 'user/detail-acara/dibatalkan/index.php',
+    'detail-acara/selesai'              => 'user/detail-acara/selesai/index.php',
+    'detail-acara/tiket-habis'          => 'user/detail-acara/tiket-habis/index.php',
+    'event-owner'                       => 'event-owner/index.php',
+    'event-owner/acara-saya'            => 'event-owner/acara-saya/index.php',
+    'event-owner/analitik'              => 'event-owner/analitik/index.php',
+    'event-owner/buat-acara'            => 'event-owner/buat-acara/index.php',
+    'event-owner/buat-acara/rundown'    => 'event-owner/buat-acara/buat-acara-rundown.php',
+    'event-owner/buat-acara/tiket'      => 'event-owner/buat-acara/buat-acara-tiket.php',
+    'event-owner/buat-acara/tinjau'     => 'event-owner/buat-acara/buat-acara-tinjau.php',
+    'event-owner/dialog-dan-kondisi'    => 'event-owner/dialog-dan-kondisi/index.php',
+    'event-owner/dialog-publikasi'      => 'event-owner/dialog-publikasi/index.php',
+    'event-owner/edit-informasi'        => 'event-owner/edit-informasi/index.php',
+    'event-owner/panitia'               => 'event-owner/panitia/index.php',
+    'event-owner/pengajuan'             => 'event-owner/pengajuan/index.php',
+    'event-owner/pengaturan-acara'      => 'event-owner/pengaturan-acara/index.php',
+    'event-owner/peserta'               => 'event-owner/peserta/index.php',
+    'event-owner/rab'                   => 'event-owner/rab/index.php',
+    'event-owner/ringkasan'             => 'event-owner/ringkasan/index.php',
+    'event-owner/rundown'               => 'event-owner/rundown/index.php',
+    'event-owner/tiket'                 => 'event-owner/tiket/index.php',
+    'jelajah-acara'                     => 'user/jelajah-acara/index.php',
+    'kondisi-antarmuka'                 => 'user/kondisi-antarmuka/index.php',
+    'konfirmasi'                        => 'user/konfirmasi/index.php',
+    'login'                             => 'user/login/index.php',
+    'lupa-kata-sandi'                   => 'user/lupa-kata-sandi/index.php',
+    'lupa-kata-sandi/terkirim'          => 'user/lupa-kata-sandi/terkirim/index.php',
+    'masuk-daftar'                      => 'user/masuk-daftar/index.php',
+    'pendaftaran'                       => 'user/pendaftaran/index.php',
+    'register'                          => 'user/register/index.php',
+    'riwayat-pendaftaran'               => 'user/riwayat-pendaftaran/index.php',
+    'tiket-digital'                     => 'user/tiket-digital/index.php',
+    'tiket-digital/dibatalkan'          => 'user/tiket-digital/dibatalkan/index.php',
+    'tiket-digital/menunggu-pembayaran' => 'user/tiket-digital/menunggu-pembayaran/index.php',
+    'tiket-digital/sudah-dipakai'       => 'user/tiket-digital/sudah-dipakai/index.php',
+    'tiket-saya'                        => 'user/tiket-saya/index.php',
 ];
 
-$file = $routes[$path] ?? null;
-
-if ($file !== null && is_file($file)) {
-  require $file;
-  exit();
+if (!isset($routes[$path])) {
+    http_response_code(404);
+    echo '<!DOCTYPE html><html lang="id"><meta charset="utf-8"><title>404 — TIXORA</title>'
+       . '<body style="font-family:Arial,sans-serif;text-align:center;padding:96px 16px">'
+       . '<h1>404</h1><p>Halaman tidak ditemukan.</p>'
+       . '<a href="' . BASE_URL . '/">Kembali ke beranda</a>'
+       . '<p style="color:#888;font-size:12px;margin-top:32px">path: "' . htmlspecialchars($path)
+       . '" | base: "' . htmlspecialchars(BASE_URL) . '" | uri: ' . htmlspecialchars($_SERVER['REQUEST_URI'])
+       . '</p></body></html>';
+    exit;
 }
 
-http_response_code(404);
-?>
-<!DOCTYPE html>
-<html lang="id">
-
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>404 — TIXORA</title>
-  <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
-      padding: 24px;
-      background: #FAFAFC;
-      color: #0E1128;
-      font-family: Arial, Helvetica, sans-serif;
-    }
-
-    main {
-      max-width: 520px;
-      text-align: center;
-    }
-
-    h1 {
-      margin: 0 0 12px;
-      font-size: 48px;
-    }
-
-    p {
-      color: #4B5170;
-      line-height: 1.6;
-    }
-
-    a {
-      color: #4B34DB;
-      font-weight: 700;
-    }
-  </style>
-</head>
-
-<body>
-  <main>
-    <h1>404</h1>
-    <p>Halaman yang kamu cari tidak ditemukan.</p>
-    <a href="/">Kembali ke halaman utama</a>
-  </main>
-</body>
-
-</html>
+require PAGES_DIR . $routes[$path];
