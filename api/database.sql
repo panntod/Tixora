@@ -163,13 +163,13 @@ INSERT INTO roles (kode, nama, description) VALUES
 -- 1. Seed Data Users (Admin, Event Owner, Peserta)
 INSERT INTO users (id, nama, email, password, no_whatsapp, institusi, role_id, is_active) VALUES
 -- Admin Kampus: Budi Admin
-('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Budi Admin', 'admin@tixora.ac.id', '$2y$10$e.wS/P/E/wOn1zV29Rk3i.3pL.cO4.uO2q2U3W.q8N7I.m6h9S2Si', '081234567890', 'Politeknik Negeri Malang', (SELECT id FROM roles WHERE kode = 'ADMIN'), TRUE),
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Budi Admin', 'admin@tixora.ac.id', '$2y$12$/w/ZLMlUwM3v/KIDMFveQu1Aw4smMVBd3OR5p5SA5wK72CafEp9cC', '081234567890', 'Politeknik Negeri Malang', (SELECT id FROM roles WHERE kode = 'ADMIN'), TRUE),
 
 -- Event Owner: HMTI Polinema
-('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', 'HMTI Polinema', 'hmti@polinema.ac.id', '$2y$10$e.wS/P/E/wOn1zV29Rk3i.3pL.cO4.uO2q2U3W.q8N7I.m6h9S2Si', '089876543210', 'Himpunan Mahasiswa Teknologi Informasi', (SELECT id FROM roles WHERE kode = 'EVENT_OWNER'), TRUE),
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', 'HMTI Polinema', 'hmti@polinema.ac.id', '$2y$12$/w/ZLMlUwM3v/KIDMFveQu1Aw4smMVBd3OR5p5SA5wK72CafEp9cC', '089876543210', 'Himpunan Mahasiswa Teknologi Informasi', (SELECT id FROM roles WHERE kode = 'EVENT_OWNER'), TRUE),
 
 -- User / Peserta: Alya Rahma
-('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', 'Alya Rahma', 'alyarahma@gmail.com', '$2y$10$e.wS/P/E/wOn1zV29Rk3i.3pL.cO4.uO2q2U3W.q8N7I.m6h9S2Si', '085123456789', 'Politeknik Negeri Malang', (SELECT id FROM roles WHERE kode = 'USER'), TRUE);
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', 'Alya Rahma', 'alyarahma@gmail.com', '$2y$12$/w/ZLMlUwM3v/KIDMFveQu1Aw4smMVBd3OR5p5SA5wK72CafEp9cC', '085123456789', 'Politeknik Negeri Malang', (SELECT id FROM roles WHERE kode = 'USER'), TRUE);
 
 -- 2. Seed Data Event Contoh (Diselenggarakan oleh HMTI Polinema dan Berstatus TERBIT)
 INSERT INTO events (id, owner_id, judul_event, deskripsi, kategori, kuota, tanggal_mulai, tanggal_selesai, nama_tempat, kota, banner_url, status_verifikasi) VALUES
@@ -182,4 +182,4 @@ INSERT INTO ticket_categories (id, event_id, nama_kategori, kuota, wajib_ktm) VA
 
 -- 4. Seed Data E-Ticket Contoh (Alya Rahma Mendaftar pada Event HMTI)
 INSERT INTO tickets (id, event_id, ticket_category_id, user_id, kode_tiket, jenis_tiket, status_tiket, status_kehadiran) VALUES
-('t1234567-89ab-cdef-0123-456789abcdef', 'e1234567-89ab-cdef-0123-456789abcdef', 'c1234567-89ab-cdef-0123-456789abcdef', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', 'TXR-20261115-ALYA01', 'Mahasiswa Polinema', 'AKTIF', FALSE);
+('f1234567-89ab-cdef-0123-456789abcdef', 'e1234567-89ab-cdef-0123-456789abcdef', 'c1234567-89ab-cdef-0123-456789abcdef', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', 'TXR-20261115-ALYA01', 'Mahasiswa Polinema', 'AKTIF', FALSE);
