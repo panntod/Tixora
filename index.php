@@ -374,16 +374,7 @@ $routes = [
 
     // Event Details
     'detail-acara' =>
-        'user/detail-acara/index.php',
-
-    'detail-acara/dibatalkan' =>
-        'user/detail-acara/dibatalkan/index.php',
-
-    'detail-acara/selesai' =>
-        'user/detail-acara/selesai/index.php',
-
-    'detail-acara/tiket-habis' =>
-        'user/detail-acara/tiket-habis/index.php',
+        'user/detail-acara.php',
 
     // Account
     'akun' =>
@@ -394,16 +385,7 @@ $routes = [
         'user/tiket-saya.php',
 
     'tiket-digital' =>
-        'user/tiket-digital/index.php',
-
-    'tiket-digital/dibatalkan' =>
-        'user/tiket-digital/dibatalkan/index.php',
-
-    'tiket-digital/menunggu-pembayaran' =>
-        'user/tiket-digital/menunggu-pembayaran/index.php',
-
-    'tiket-digital/sudah-dipakai' =>
-        'user/tiket-digital/sudah-dipakai/index.php',
+        'user/tiket-digital.php',
 
     // Transactions
     'pembayaran' =>

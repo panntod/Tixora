@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../api/helpers/ViewHelper.php';
+require_once __DIR__ . '/../../api/helpers/BannerHelper.php';
 $db = ViewHelper::getDb();
 PaymentHelper::ensureSchema($db);
 PaymentHelper::expireOverdue($db);
@@ -9,7 +10,7 @@ PaymentHelper::expireOverdue($db);
 $currentUser = ViewHelper::requireLogin('USER');
 
 $stmt = $db->prepare("
-    SELECT t.*, e.judul_event, e.kategori, e.tanggal_mulai, e.tanggal_selesai, e.nama_tempat, e.kota,
+    SELECT t.*, e.judul_event, e.kategori, e.banner_url, e.tanggal_mulai, e.tanggal_selesai, e.nama_tempat, e.kota,
            (SELECT p.order_id FROM payments p WHERE p.ticket_id = t.id AND p.status = 'MENUNGGU'
             ORDER BY p.created_at DESC LIMIT 1) AS order_menunggu
     FROM tickets t 
@@ -46,11 +47,11 @@ foreach ($allTickets as $t) {
         function filterTickets(tab, btn) {
             document.querySelectorAll('.tab').forEach(b => b.classList.remove('tab-active'));
             btn.classList.add('tab-active');
-            
+
             const up = document.getElementById('sec-upcoming');
             const comp = document.getElementById('sec-completed');
             const canc = document.getElementById('sec-cancelled');
-            
+
             if (tab === 'all' || tab === 'upcoming') up.style.display = 'block'; else up.style.display = 'none';
             if (tab === 'all' || tab === 'completed') comp.style.display = 'block'; else comp.style.display = 'none';
             if (tab === 'all' || tab === 'cancelled') canc.style.display = 'block'; else canc.style.display = 'none';
@@ -64,11 +65,13 @@ foreach ($allTickets as $t) {
 
         <main class="tx-style-7aca552fb6">
             <h1 class="page-title tx-style-49f14f8f83">Tiket Saya</h1>
-            
+
             <div class="tabs">
-                <span class="tab tab-active" onclick="filterTickets('upcoming', this)">Akan datang (<?= count($upcoming) ?>)</span>
+                <span class="tab tab-active" onclick="filterTickets('upcoming', this)">Akan datang
+                    (<?= count($upcoming) ?>)</span>
                 <span class="tab" onclick="filterTickets('completed', this)">Selesai (<?= count($completed) ?>)</span>
-                <span class="tab" onclick="filterTickets('cancelled', this)">Dibatalkan (<?= count($cancelled) ?>)</span>
+                <span class="tab" onclick="filterTickets('cancelled', this)">Dibatalkan
+                    (<?= count($cancelled) ?>)</span>
                 <span class="tab" onclick="filterTickets('all', this)">Semua (<?= count($allTickets) ?>)</span>
             </div>
 
@@ -76,12 +79,8 @@ foreach ($allTickets as $t) {
                 <?php if (!empty($upcoming)): ?>
                     <?php foreach ($upcoming as $t): ?>
                         <div class="ticket-row">
-                            <div>
-                                <div class="poster poster-indigo tx-style-9947bf77d5" style="max-width:390px;margin:0 auto">
-                                    <div class="poster-art"><span class="art-circle-cyan"></span><span class="art-ring-dark"></span></div>
-                                    <span class="poster-kicker"><?= strtoupper(htmlspecialchars($t['kategori'])) ?></span>
-                                    <span class="poster-title poster-title-card"><?= htmlspecialchars(mb_strimwidth($t['judul_event'], 0, 16, '...')) ?></span>
-                                </div>
+                            <div style="flex:none">
+                                <?= BannerHelper::render($t, 'thumb') ?>
                             </div>
                             <div class="ticket-row-body">
                                 <?php if ($t['status_tiket'] === 'MENUNGGU_PEMBAYARAN'): ?>
@@ -90,19 +89,25 @@ foreach ($allTickets as $t) {
                                     <span class="badge badge-success"><span class="badge-dot"></span>Sah / Aktif</span>
                                 <?php endif; ?>
                                 <h3 class="ticket-row-title"><?= htmlspecialchars($t['judul_event']) ?></h3>
-                                <p class="ticket-row-meta"><?= date('d M Y', strtotime($t['tanggal_mulai'])) ?> · <?= htmlspecialchars($t['kode_tiket']) ?> · Kategori: <?= htmlspecialchars($t['jenis_tiket']) ?></p>
+                                <p class="ticket-row-meta"><?= date('d M Y', strtotime($t['tanggal_mulai'])) ?> ·
+                                    <?= htmlspecialchars($t['kode_tiket']) ?> · Kategori:
+                                    <?= htmlspecialchars($t['jenis_tiket']) ?></p>
                             </div>
                             <?php if ($t['status_tiket'] === 'MENUNGGU_PEMBAYARAN' && !empty($t['order_menunggu'])): ?>
-                                <a href="<?= BASE_URL ?>/pembayaran?order=<?= urlencode($t['order_menunggu']) ?>" class="button primary-button" style="text-decoration:none">Bayar</a>
+                                <a href="<?= BASE_URL ?>/pembayaran?order=<?= urlencode($t['order_menunggu']) ?>"
+                                    class="button primary-button" style="text-decoration:none">Bayar</a>
                             <?php else: ?>
-                                <a href="<?= BASE_URL ?>/tiket-digital?id=<?= $t['id'] ?>" class="button primary-button" style="text-decoration:none">Buka Tiket</a>
+                                <a href="<?= BASE_URL ?>/tiket-digital?id=<?= $t['id'] ?>" class="button primary-button"
+                                    style="text-decoration:none">Buka Tiket</a>
                             <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <div style="padding:32px 16px;text-align:center;background:#fff;border-radius:12px;border:1px solid #E4E4EE;margin-bottom:20px">
+                    <div
+                        style="padding:32px 16px;text-align:center;background:#fff;border-radius:12px;border:1px solid #E4E4EE;margin-bottom:20px">
                         <p class="slate">Belum ada tiket aktif untuk acara mendatang.</p>
-                        <a href="<?= BASE_URL ?>/jelajah-acara" class="button secondary-button" style="margin-top:12px;display:inline-block">Cari Acara Menarik</a>
+                        <a href="<?= BASE_URL ?>/jelajah-acara" class="button secondary-button"
+                            style="margin-top:12px;display:inline-block">Cari Acara Menarik</a>
                     </div>
                 <?php endif; ?>
             </div>
@@ -112,18 +117,18 @@ foreach ($allTickets as $t) {
                 <?php if (!empty($completed)): ?>
                     <?php foreach ($completed as $t): ?>
                         <div class="ticket-row">
-                            <div class="is-dimmed">
-                                <div class="poster poster-cyan tx-style-9947bf77d5">
-                                    <span class="poster-kicker"><?= strtoupper(htmlspecialchars($t['kategori'])) ?></span>
-                                    <span class="poster-title poster-title-card"><?= htmlspecialchars(mb_strimwidth($t['judul_event'], 0, 16, '...')) ?></span>
-                                </div>
+                            <div class="is-dimmed" style="flex:none">
+                                <?= BannerHelper::render($t, 'thumb') ?>
                             </div>
                             <div class="ticket-row-body">
-                                <span class="badge badge-neutral"><span class="badge-dot"></span><?= $t['status_kehadiran'] ? 'Sudah Digunakan' : 'Selesai' ?></span>
+                                <span class="badge badge-neutral"><span
+                                        class="badge-dot"></span><?= $t['status_kehadiran'] ? 'Sudah Digunakan' : 'Selesai' ?></span>
                                 <h3 class="ticket-row-title"><?= htmlspecialchars($t['judul_event']) ?></h3>
-                                <p class="ticket-row-meta"><?= date('d M Y', strtotime($t['tanggal_mulai'])) ?> · <?= htmlspecialchars($t['kode_tiket']) ?></p>
+                                <p class="ticket-row-meta"><?= date('d M Y', strtotime($t['tanggal_mulai'])) ?> ·
+                                    <?= htmlspecialchars($t['kode_tiket']) ?></p>
                             </div>
-                            <a href="<?= BASE_URL ?>/tiket-digital?id=<?= $t['id'] ?>" class="button ghost-button" style="text-decoration:none">Detail</a>
+                            <a href="<?= BASE_URL ?>/tiket-digital?id=<?= $t['id'] ?>" class="button ghost-button"
+                                style="text-decoration:none">Detail</a>
                         </div>
                     <?php endforeach; ?>
                 <?php else: ?>
@@ -136,18 +141,16 @@ foreach ($allTickets as $t) {
                 <?php if (!empty($cancelled)): ?>
                     <?php foreach ($cancelled as $t): ?>
                         <div class="ticket-row">
-                            <div class="is-dimmed">
-                                <div class="poster poster-coral tx-style-9947bf77d5">
-                                    <span class="poster-kicker"><?= strtoupper(htmlspecialchars($t['kategori'])) ?></span>
-                                    <span class="poster-title poster-title-card"><?= htmlspecialchars(mb_strimwidth($t['judul_event'], 0, 16, '...')) ?></span>
-                                </div>
+                            <div class="is-dimmed" style="flex:none">
+                                <?= BannerHelper::render($t, 'thumb') ?>
                             </div>
                             <div class="ticket-row-body">
                                 <span class="badge badge-error"><span class="badge-dot"></span>Dibatalkan</span>
                                 <h3 class="ticket-row-title"><?= htmlspecialchars($t['judul_event']) ?></h3>
                                 <p class="ticket-row-meta"><?= htmlspecialchars($t['kode_tiket']) ?></p>
                             </div>
-                            <a href="<?= BASE_URL ?>/tiket-digital?id=<?= $t['id'] ?>" class="button ghost-button" style="text-decoration:none">Detail</a>
+                            <a href="<?= BASE_URL ?>/tiket-digital?id=<?= $t['id'] ?>" class="button ghost-button"
+                                style="text-decoration:none">Detail</a>
                         </div>
                     <?php endforeach; ?>
                 <?php else: ?>
@@ -172,6 +175,7 @@ foreach ($allTickets as $t) {
             </div>
         </footer>
     </div>
+    <script src="<?= BASE_URL ?>/assets/default-banner.js"></script>
 </body>
 
 </html>

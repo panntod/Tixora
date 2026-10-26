@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../api/helpers/ViewHelper.php';
+require_once __DIR__ . '/../../api/helpers/BannerHelper.php';
 $db = ViewHelper::getDb();
 PaymentHelper::ensureSchema($db);
 PaymentHelper::expireOverdue($db);
@@ -63,8 +64,10 @@ $categories = ['Semua', 'Seminar', 'Workshop', 'Konferensi', 'Kompetisi'];
                     <p class="page-subtitle tx-style-86c3bb25ab"><?= $totalCount ?> acara ditemukan</p>
                 </div>
                 <form method="GET" action="" class="tx-style-2acaf3b57e">
-                    <?php if ($search): ?><input type="hidden" name="search" value="<?= htmlspecialchars($search) ?>"><?php endif; ?>
-                    <?php if ($kategori): ?><input type="hidden" name="kategori" value="<?= htmlspecialchars($kategori) ?>"><?php endif; ?>
+                    <?php if ($search): ?><input type="hidden" name="search"
+                            value="<?= htmlspecialchars($search) ?>"><?php endif; ?>
+                    <?php if ($kategori): ?><input type="hidden" name="kategori"
+                            value="<?= htmlspecialchars($kategori) ?>"><?php endif; ?>
                     <label class="field-label tx-style-4bf93bf0d9">Urutkan</label>
                     <select name="sortBy" class="input" onchange="this.form.submit()">
                         <option value="terbaru" <?= $sortBy === 'terbaru' ? 'selected' : '' ?>>Terbaru</option>
@@ -75,16 +78,17 @@ $categories = ['Semua', 'Seminar', 'Workshop', 'Konferensi', 'Kompetisi'];
 
             <!-- Search Bar -->
             <form method="GET" action="" class="search-bar search-wide tx-style-19656c7ed0">
-                <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" class="input" placeholder="Cari acara, topik, atau penyelenggara..." style="border:none;flex:1;outline:none">
+                <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" class="input"
+                    placeholder="Cari acara, topik, atau penyelenggara..." style="border:none;flex:1;outline:none">
                 <button type="submit" class="button button-large primary-button tx-style-2eda1daa91">Cari</button>
             </form>
 
             <!-- Kategori Chips -->
             <div class="chips-row tx-style-4adb1102f3">
                 <?php foreach ($categories as $cat): ?>
-                    <?php 
-                        $isActive = ($kategori === $cat) || ($cat === 'Semua' && empty($kategori));
-                        $url = BASE_URL . '/jelajah-acara?' . http_build_query(array_merge($_GET, ['kategori' => ($cat === 'Semua' ? '' : $cat)]));
+                    <?php
+                    $isActive = ($kategori === $cat) || ($cat === 'Semua' && empty($kategori));
+                    $url = BASE_URL . '/jelajah-acara?' . http_build_query(array_merge($_GET, ['kategori' => ($cat === 'Semua' ? '' : $cat)]));
                     ?>
                     <a href="<?= $url ?>" class="chip <?= $isActive ? 'chip-active' : '' ?>"><?= $cat ?></a>
                 <?php endforeach; ?>
@@ -94,31 +98,26 @@ $categories = ['Semua', 'Seminar', 'Workshop', 'Konferensi', 'Kompetisi'];
             <div class="event-grid tx-style-4d14229815">
                 <?php if (!empty($events)): ?>
                     <?php foreach ($events as $idx => $ev): ?>
-                        <?php 
-                            $sisaKuota = max(0, (int)$ev['kuota'] - (int)$ev['total_pendaftar']);
-                            $bgColors = ['poster-indigo', 'poster-coral', 'poster-ink', 'poster-amber', 'poster-cyan'];
-                            $posterBg = $bgColors[$idx % count($bgColors)];
-                            $dateStr = date('d M Y', strtotime($ev['tanggal_mulai']));
+                        <?php
+                        $sisaKuota = max(0, (int) $ev['kuota'] - (int) $ev['total_pendaftar']);
+                        $dateStr = date('d M Y', strtotime($ev['tanggal_mulai']));
                         ?>
                         <article class="event-card tx-style-30e741d98e">
-                            <div class="poster <?= $posterBg ?>" style="height:168px">
-                                <div class="poster-art"><span class="art-circle-cyan"></span></div>
-                                <span class="poster-kicker"><?= strtoupper(htmlspecialchars($ev['kategori'])) ?></span>
-                                <span class="poster-title poster-title-card"><?= htmlspecialchars(mb_strimwidth($ev['judul_event'], 0, 30, '...')) ?></span>
-                            </div>
+                            <?= BannerHelper::render($ev, 'card', ['style' => 'height:138px']) ?>
                             <div class="event-card-body">
                                 <span class="badge badge-purple"><span class="badge-dot"></span>Akan datang</span>
                                 <h3 class="event-card-title"><?= htmlspecialchars($ev['judul_event']) ?></h3>
                                 <p class="event-card-meta"><?= $dateStr ?> · <?= htmlspecialchars($ev['nama_tempat']) ?></p>
                                 <div class="event-card-footer tx-style-34c37090dc">
-                                    <?php if ((float)$ev['harga_mulai'] > 0): ?>
+                                    <?php if ((float) $ev['harga_mulai'] > 0): ?>
                                         <b class="event-card-price">Mulai <?= PaymentHelper::rupiah($ev['harga_mulai']) ?></b>
                                     <?php else: ?>
                                         <b class="event-card-price price-free">Gratis</b>
                                     <?php endif; ?>
                                     <span class="event-card-left">Sisa <?= $sisaKuota ?> kursi</span>
                                 </div>
-                                <a href="<?= BASE_URL ?>/detail-acara?id=<?= $ev['id'] ?>" class="button primary-button" style="width:100%;margin-top:12px;text-align:center">Detail &amp; Daftar</a>
+                                <a href="<?= BASE_URL ?>/detail-acara?id=<?= $ev['id'] ?>" class="button primary-button"
+                                    style="width:100%;margin-top:12px;text-align:center">Detail &amp; Daftar</a>
                             </div>
                         </article>
                     <?php endforeach; ?>
@@ -148,6 +147,7 @@ $categories = ['Semua', 'Seminar', 'Workshop', 'Konferensi', 'Kompetisi'];
             </div>
         </footer>
     </div>
+    <script src="<?= BASE_URL ?>/assets/default-banner.js"></script>
 </body>
 
 </html>

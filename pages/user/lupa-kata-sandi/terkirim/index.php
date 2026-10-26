@@ -24,16 +24,20 @@ unset($_SESSION['reset_link']);
         <main class="tx-style-29d2027ab1">
             <div class="card stack gap-16">
                 <h2 class="card-title tx-style-1169661891">Periksa surel Anda</h2>
-                <p class="slate tx-style-5db37930f2">Jika surel tersebut terdaftar, tautan untuk mengatur ulang kata sandi telah dibuat dan berlaku 60 menit.</p>
+                <p class="slate tx-style-5db37930f2">Jika surel tersebut terdaftar, tautan untuk mengatur ulang kata
+                    sandi telah dibuat dan berlaku 60 menit.</p>
 
                 <?php if ($devLink): ?>
                     <div class="alert alert-warning" style="word-break:break-all">
-                        <b>Mode pengembangan lokal</b> — server email belum dikonfigurasi, jadi tautan ditampilkan di sini:<br>
-                        <a href="<?= htmlspecialchars($devLink) ?>" class="link-text" style="color:#4B34DB"><?= htmlspecialchars($devLink) ?></a>
+                        <b>Mode pengembangan lokal</b> — server email belum dikonfigurasi, jadi tautan ditampilkan di
+                        sini:<br>
+                        <a href="<?= htmlspecialchars($devLink) ?>" class="link-text"
+                            style="color:#4B34DB"><?= htmlspecialchars($devLink) ?></a>
                     </div>
                 <?php endif; ?>
 
-                <a href="<?= BASE_URL ?>/login" class="button button-large secondary-button full-width" style="text-align:center">Kembali ke halaman masuk</a>
+                <a href="<?= BASE_URL ?>/login" class="button button-large secondary-button full-width"
+                    style="text-align:center">Kembali ke halaman masuk</a>
             </div>
         </main>
 
