@@ -1,15 +1,22 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    
-    # Izinkan otorisasi header melewati server
-    RewriteCond %{HTTP:Authorization} .
-    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
-    # Jika direktori atau file tidak ada secara fisik, arahkan ke index.php
+    # Teruskan Authorization header ke PHP
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule ^ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Jangan rewrite file atau direktori yang sudah ada
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^(.*)$ index.php [QSA,L]
+
+    # Semua endpoint API diarahkan ke API router
+    RewriteRule ^ index.php [QSA,L]
 </IfModule>
 
-# Keamanan tambahan: cegah listing direktori
+# Nonaktifkan directory listing
 Options -Indexes
+
+# Lindungi file SQL dan konfigurasi sensitif
+<FilesMatch "\.(sql|env|ini|log|bak)$">
+    Require all denied
+</FilesMatch>

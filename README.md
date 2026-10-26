@@ -8,13 +8,16 @@ tixora/
 ├── .htaccess
 ├── api/
 │   └── index.php
-├── user/
-├── admin/
-├── event-owner/
+├── assets/
+│   └── logo.png
+├── pages/
+│   ├── user/
+│   ├── admin/
+│   └── event-owner/
 └── PROGRESS.md
 ```
 
-Folder `user/`, `admin/`, dan `event-owner/` berada langsung di root project pada struktur yang saat ini dirujuk oleh tabel `$routes` di `index.php`. README ini tidak menggunakan folder `pages/`, karena `PAGES_DIR` saat ini menunjuk ke direktori tempat `index.php` berada.
+Modul halaman (`user/`, `admin/`, dan `event-owner/`) kini berada di dalam folder `pages/` dan dimuat melalui konstanta `PAGES_DIR` yang didefinisikan di `index.php`. File static CSS (`styles.css`) pada masing-masing modul dilayani secara otomatis melalui Apache rewrite dan fallback static file handler di `index.php`.
 
 ## Alur request halaman
 
@@ -49,6 +52,7 @@ Contoh route: `/tixora/jelajah-acara`, `/tixora/login`, `/tixora/admin`, dan `/t
 - Pengujian HTTP, autentikasi, dan koneksi PostgreSQL harus dilakukan di lingkungan project yang menjalankan server dan database sebenarnya.
 
 > CARA RUN : php -S 127.0.0.1:8000 -t /Users/pandhuarya/Projects/tixora /Users/pandhuarya/Projects/tixora/index.php
+> CARA CEK ERROR : php -l index.php
 
 ## Alur login sampai pembayaran
 

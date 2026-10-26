@@ -1,5 +1,42 @@
-# Laragon / Apache: semua URL yang bukan file atau folder asli diarahkan ke index.php
-RewriteEngine On
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteRule ^(admin|user|event-owner)/.*\.php$ index.php [L]
-RewriteRule ^ index.php [L]
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /tixora/
+
+    # Rewrite asset CSS modul ke dalam folder pages
+    RewriteRule ^(user|admin|event-owner)/(styles\.css)$ pages/$1/$2 [L]
+
+    # Jangan rewrite file atau direktori yang sudah ada
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Routing API ditangani oleh /api/.htaccess
+    RewriteRule ^api(?:/|$) - [L]
+
+    # Routing halaman utama
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# Nonaktifkan directory listing
+Options -Indexes
+
+# <IfModule mod_rewrite.c>
+#     RewriteEngine On
+#     RewriteBase /tixora/
+
+#     # Jangan rewrite endpoint API
+#     RewriteRule ^api(?:/|$) - [L]
+
+#     # Jangan izinkan akses langsung ke file pages
+#     RewriteRule ^pages(?:/|$) - [F,L]
+
+#     # Jangan rewrite file atau direktori yang tersedia
+#     RewriteCond %{REQUEST_FILENAME} -f [OR]
+#     RewriteCond %{REQUEST_FILENAME} -d
+#     RewriteRule ^ - [L]
+
+#     # Semua request lainnya ditangani router utama
+#     RewriteRule ^ index.php [QSA,L]
+# </IfModule>
+
+# Options -Indexes
