@@ -1,7 +1,6 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/_bootstrap.php';
 require_once defined('ROOT_DIR') ? ROOT_DIR . '/api/helpers/ViewHelper.php' : __DIR__ . '/../../api/helpers/ViewHelper.php';
 $db = ViewHelper::getDb();
 
@@ -10,19 +9,19 @@ $owner = ViewHelper::requireLogin('EVENT_OWNER');
 // Statistik Real
 $stmtTotal = $db->prepare("SELECT COUNT(*) FROM events WHERE owner_id = :id");
 $stmtTotal->execute(['id' => $owner['id']]);
-$totalAcara = (int)$stmtTotal->fetchColumn();
+$totalAcara = (int) $stmtTotal->fetchColumn();
 
 $stmtTerbit = $db->prepare("SELECT COUNT(*) FROM events WHERE owner_id = :id AND status_verifikasi IN ('TERBIT', 'PUBLISHED')");
 $stmtTerbit->execute(['id' => $owner['id']]);
-$acaraTerbit = (int)$stmtTerbit->fetchColumn();
+$acaraTerbit = (int) $stmtTerbit->fetchColumn();
 
 $stmtDraft = $db->prepare("SELECT COUNT(*) FROM events WHERE owner_id = :id AND status_verifikasi = 'DRAF'");
 $stmtDraft->execute(['id' => $owner['id']]);
-$draftCount = (int)$stmtDraft->fetchColumn();
+$draftCount = (int) $stmtDraft->fetchColumn();
 
 $stmtPending = $db->prepare("SELECT COUNT(*) FROM events WHERE owner_id = :id AND status_verifikasi = 'MENUNGGU_TINJAUAN'");
 $stmtPending->execute(['id' => $owner['id']]);
-$pendingCount = (int)$stmtPending->fetchColumn();
+$pendingCount = (int) $stmtPending->fetchColumn();
 
 $stmtTickets = $db->prepare("
     SELECT COUNT(t.id) 
@@ -31,7 +30,7 @@ $stmtTickets = $db->prepare("
     WHERE e.owner_id = :id AND t.status_tiket != 'BATAL'
 ");
 $stmtTickets->execute(['id' => $owner['id']]);
-$totalPendaftar = (int)$stmtTickets->fetchColumn();
+$totalPendaftar = (int) $stmtTickets->fetchColumn();
 
 // Cek acara perlu revisi
 $stmtRevisi = $db->prepare("SELECT * FROM events WHERE owner_id = :id AND status_verifikasi = 'DITOLAK' LIMIT 1");
@@ -77,9 +76,12 @@ $logs = $stmtLogs->fetchAll();
                 <div class="logo">
                     <img class="logo-img" src="<?= BASE_URL ?>/assets/logo.png" alt="Logo TIXORA">
                 </div>
-                <a href="<?= BASE_URL ?>/event-owner" class="side-item side-item-active" style="text-decoration:none">Dasbor</a>
-                <a href="<?= BASE_URL ?>/event-owner/acara-saya" class="side-item" style="text-decoration:none">Acara saya</a>
-                <a href="<?= BASE_URL ?>/event-owner/buat-acara" class="side-item" style="text-decoration:none">Buat acara</a>
+                <a href="<?= BASE_URL ?>/event-owner" class="side-item side-item-active"
+                    style="text-decoration:none">Dasbor</a>
+                <a href="<?= BASE_URL ?>/event-owner/acara-saya" class="side-item" style="text-decoration:none">Acara
+                    saya</a>
+                <a href="<?= BASE_URL ?>/event-owner/buat-acara" class="side-item" style="text-decoration:none">Buat
+                    acara</a>
                 <a href="<?= BASE_URL ?>/jelajah-acara" class="side-item" style="text-decoration:none">Jelajah Acara</a>
                 <a href="<?= BASE_URL ?>/logout" class="side-item" style="text-decoration:none;color:#B91C1C">Keluar</a>
                 <div class="side-user">
@@ -96,13 +98,14 @@ $logs = $stmtLogs->fetchAll();
                         <p class="page-subtitle">Panel Pengelolaan Acara &amp; Tiket Kampus</p>
                     </div>
                     <div class="head-actions">
-                        <a href="<?= BASE_URL ?>/event-owner/buat-acara" class="button primary-button button-large" style="text-decoration:none">+ Buat acara</a>
+                        <a href="<?= BASE_URL ?>/event-owner/buat-acara" class="button primary-button button-large"
+                            style="text-decoration:none">+ Buat acara</a>
                     </div>
                 </div>
 
                 <?php if ($acaraRevisi): ?>
                     <div style="margin-bottom:24px" class="alert alert-error">
-                        1 acara perlu revisi: <b><?= htmlspecialchars($acaraRevisi['judul_event']) ?></b>. 
+                        1 acara perlu revisi: <b><?= htmlspecialchars($acaraRevisi['judul_event']) ?></b>.
                         Alasan: <?= htmlspecialchars($acaraRevisi['alasan_penolakan'] ?? 'Tinjau catatan admin.') ?>
                     </div>
                 <?php endif; ?>
@@ -141,16 +144,18 @@ $logs = $stmtLogs->fetchAll();
                             </div>
                             <?php if (!empty($upcomingEvents)): ?>
                                 <?php foreach ($upcomingEvents as $ev): ?>
-                                    <?php 
-                                        $pct = $ev['kuota'] > 0 ? min(100, round(((int)$ev['total_pendaftar'] / (int)$ev['kuota']) * 100)) : 0;
+                                    <?php
+                                    $pct = $ev['kuota'] > 0 ? min(100, round(((int) $ev['total_pendaftar'] / (int) $ev['kuota']) * 100)) : 0;
                                     ?>
                                     <div class="tbl-row">
                                         <div class="tbl-cell" style="width:360px">
                                             <b><?= htmlspecialchars($ev['judul_event']) ?></b>
-                                            <div class="cell-sub"><?= date('d M Y', strtotime($ev['tanggal_mulai'])) ?> · <?= htmlspecialchars($ev['nama_tempat']) ?></div>
+                                            <div class="cell-sub"><?= date('d M Y', strtotime($ev['tanggal_mulai'])) ?> ·
+                                                <?= htmlspecialchars($ev['nama_tempat']) ?></div>
                                         </div>
                                         <div class="tbl-cell" style="width:150px">
-                                            <span class="badge <?= $ev['status_verifikasi'] === 'TERBIT' ? 'badge-success' : ($ev['status_verifikasi'] === 'MENUNGGU_TINJAUAN' ? 'badge-warning' : 'badge-neutral') ?>">
+                                            <span
+                                                class="badge <?= $ev['status_verifikasi'] === 'TERBIT' ? 'badge-success' : ($ev['status_verifikasi'] === 'MENUNGGU_TINJAUAN' ? 'badge-warning' : 'badge-neutral') ?>">
                                                 <span class="badge-dot"></span><?= htmlspecialchars($ev['status_verifikasi']) ?>
                                             </span>
                                         </div>
@@ -158,14 +163,18 @@ $logs = $stmtLogs->fetchAll();
                                             <div class="progress">
                                                 <div class="progress-fill" style="width:<?= $pct ?>%"></div>
                                             </div>
-                                            <div class="cell-sub" style="font-size:12px;margin-top:4px"><?= (int)$ev['total_pendaftar'] ?> / <?= (int)$ev['kuota'] ?> pendaftar (<?= $pct ?>%)</div>
+                                            <div class="cell-sub" style="font-size:12px;margin-top:4px">
+                                                <?= (int) $ev['total_pendaftar'] ?> / <?= (int) $ev['kuota'] ?> pendaftar
+                                                (<?= $pct ?>%)</div>
                                         </div>
                                     </div>
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <div style="padding:32px 16px;text-align:center">
                                     <p class="slate">Belum ada acara. Mulai buat acara pertama Anda.</p>
-                                    <a href="<?= BASE_URL ?>/event-owner/buat-acara" class="button primary-button small-button" style="margin-top:10px;text-decoration:none">+ Buat Acara</a>
+                                    <a href="<?= BASE_URL ?>/event-owner/buat-acara"
+                                        class="button primary-button small-button"
+                                        style="margin-top:10px;text-decoration:none">+ Buat Acara</a>
                                 </div>
                             <?php endif; ?>
                         </div>
@@ -178,7 +187,8 @@ $logs = $stmtLogs->fetchAll();
                                 <div class="feed-item">
                                     <span class="feed-dot"></span>
                                     <div>
-                                        <b><?= htmlspecialchars($lg['judul_event']) ?></b> — <?= htmlspecialchars($lg['catatan'] ?? $lg['status']) ?>
+                                        <b><?= htmlspecialchars($lg['judul_event']) ?></b> —
+                                        <?= htmlspecialchars($lg['catatan'] ?? $lg['status']) ?>
                                         <div class="feed-time"><?= date('d M Y, H:i', strtotime($lg['created_at'])) ?></div>
                                     </div>
                                 </div>
@@ -186,7 +196,9 @@ $logs = $stmtLogs->fetchAll();
                         <?php else: ?>
                             <div class="feed-item">
                                 <span class="feed-dot"></span>
-                                <div><b>Sistem Tixora</b> Siap digunakan untuk mempublikasikan kegiatan kampus.<div class="feed-time">Sekarang</div></div>
+                                <div><b>Sistem Tixora</b> Siap digunakan untuk mempublikasikan kegiatan kampus.<div
+                                        class="feed-time">Sekarang</div>
+                                </div>
                             </div>
                         <?php endif; ?>
                     </div>

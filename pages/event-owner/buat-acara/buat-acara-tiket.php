@@ -1,6 +1,3 @@
-<?php
-require_once __DIR__ . '/../_bootstrap.php';
-?>
 <!DOCTYPE html>
 <html lang="id">
 
@@ -15,9 +12,10 @@ require_once __DIR__ . '/../_bootstrap.php';
     <div class="frame" style="width:1440px;height:1260px">
         <div class="app">
             <aside class="sidebar">
-                <div class="logo"><img class="logo-img" src="<?= BASE_URL ?>/assets/logo.png" alt="Logo TIXORA"></div><span class="side-item">Dasbor</span><span
-                    class="side-item">Acara saya</span><span class="side-item side-item-active">Buat acara</span><span
-                    class="side-item">Pengaturan</span><span class="side-item">Keluar</span>
+                <div class="logo"><img class="logo-img" src="<?= BASE_URL ?>/assets/logo.png" alt="Logo TIXORA"></div>
+                <span class="side-item">Dasbor</span><span class="side-item">Acara saya</span><span
+                    class="side-item side-item-active">Buat acara</span><span class="side-item">Pengaturan</span><span
+                    class="side-item">Keluar</span>
                 <div class="side-user"><b>Dimas Prakoso</b>HMTI Fakultas Ilmu Komputer</div>
             </aside>
             <main class="main">
@@ -39,7 +37,8 @@ require_once __DIR__ . '/../_bootstrap.php';
                             class="step-dot">4</span>Tinjau &amp; ajukan</span></div>
                 <div class="stack gap-24" style="width:880px">
                     <div class="alert alert-info">Kapasitas total acara dihitung dari jumlah kuota seluruh kategori:
-                        <b>250 kursi</b>.</div>
+                        <b>250 kursi</b>.
+                    </div>
                     <div class="card">
                         <div class="row-between" style="margin-bottom:12px"><b style="font-size:16px">Kategori
                                 Umum</b><span class="button ghost-button small-button">Hapus</span></div>

@@ -1,7 +1,6 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/../_bootstrap.php';
 require_once defined('ROOT_DIR') ? ROOT_DIR . '/api/helpers/ViewHelper.php' : __DIR__ . '/../../../api/helpers/ViewHelper.php';
 $db = ViewHelper::getDb();
 
@@ -14,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $judulEvent = trim($_POST['judul_event'] ?? '');
     $kategori = trim($_POST['kategori'] ?? 'Seminar');
     $deskripsi = trim($_POST['deskripsi'] ?? '');
-    $kuota = (int)($_POST['kuota'] ?? 100);
+    $kuota = (int) ($_POST['kuota'] ?? 100);
     $tanggalMulai = $_POST['tanggal_mulai'] ?? '';
     $tanggalSelesai = $_POST['tanggal_selesai'] ?? '';
     $namaTempat = trim($_POST['nama_tempat'] ?? '');
@@ -67,8 +66,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
 
             // Catat ke log pengajuan
-            $logCatatan = ($statusVerifikasi === 'MENUNGGU_TINJAUAN') 
-                ? 'Acara dibuat dan langsung diajukan ke admin kampus.' 
+            $logCatatan = ($statusVerifikasi === 'MENUNGGU_TINJAUAN')
+                ? 'Acara dibuat dan langsung diajukan ke admin kampus.'
                 : 'Draf acara berhasil disimpan.';
             $stmtLog = $db->prepare("
                 INSERT INTO event_submission_logs (event_id, status, catatan)
@@ -109,8 +108,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <img class="logo-img" src="<?= BASE_URL ?>/assets/logo.png" alt="Logo TIXORA">
                 </div>
                 <a href="<?= BASE_URL ?>/event-owner" class="side-item" style="text-decoration:none">Dasbor</a>
-                <a href="<?= BASE_URL ?>/event-owner/acara-saya" class="side-item" style="text-decoration:none">Acara saya</a>
-                <a href="<?= BASE_URL ?>/event-owner/buat-acara" class="side-item side-item-active" style="text-decoration:none">Buat acara</a>
+                <a href="<?= BASE_URL ?>/event-owner/acara-saya" class="side-item" style="text-decoration:none">Acara
+                    saya</a>
+                <a href="<?= BASE_URL ?>/event-owner/buat-acara" class="side-item side-item-active"
+                    style="text-decoration:none">Buat acara</a>
                 <a href="<?= BASE_URL ?>/jelajah-acara" class="side-item" style="text-decoration:none">Jelajah Acara</a>
                 <a href="<?= BASE_URL ?>/logout" class="side-item" style="text-decoration:none;color:#B91C1C">Keluar</a>
                 <div class="side-user">
@@ -140,7 +141,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="stack gap-16">
                             <div>
                                 <label class="field-label">Nama Acara *</label>
-                                <input type="text" name="judul_event" class="input" placeholder="Contoh: Workshop Cloud Computing 2026" required value="<?= htmlspecialchars($_POST['judul_event'] ?? '') ?>">
+                                <input type="text" name="judul_event" class="input"
+                                    placeholder="Contoh: Workshop Cloud Computing 2026" required
+                                    value="<?= htmlspecialchars($_POST['judul_event'] ?? '') ?>">
                             </div>
                             <div class="two-fields">
                                 <div>
@@ -154,16 +157,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </div>
                                 <div>
                                     <label class="field-label">Penyelenggara</label>
-                                    <input type="text" class="input" value="<?= htmlspecialchars($owner['nama']) ?>" readonly style="background:#F8F8FC">
+                                    <input type="text" class="input" value="<?= htmlspecialchars($owner['nama']) ?>"
+                                        readonly style="background:#F8F8FC">
                                 </div>
                             </div>
                             <div>
                                 <label class="field-label">Deskripsi Lengkap Acara *</label>
-                                <textarea name="deskripsi" class="input input-area" style="height:120px;font-family:inherit;padding:12px" placeholder="Jelaskan tujuan, topik pembahasan, dan manfaat mengikuti acara ini..." required><?= htmlspecialchars($_POST['deskripsi'] ?? '') ?></textarea>
+                                <textarea name="deskripsi" class="input input-area"
+                                    style="height:120px;font-family:inherit;padding:12px"
+                                    placeholder="Jelaskan tujuan, topik pembahasan, dan manfaat mengikuti acara ini..."
+                                    required><?= htmlspecialchars($_POST['deskripsi'] ?? '') ?></textarea>
                             </div>
                             <div>
                                 <label class="field-label">Kapasitas / Kuota Peserta *</label>
-                                <input type="number" name="kuota" class="input" min="1" max="10000" placeholder="100" required value="<?= htmlspecialchars((string)($_POST['kuota'] ?? '100')) ?>">
+                                <input type="number" name="kuota" class="input" min="1" max="10000" placeholder="100"
+                                    required value="<?= htmlspecialchars((string) ($_POST['kuota'] ?? '100')) ?>">
                             </div>
                         </div>
                     </div>
@@ -174,33 +182,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="two-fields">
                                 <div>
                                     <label class="field-label">Waktu Mulai *</label>
-                                    <input type="datetime-local" name="tanggal_mulai" class="input" required value="<?= htmlspecialchars($_POST['tanggal_mulai'] ?? '') ?>">
+                                    <input type="datetime-local" name="tanggal_mulai" class="input" required
+                                        value="<?= htmlspecialchars($_POST['tanggal_mulai'] ?? '') ?>">
                                 </div>
                                 <div>
                                     <label class="field-label">Waktu Selesai *</label>
-                                    <input type="datetime-local" name="tanggal_selesai" class="input" required value="<?= htmlspecialchars($_POST['tanggal_selesai'] ?? '') ?>">
+                                    <input type="datetime-local" name="tanggal_selesai" class="input" required
+                                        value="<?= htmlspecialchars($_POST['tanggal_selesai'] ?? '') ?>">
                                 </div>
                             </div>
                             <div class="two-fields">
                                 <div>
                                     <label class="field-label">Nama Tempat / Gedung *</label>
-                                    <input type="text" name="nama_tempat" class="input" placeholder="Contoh: Auditorium Gedung AH" required value="<?= htmlspecialchars($_POST['nama_tempat'] ?? '') ?>">
+                                    <input type="text" name="nama_tempat" class="input"
+                                        placeholder="Contoh: Auditorium Gedung AH" required
+                                        value="<?= htmlspecialchars($_POST['nama_tempat'] ?? '') ?>">
                                 </div>
                                 <div>
                                     <label class="field-label">Kota *</label>
-                                    <input type="text" name="kota" class="input" placeholder="Malang" required value="<?= htmlspecialchars($_POST['kota'] ?? 'Malang') ?>">
+                                    <input type="text" name="kota" class="input" placeholder="Malang" required
+                                        value="<?= htmlspecialchars($_POST['kota'] ?? 'Malang') ?>">
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="wizard-footer" style="width:880px;box-sizing:border-box;display:flex;justify-content:space-between;align-items:center">
-                        <button type="submit" name="status_aksi" value="DRAF" class="button ghost-button" style="cursor:pointer">
+                    <div class="wizard-footer"
+                        style="width:880px;box-sizing:border-box;display:flex;justify-content:space-between;align-items:center">
+                        <button type="submit" name="status_aksi" value="DRAF" class="button ghost-button"
+                            style="cursor:pointer">
                             Simpan Sebagai Draf
                         </button>
                         <div class="row">
-                            <a href="<?= BASE_URL ?>/event-owner/acara-saya" class="button secondary-button" style="text-decoration:none">Batal</a>
-                            <button type="submit" name="status_aksi" value="MENUNGGU_TINJAUAN" class="button primary-button" style="cursor:pointer">
+                            <a href="<?= BASE_URL ?>/event-owner/acara-saya" class="button secondary-button"
+                                style="text-decoration:none">Batal</a>
+                            <button type="submit" name="status_aksi" value="MENUNGGU_TINJAUAN"
+                                class="button primary-button" style="cursor:pointer">
                                 Ajukan ke Admin untuk Ditinjau
                             </button>
                         </div>

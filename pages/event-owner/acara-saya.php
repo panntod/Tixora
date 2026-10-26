@@ -1,7 +1,6 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/_bootstrap.php';
 require_once __DIR__ . '/../../api/helpers/ViewHelper.php';
 $db = ViewHelper::getDb();
 
@@ -63,8 +62,10 @@ $totalSemua = array_sum($rawCounts);
                     <img class="logo-img" src="<?= BASE_URL ?>/assets/logo.png" alt="Logo TIXORA">
                 </div>
                 <a href="<?= BASE_URL ?>/event-owner" class="side-item" style="text-decoration:none">Dasbor</a>
-                <a href="<?= BASE_URL ?>/event-owner/acara-saya" class="side-item side-item-active" style="text-decoration:none">Acara saya</a>
-                <a href="<?= BASE_URL ?>/event-owner/buat-acara" class="side-item" style="text-decoration:none">Buat acara</a>
+                <a href="<?= BASE_URL ?>/event-owner/acara-saya" class="side-item side-item-active"
+                    style="text-decoration:none">Acara saya</a>
+                <a href="<?= BASE_URL ?>/event-owner/buat-acara" class="side-item" style="text-decoration:none">Buat
+                    acara</a>
                 <a href="<?= BASE_URL ?>/jelajah-acara" class="side-item" style="text-decoration:none">Jelajah Acara</a>
                 <a href="<?= BASE_URL ?>/logout" class="side-item" style="text-decoration:none;color:#B91C1C">Keluar</a>
                 <div class="side-user">
@@ -81,7 +82,8 @@ $totalSemua = array_sum($rawCounts);
                         <p class="page-subtitle">Kelola semua acara dalam satu daftar</p>
                     </div>
                     <div class="head-actions">
-                        <a href="<?= BASE_URL ?>/event-owner/buat-acara" class="button primary-button button-large" style="text-decoration:none">+ Buat acara</a>
+                        <a href="<?= BASE_URL ?>/event-owner/buat-acara" class="button primary-button button-large"
+                            style="text-decoration:none">+ Buat acara</a>
                     </div>
                 </div>
 
@@ -89,24 +91,31 @@ $totalSemua = array_sum($rawCounts);
                     <?php if ($status !== 'SEMUA'): ?>
                         <input type="hidden" name="status" value="<?= htmlspecialchars($status) ?>">
                     <?php endif; ?>
-                    <input type="text" name="search" class="input" style="flex:1;width:auto" placeholder="Cari nama acara..." value="<?= htmlspecialchars($search) ?>">
+                    <input type="text" name="search" class="input" style="flex:1;width:auto"
+                        placeholder="Cari nama acara..." value="<?= htmlspecialchars($search) ?>">
                     <button type="submit" class="button secondary-button">Cari</button>
                 </form>
 
                 <div class="chip-row">
-                    <a href="<?= BASE_URL ?>/event-owner/acara-saya" class="chip <?= $status === 'SEMUA' ? 'chip-active' : '' ?>" style="text-decoration:none">
+                    <a href="<?= BASE_URL ?>/event-owner/acara-saya"
+                        class="chip <?= $status === 'SEMUA' ? 'chip-active' : '' ?>" style="text-decoration:none">
                         Semua <?= $totalSemua ?>
                     </a>
-                    <a href="<?= BASE_URL ?>/event-owner/acara-saya?status=DRAF" class="chip <?= $status === 'DRAF' ? 'chip-active' : '' ?>" style="text-decoration:none">
+                    <a href="<?= BASE_URL ?>/event-owner/acara-saya?status=DRAF"
+                        class="chip <?= $status === 'DRAF' ? 'chip-active' : '' ?>" style="text-decoration:none">
                         Draf <?= $rawCounts['DRAF'] ?? 0 ?>
                     </a>
-                    <a href="<?= BASE_URL ?>/event-owner/acara-saya?status=MENUNGGU_TINJAUAN" class="chip <?= $status === 'MENUNGGU_TINJAUAN' ? 'chip-active' : '' ?>" style="text-decoration:none">
+                    <a href="<?= BASE_URL ?>/event-owner/acara-saya?status=MENUNGGU_TINJAUAN"
+                        class="chip <?= $status === 'MENUNGGU_TINJAUAN' ? 'chip-active' : '' ?>"
+                        style="text-decoration:none">
                         Menunggu <?= $rawCounts['MENUNGGU_TINJAUAN'] ?? 0 ?>
                     </a>
-                    <a href="<?= BASE_URL ?>/event-owner/acara-saya?status=TERBIT" class="chip <?= $status === 'TERBIT' ? 'chip-active' : '' ?>" style="text-decoration:none">
+                    <a href="<?= BASE_URL ?>/event-owner/acara-saya?status=TERBIT"
+                        class="chip <?= $status === 'TERBIT' ? 'chip-active' : '' ?>" style="text-decoration:none">
                         Terbit <?= ($rawCounts['TERBIT'] ?? 0) + ($rawCounts['PUBLISHED'] ?? 0) ?>
                     </a>
-                    <a href="<?= BASE_URL ?>/event-owner/acara-saya?status=DITOLAK" class="chip <?= $status === 'DITOLAK' ? 'chip-active' : '' ?>" style="text-decoration:none">
+                    <a href="<?= BASE_URL ?>/event-owner/acara-saya?status=DITOLAK"
+                        class="chip <?= $status === 'DITOLAK' ? 'chip-active' : '' ?>" style="text-decoration:none">
                         Ditolak <?= $rawCounts['DITOLAK'] ?? 0 ?>
                     </a>
                 </div>
@@ -125,28 +134,35 @@ $totalSemua = array_sum($rawCounts);
                             <div class="tbl-row">
                                 <div class="tbl-cell" style="width:380px">
                                     <b><?= htmlspecialchars($ev['judul_event']) ?></b>
-                                    <div class="cell-sub"><?= htmlspecialchars($ev['nama_tempat']) ?>, <?= htmlspecialchars($ev['kota']) ?></div>
+                                    <div class="cell-sub"><?= htmlspecialchars($ev['nama_tempat']) ?>,
+                                        <?= htmlspecialchars($ev['kota']) ?></div>
                                 </div>
                                 <div class="tbl-cell" style="width:140px">
                                     <?= date('d M Y', strtotime($ev['tanggal_mulai'])) ?>
                                 </div>
                                 <div class="tbl-cell" style="width:150px">
-                                    <b><?= (int)$ev['total_pendaftar'] ?></b> / <?= (int)$ev['kuota'] ?>
+                                    <b><?= (int) $ev['total_pendaftar'] ?></b> / <?= (int) $ev['kuota'] ?>
                                 </div>
                                 <div class="tbl-cell" style="width:160px">
-                                    <span class="badge <?= $ev['status_verifikasi'] === 'TERBIT' ? 'badge-success' : ($ev['status_verifikasi'] === 'MENUNGGU_TINJAUAN' ? 'badge-warning' : ($ev['status_verifikasi'] === 'DITOLAK' ? 'badge-error' : 'badge-neutral')) ?>">
+                                    <span
+                                        class="badge <?= $ev['status_verifikasi'] === 'TERBIT' ? 'badge-success' : ($ev['status_verifikasi'] === 'MENUNGGU_TINJAUAN' ? 'badge-warning' : ($ev['status_verifikasi'] === 'DITOLAK' ? 'badge-error' : 'badge-neutral')) ?>">
                                         <span class="badge-dot"></span><?= htmlspecialchars($ev['status_verifikasi']) ?>
                                     </span>
                                 </div>
                                 <div class="tbl-cell tbl-right" style="width:220px">
                                     <?php if ($ev['status_verifikasi'] === 'DRAF'): ?>
-                                        <form method="POST" action="<?= BASE_URL ?>/api/owner/submit-event/<?= $ev['id'] ?>" style="display:inline">
-                                            <button type="submit" class="button primary-button small-button" style="cursor:pointer">Ajukan</button>
+                                        <form method="POST" action="<?= BASE_URL ?>/api/owner/submit-event/<?= $ev['id'] ?>"
+                                            style="display:inline">
+                                            <button type="submit" class="button primary-button small-button"
+                                                style="cursor:pointer">Ajukan</button>
                                         </form>
                                     <?php elseif ($ev['status_verifikasi'] === 'TERBIT'): ?>
-                                        <a href="<?= BASE_URL ?>/detail-acara?id=<?= $ev['id'] ?>" class="button secondary-button small-button" style="text-decoration:none">Lihat Publik</a>
+                                        <a href="<?= BASE_URL ?>/detail-acara?id=<?= $ev['id'] ?>"
+                                            class="button secondary-button small-button" style="text-decoration:none">Lihat
+                                            Publik</a>
                                     <?php else: ?>
-                                        <span class="muted" style="font-size:13px"><?= htmlspecialchars($ev['status_verifikasi']) ?></span>
+                                        <span class="muted"
+                                            style="font-size:13px"><?= htmlspecialchars($ev['status_verifikasi']) ?></span>
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -154,7 +170,8 @@ $totalSemua = array_sum($rawCounts);
                     <?php else: ?>
                         <div style="padding:48px 16px;text-align:center">
                             <p class="slate">Tidak ada acara yang sesuai filter saat ini.</p>
-                            <a href="<?= BASE_URL ?>/event-owner/buat-acara" class="button primary-button small-button" style="margin-top:12px;display:inline-block;text-decoration:none">+ Buat Acara Baru</a>
+                            <a href="<?= BASE_URL ?>/event-owner/buat-acara" class="button primary-button small-button"
+                                style="margin-top:12px;display:inline-block;text-decoration:none">+ Buat Acara Baru</a>
                         </div>
                     <?php endif; ?>
                 </div>
