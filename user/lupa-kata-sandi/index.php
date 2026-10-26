@@ -11,13 +11,7 @@
     <div class="frame tx-style-c47b82d91a">
         <header class="navbar">
             <div class="container">
-                <div class="logo"><svg width="30" height="30" viewBox="0 0 32 32" role="img" aria-label="Logo TIXORA">
-                        <path
-                            d="M8 2h16a6 6 0 0 1 6 6v5.5a2.5 2.5 0 0 0 0 5V24a6 6 0 0 1-6 6H8a6 6 0 0 1-6-6v-5.5a2.5 2.5 0 0 0 0-5V8a6 6 0 0 1 6-6z"
-                            fill="#4B34DB" />
-                        <path d="M11 11l10 10M21 11L11 21" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"
-                            fill="none" />
-                    </svg><span class="logo-text">tixora</span></div>
+                <div class="logo"><img class="logo-img" src="<?= BASE_URL ?>/assets/logo.png" alt="Logo TIXORA"></div>
                 <nav class="nav-links"><span>Jelajahi acara</span></nav><span class="nav-actions"><span
                         class="button ghost-button">Masuk</span><span class="button primary-button">Daftar</span></span>
             </div>
@@ -38,14 +32,7 @@
         <footer class="footer">
             <div class="container">
                 <div>
-                    <div class="logo"><svg width="30" height="30" viewBox="0 0 32 32" role="img"
-                            aria-label="Logo TIXORA">
-                            <path
-                                d="M8 2h16a6 6 0 0 1 6 6v5.5a2.5 2.5 0 0 0 0 5V24a6 6 0 0 1-6 6H8a6 6 0 0 1-6-6v-5.5a2.5 2.5 0 0 0 0-5V8a6 6 0 0 1 6-6z"
-                                fill="#4B34DB" />
-                            <path d="M11 11l10 10M21 11L11 21" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"
-                                fill="none" />
-                        </svg><span class="logo-text">tixora</span></div>
+                    <div class="logo"><img class="logo-img" src="<?= BASE_URL ?>/assets/logo.png" alt="Logo TIXORA"></div>
                     <p class="footer-text">Platform acara dan tiket digital.</p>
                 </div>
                 <nav class="footer-links"><span>Bantuan</span><span>Syarat &amp; ketentuan</span><span>Kebijakan

@@ -22,6 +22,12 @@ body {
   gap: 9px;
 }
 
+.logo-img {
+  display: block;
+  height: 32px;
+  width: auto;
+}
+
 .logo-text {
   font-size: 22px;
   line-height: 28px;

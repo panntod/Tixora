@@ -52,11 +52,7 @@ class ViewHelper {
             <div class="container" style="display:flex;align-items:center;justify-content:space-between;height:63px">
                 <div style="display:flex;align-items:center;gap:32px">
                     <a href="<?= BASE_URL ?>/" class="logo" style="text-decoration:none">
-                        <svg width="30" height="30" viewBox="0 0 32 32" role="img" aria-label="Logo TIXORA">
-                            <path d="M8 2h16a6 6 0 0 1 6 6v5.5a2.5 2.5 0 0 0 0 5V24a6 6 0 0 1-6 6H8a6 6 0 0 1-6-6v-5.5a2.5 2.5 0 0 0 0-5V8a6 6 0 0 1 6-6z" fill="#4B34DB" />
-                            <path d="M11 11l10 10M21 11L11 21" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" fill="none" />
-                        </svg>
-                        <span class="logo-text">tixora</span>
+                        <img class="logo-img" src="<?= BASE_URL ?>/assets/logo.png" alt="Logo TIXORA">
                     </a>
                     <nav class="nav-links">
                         <a href="<?= BASE_URL ?>/jelajah-acara" style="color:<?= $active === 'jelajah' ? '#4B34DB' : '#4B5170' ?>;text-decoration:none">Jelajahi acara</a>

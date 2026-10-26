@@ -46,11 +46,7 @@ $aktivitas = $stmtLogs->fetchAll();
         <div class="app">
             <aside class="sidebar">
                 <div class="logo">
-                    <svg width="30" height="30" viewBox="0 0 32 32" role="img" aria-label="Logo TIXORA">
-                        <path d="M8 2h16a6 6 0 0 1 6 6v5.5a2.5 2.5 0 0 0 0 5V24a6 6 0 0 1-6 6H8a6 6 0 0 1-6-6v-5.5a2.5 2.5 0 0 0 0-5V8a6 6 0 0 1 6-6z" fill="#4B34DB" />
-                        <path d="M11 11l10 10M21 11L11 21" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" fill="none" />
-                    </svg>
-                    <span class="logo-text">tixora</span>
+                    <img class="logo-img" src="<?= BASE_URL ?>/assets/logo.png" alt="Logo TIXORA">
                 </div>
                 <span class="side-label">ADMIN PANEL</span>
                 <a class="side-item side-item-active" href="<?= BASE_URL ?>/admin">Dasbor</a>
