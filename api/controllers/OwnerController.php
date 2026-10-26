@@ -270,17 +270,25 @@ class OwnerController {
             echo json_encode(['success' => false, 'message' => 'Nama kategori dan kuota tiket wajib diisi dengan benar.']);
             return;
         }
+        if ($harga < 0 || $harga > 99999999) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Harga tiket tidak valid (0 untuk tiket gratis).']);
+            return;
+        }
+        require_once __DIR__ . '/../helpers/PaymentHelper.php';
+        PaymentHelper::ensureSchema($this->db);
 
         try {
             $stmt = $this->db->prepare("
-                INSERT INTO ticket_categories (event_id, nama_kategori, kuota, wajib_ktm)
-                VALUES (:event_id, :nama_kategori, :kuota, :wajib_ktm)
+                INSERT INTO ticket_categories (event_id, nama_kategori, kuota, wajib_ktm, harga)
+                VALUES (:event_id, :nama_kategori, :kuota, :wajib_ktm, :harga)
                 RETURNING id
             ");
             $stmt->execute([
                 'event_id' => $eventId,
                 'nama_kategori' => $namaKategori,
                 'kuota' => $kuota,
+                'harga' => $harga,
                 'wajib_ktm' => $wajibKtm ? 'true' : 'false'
             ]);
 

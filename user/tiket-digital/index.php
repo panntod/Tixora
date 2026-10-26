@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../api/helpers/ViewHelper.php';
 $db = ViewHelper::getDb();
+PaymentHelper::ensureSchema($db);
+PaymentHelper::expireOverdue($db);
 
 $currentUser = ViewHelper::requireLogin('USER');
 
@@ -45,6 +47,12 @@ if (!$ticket) {
     exit;
 }
 
+// Tiket yang belum dibayar belum punya QR aktif: arahkan ke halaman menunggu pembayaran
+if ($ticket['status_tiket'] === 'MENUNGGU_PEMBAYARAN') {
+    header('Location: ' . BASE_URL . '/tiket-digital/menunggu-pembayaran?id=' . urlencode($ticket['id']));
+    exit;
+}
+
 $isSuccess = isset($_GET['success']);
 $kickerDate = strtoupper(date('D · d M Y', strtotime($ticket['tanggal_mulai'])));
 ?>
@@ -69,7 +77,7 @@ $kickerDate = strtoupper(date('D · d M Y', strtotime($ticket['tanggal_mulai']))
             <span class="badge badge-purple">TIXORA E-PASS</span>
         </header>
 
-        <main class="tx-style-d84e93a035">
+        <main class="tx-style-d84e93a035" style="max-width:390px;margin:0 auto">
             <?php if ($isSuccess): ?>
                 <div class="alert alert-success" style="margin-bottom:20px;text-align:center">
                     🎉 Pendaftaran Berhasil! E-Ticket Anda telah aktif dan siap digunakan.

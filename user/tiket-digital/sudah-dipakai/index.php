@@ -15,7 +15,7 @@
                 <path d="M12 4l-6 6 6 6M6 10h10" stroke="#0E1128" stroke-width="2" fill="none" stroke-linecap="round"
                     stroke-linejoin="round" />
             </svg><span class="tx-style-a1b26d50e6">Tiket saya</span></header>
-        <main class="tx-style-d84e93a035">
+        <main class="tx-style-d84e93a035" style="max-width:390px;margin:0 auto">
             <div class="ticket tx-style-d944635d3c">
                 <div class="is-dimmed">
                     <div class="poster poster-indigo tx-style-d3596edbac">

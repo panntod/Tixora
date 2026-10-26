@@ -2,6 +2,8 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../config/Database.php';
+require_once __DIR__ . '/AuthHelper.php';
+require_once __DIR__ . '/PaymentHelper.php';
 
 // Resolusi base path untuk instalasi di root domain maupun subfolder.
 if (!defined('BASE_URL')) {
@@ -29,6 +31,10 @@ class ViewHelper {
     public static function requireLogin(?string $role = null): array {
         $user = self::getCurrentUser();
         if (!$user) {
+            // Simpan halaman tujuan agar setelah login pengguna kembali ke sini (mis. halaman pendaftaran/pembayaran).
+            if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
+                $_SESSION['after_login'] = $_SERVER['REQUEST_URI'] ?? '';
+            }
             header('Location: ' . BASE_URL . '/login');
             exit;
         }
@@ -43,6 +49,59 @@ class ViewHelper {
             exit;
         }
         return $user;
+    }
+
+    /** Token CSRF untuk form POST. */
+    public static function csrfField(): string {
+        return '<input type="hidden" name="csrf_token" value="' . htmlspecialchars(AuthHelper::generateCsrfToken()) . '">';
+    }
+
+    /** Memeriksa token CSRF pada request POST saat ini. */
+    public static function checkCsrf(): bool {
+        return AuthHelper::verifyCsrfToken($_POST['csrf_token'] ?? null);
+    }
+
+    /**
+     * Hanya izinkan redirect ke path internal aplikasi (mencegah open redirect).
+     * Mengembalikan null jika target tidak aman.
+     */
+    public static function safeRedirectTarget(?string $target): ?string {
+        if (!$target || !str_starts_with($target, BASE_URL . '/')) {
+            return null;
+        }
+        // "//host" menjadi URL protokol-relatif saat BASE_URL kosong.
+        if (str_starts_with($target, '//')) {
+            return null;
+        }
+        if (str_contains($target, '\\') || preg_match('/[\r\n]/', $target)) {
+            return null;
+        }
+        return $target;
+    }
+
+    public static function renderFooter(): void {
+        ?>
+        <footer class="footer">
+            <div class="container tx-style-a3d12b9b83">
+                <div>
+                    <div class="logo">
+                        <img class="logo-img" src="<?= BASE_URL ?>/assets/logo.png" alt="Logo TIXORA">
+                    </div>
+                    <p class="footer-text">Platform acara dan tiket digital.</p>
+                </div>
+                <nav class="footer-links">
+                    <a href="#">Bantuan</a>
+                    <a href="#">Syarat &amp; ketentuan</a>
+                    <a href="#">Kebijakan privasi</a>
+                </nav>
+            </div>
+        </footer>
+        <?php
+    }
+
+    /** True jika aplikasi diakses dari mesin yang sama (pengembangan lokal). */
+    public static function isLocalRequest(): bool {
+        return in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1'], true);
     }
 
     public static function renderNavbar(string $active = ''): void {

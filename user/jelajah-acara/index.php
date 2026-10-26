@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../api/helpers/ViewHelper.php';
 $db = ViewHelper::getDb();
+PaymentHelper::ensureSchema($db);
+PaymentHelper::expireOverdue($db);
 
 $search = trim($_GET['search'] ?? '');
 $kategori = trim($_GET['kategori'] ?? '');
@@ -10,7 +12,8 @@ $sortBy = trim($_GET['sortBy'] ?? 'terbaru');
 
 $sql = "
     SELECT e.*, u.nama as owner_nama,
-           (SELECT COUNT(*) FROM tickets t WHERE t.event_id = e.id AND t.status_tiket != 'BATAL') as total_pendaftar
+           (SELECT COUNT(*) FROM tickets t WHERE t.event_id = e.id AND t.status_tiket != 'BATAL') as total_pendaftar,
+           COALESCE((SELECT MIN(c.harga) FROM ticket_categories c WHERE c.event_id = e.id), 0) as harga_mulai
     FROM events e
     JOIN users u ON e.owner_id = u.id
     WHERE e.status_verifikasi IN ('TERBIT', 'PUBLISHED', 'DISETUJUI')
@@ -108,7 +111,11 @@ $categories = ['Semua', 'Seminar', 'Workshop', 'Konferensi', 'Kompetisi'];
                                 <h3 class="event-card-title"><?= htmlspecialchars($ev['judul_event']) ?></h3>
                                 <p class="event-card-meta"><?= $dateStr ?> · <?= htmlspecialchars($ev['nama_tempat']) ?></p>
                                 <div class="event-card-footer tx-style-34c37090dc">
-                                    <b class="event-card-price price-free">Gratis</b>
+                                    <?php if ((float)$ev['harga_mulai'] > 0): ?>
+                                        <b class="event-card-price">Mulai <?= PaymentHelper::rupiah($ev['harga_mulai']) ?></b>
+                                    <?php else: ?>
+                                        <b class="event-card-price price-free">Gratis</b>
+                                    <?php endif; ?>
                                     <span class="event-card-left">Sisa <?= $sisaKuota ?> kursi</span>
                                 </div>
                                 <a href="<?= BASE_URL ?>/detail-acara?id=<?= $ev['id'] ?>" class="button primary-button" style="width:100%;margin-top:12px;text-align:center">Detail &amp; Daftar</a>

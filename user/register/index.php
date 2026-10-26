@@ -12,7 +12,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
     $roleKode = strtoupper(trim($_POST['role_kode'] ?? 'USER'));
 
-    if (!$nama || !$email || strlen($password) < 8) {
+    // Hanya peran publik yang boleh dipilih sendiri; ADMIN tidak pernah bisa didaftarkan dari form ini.
+    if (!in_array($roleKode, ['USER', 'EVENT_OWNER'], true)) {
+        $roleKode = 'USER';
+    }
+
+    if (!ViewHelper::checkCsrf()) {
+        $errorMessage = 'Sesi formulir kedaluwarsa. Muat ulang halaman lalu coba lagi.';
+    } elseif (!$nama || !$email || strlen($password) < 8) {
         $errorMessage = 'Nama, surel yang valid, dan kata sandi minimal 8 karakter wajib diisi.';
     } else {
         // Cek keberadaan role
@@ -73,6 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php endif; ?>
 
                 <form method="POST" action="" class="stack gap-16">
+                    <?= ViewHelper::csrfField() ?>
                     <div>
                         <label class="field-label tx-style-113f846dc6">Nama lengkap</label>
                         <input type="text" name="nama" class="input" placeholder="Nama lengkap Anda" required value="<?= htmlspecialchars($_POST['nama'] ?? '') ?>">

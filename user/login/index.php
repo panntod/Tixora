@@ -21,13 +21,24 @@ $successMessage = '';
 
 if (isset($_GET['registered'])) {
     $successMessage = 'Registrasi berhasil! Silakan masuk menggunakan akun Anda.';
+} elseif (isset($_GET['reset'])) {
+    $successMessage = 'Kata sandi berhasil diubah. Silakan masuk dengan kata sandi baru.';
 }
+
+// Pembatasan percobaan masuk per sesi: 5 kali gagal -> kunci 60 detik.
+const LOGIN_MAX_ATTEMPTS = 5;
+const LOGIN_LOCK_SECONDS = 60;
+$lockedUntil = (int)($_SESSION['login_locked_until'] ?? 0);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = filter_var($_POST['email'] ?? '', FILTER_VALIDATE_EMAIL);
     $password = $_POST['password'] ?? '';
 
-    if (!$email || !$password) {
+    if (!ViewHelper::checkCsrf()) {
+        $errorMessage = 'Sesi formulir kedaluwarsa. Muat ulang halaman lalu coba lagi.';
+    } elseif ($lockedUntil > time()) {
+        $errorMessage = 'Terlalu banyak percobaan gagal. Coba lagi dalam ' . ($lockedUntil - time()) . ' detik.';
+    } elseif (!$email || !$password) {
         $errorMessage = 'Surel dan kata sandi wajib diisi.';
     } else {
         $stmt = $db->prepare("
@@ -40,11 +51,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $user = $stmt->fetch();
 
         if (!$user || !password_verify($password, $user['password'])) {
+            $_SESSION['login_failed'] = (int)($_SESSION['login_failed'] ?? 0) + 1;
+            if ($_SESSION['login_failed'] >= LOGIN_MAX_ATTEMPTS) {
+                $_SESSION['login_locked_until'] = time() + LOGIN_LOCK_SECONDS;
+                $_SESSION['login_failed'] = 0;
+            }
             $errorMessage = 'Surel atau kata sandi salah. Coba lagi.';
         } elseif (isset($user['is_active']) && !$user['is_active']) {
             $errorMessage = 'Akun Anda ditangguhkan. Alasan: ' . ($user['alasan_suspensi'] ?? 'Kebijakan Admin.');
         } else {
+            $afterLogin = $_SESSION['after_login'] ?? null;
             session_regenerate_id(true);
+            unset($_SESSION['login_failed'], $_SESSION['login_locked_until'], $_SESSION['after_login']);
             $_SESSION['user'] = [
                 'id' => $user['id'],
                 'nama' => $user['nama'],
@@ -57,7 +75,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif ($user['role_kode'] === 'EVENT_OWNER') {
                 header('Location: ' . BASE_URL . '/event-owner');
             } else {
-                header('Location: ' . BASE_URL . '/jelajah-acara');
+                // Peserta kembali ke halaman yang tadi dituju (mis. pendaftaran), jika aman.
+                header('Location: ' . (ViewHelper::safeRedirectTarget($afterLogin) ?? BASE_URL . '/jelajah-acara'));
             }
             exit;
         }
@@ -95,6 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php endif; ?>
 
                 <form method="POST" action="" class="stack gap-16">
+                    <?= ViewHelper::csrfField() ?>
                     <div>
                         <label class="field-label tx-style-113f846dc6">Surel</label>
                         <input type="email" name="email" class="input" placeholder="nama@email.com" required value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">

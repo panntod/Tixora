@@ -34,6 +34,10 @@ class AuthController {
         $email = filter_var($input['email'] ?? '', FILTER_VALIDATE_EMAIL);
         $password = $input['password'] ?? '';
         $roleKode = strtoupper(trim($input['role_kode'] ?? 'USER')); // Default role USER
+        // Registrasi publik tidak boleh membuat akun ADMIN.
+        if (!in_array($roleKode, ['USER', 'EVENT_OWNER'], true)) {
+            $roleKode = 'USER';
+        }
 
         if (!$nama || !$email || strlen($password) < 8) {
             http_response_code(400);

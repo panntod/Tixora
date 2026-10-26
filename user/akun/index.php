@@ -56,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $stmt = $db->prepare("SELECT u.*, r.nama as role_nama FROM users u JOIN roles r ON u.role_id = r.id WHERE u.id = :id");
 $stmt->execute(['id' => $currentUser['id']]);
 $user = $stmt->fetch() ?: $currentUser;
+$user['role'] = $currentUser['role'];
 $initials = strtoupper(mb_substr($user['nama'] ?? 'User', 0, 2));
 ?>
 <!DOCTYPE html>

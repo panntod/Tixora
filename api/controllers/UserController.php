@@ -203,7 +203,7 @@ class UserController {
             $stmtCount = $this->db->prepare("
                 SELECT COUNT(*) as total 
                 FROM tickets 
-                WHERE event_id = :event_id AND status_tiket = 'AKTIF'
+                WHERE event_id = :event_id AND status_tiket != 'BATAL'
             ");
             $stmtCount->execute(['event_id' => $eventId]);
             $ticketCount = (int)$stmtCount->fetch()['total'];
@@ -215,11 +215,20 @@ class UserController {
             // 3. Cek apakah user sudah terdaftar di event ini
             $stmtDup = $this->db->prepare("
                 SELECT id FROM tickets 
-                WHERE event_id = :event_id AND user_id = :user_id AND status_tiket = 'AKTIF'
+                WHERE event_id = :event_id AND user_id = :user_id AND status_tiket IN ('AKTIF', 'MENUNGGU_PEMBAYARAN')
             ");
             $stmtDup->execute(['event_id' => $eventId, 'user_id' => $userId]);
             if ($stmtDup->fetch()) {
                 throw new Exception('Anda sudah terdaftar dalam event ini.');
+            }
+
+            // 3b. Endpoint ini hanya untuk tiket gratis; tiket berbayar wajib lewat alur pembayaran (/pendaftaran)
+            require_once __DIR__ . '/../helpers/PaymentHelper.php';
+            PaymentHelper::ensureSchema($this->db);
+            $stmtPaid = $this->db->prepare("SELECT 1 FROM ticket_categories WHERE event_id = :event_id AND harga > 0 LIMIT 1");
+            $stmtPaid->execute(['event_id' => $eventId]);
+            if ($stmtPaid->fetch()) {
+                throw new Exception('Acara ini memiliki tiket berbayar. Silakan pesan melalui halaman pendaftaran agar dapat membayar.');
             }
 
             // 4. Perbarui data profil opsional jika disertakan saat pendaftaran

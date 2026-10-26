@@ -3,11 +3,15 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../api/helpers/ViewHelper.php';
 $db = ViewHelper::getDb();
+PaymentHelper::ensureSchema($db);
+PaymentHelper::expireOverdue($db);
 
 $currentUser = ViewHelper::requireLogin('USER');
 
 $stmt = $db->prepare("
-    SELECT t.*, e.judul_event, e.kategori, e.tanggal_mulai, e.tanggal_selesai, e.nama_tempat, e.kota 
+    SELECT t.*, e.judul_event, e.kategori, e.tanggal_mulai, e.tanggal_selesai, e.nama_tempat, e.kota,
+           (SELECT p.order_id FROM payments p WHERE p.ticket_id = t.id AND p.status = 'MENUNGGU'
+            ORDER BY p.created_at DESC LIMIT 1) AS order_menunggu
     FROM tickets t 
     JOIN events e ON t.event_id = e.id 
     WHERE t.user_id = :user_id 
@@ -73,18 +77,26 @@ foreach ($allTickets as $t) {
                     <?php foreach ($upcoming as $t): ?>
                         <div class="ticket-row">
                             <div>
-                                <div class="poster poster-indigo tx-style-9947bf77d5">
+                                <div class="poster poster-indigo tx-style-9947bf77d5" style="max-width:390px;margin:0 auto">
                                     <div class="poster-art"><span class="art-circle-cyan"></span><span class="art-ring-dark"></span></div>
                                     <span class="poster-kicker"><?= strtoupper(htmlspecialchars($t['kategori'])) ?></span>
                                     <span class="poster-title poster-title-card"><?= htmlspecialchars(mb_strimwidth($t['judul_event'], 0, 16, '...')) ?></span>
                                 </div>
                             </div>
                             <div class="ticket-row-body">
-                                <span class="badge badge-success"><span class="badge-dot"></span>Sah / Aktif</span>
+                                <?php if ($t['status_tiket'] === 'MENUNGGU_PEMBAYARAN'): ?>
+                                    <span class="badge badge-warning"><span class="badge-dot"></span>Menunggu pembayaran</span>
+                                <?php else: ?>
+                                    <span class="badge badge-success"><span class="badge-dot"></span>Sah / Aktif</span>
+                                <?php endif; ?>
                                 <h3 class="ticket-row-title"><?= htmlspecialchars($t['judul_event']) ?></h3>
                                 <p class="ticket-row-meta"><?= date('d M Y', strtotime($t['tanggal_mulai'])) ?> · <?= htmlspecialchars($t['kode_tiket']) ?> · Kategori: <?= htmlspecialchars($t['jenis_tiket']) ?></p>
                             </div>
-                            <a href="<?= BASE_URL ?>/tiket-digital?id=<?= $t['id'] ?>" class="button primary-button" style="text-decoration:none">Buka Tiket</a>
+                            <?php if ($t['status_tiket'] === 'MENUNGGU_PEMBAYARAN' && !empty($t['order_menunggu'])): ?>
+                                <a href="<?= BASE_URL ?>/pembayaran?order=<?= urlencode($t['order_menunggu']) ?>" class="button primary-button" style="text-decoration:none">Bayar</a>
+                            <?php else: ?>
+                                <a href="<?= BASE_URL ?>/tiket-digital?id=<?= $t['id'] ?>" class="button primary-button" style="text-decoration:none">Buka Tiket</a>
+                            <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
                 <?php else: ?>
