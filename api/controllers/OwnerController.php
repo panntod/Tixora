@@ -273,18 +273,15 @@ class OwnerController {
 
         try {
             $stmt = $this->db->prepare("
-                INSERT INTO ticket_categories (event_id, nama_kategori, harga, kuota, mulai_jual, berakhir, wajib_ktm)
-                VALUES (:event_id, :nama_kategori, :harga, :kuota, :mulai_jual, :berakhir, :wajib_ktm)
+                INSERT INTO ticket_categories (event_id, nama_kategori, kuota, wajib_ktm)
+                VALUES (:event_id, :nama_kategori, :kuota, :wajib_ktm)
                 RETURNING id
             ");
             $stmt->execute([
                 'event_id' => $eventId,
                 'nama_kategori' => $namaKategori,
-                'harga' => $harga,
                 'kuota' => $kuota,
-                'mulai_jual' => $mulaiJual ?: null,
-                'berakhir' => $berakhir ?: null,
-                'wajib_ktm' => $wajibKtm ? 1 : 0
+                'wajib_ktm' => $wajibKtm ? 'true' : 'false'
             ]);
 
             http_response_code(201);

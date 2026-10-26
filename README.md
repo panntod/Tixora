@@ -47,3 +47,5 @@ Contoh route: `/tixora/jelajah-acara`, `/tixora/login`, `/tixora/admin`, dan `/t
 
 - Pemeriksaan sintaks `index.php` dilakukan setelah perubahan.
 - Pengujian HTTP, autentikasi, dan koneksi PostgreSQL harus dilakukan di lingkungan project yang menjalankan server dan database sebenarnya.
+
+> CARA RUN : php -S 127.0.0.1:8000 -t /Users/pandhuarya/Projects/tixora /Users/pandhuarya/Projects/tixora/index.php

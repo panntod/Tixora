@@ -1,3 +1,36 @@
+<?php
+declare(strict_types=1);
+
+require_once __DIR__ . '/../../api/helpers/ViewHelper.php';
+$db = ViewHelper::getDb();
+
+$currentUser = ViewHelper::requireLogin('USER');
+
+$stmt = $db->prepare("
+    SELECT t.*, e.judul_event, e.kategori, e.tanggal_mulai, e.tanggal_selesai, e.nama_tempat, e.kota 
+    FROM tickets t 
+    JOIN events e ON t.event_id = e.id 
+    WHERE t.user_id = :user_id 
+    ORDER BY t.created_at DESC
+");
+$stmt->execute(['user_id' => $currentUser['id']]);
+$allTickets = $stmt->fetchAll();
+
+$upcoming = [];
+$completed = [];
+$cancelled = [];
+
+$now = date('Y-m-d H:i:s');
+foreach ($allTickets as $t) {
+    if ($t['status_tiket'] === 'BATAL') {
+        $cancelled[] = $t;
+    } elseif ($t['status_kehadiran'] || $t['tanggal_mulai'] < $now) {
+        $completed[] = $t;
+    } else {
+        $upcoming[] = $t;
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="id">
 
@@ -5,101 +38,129 @@
     <meta charset="utf-8">
     <title>TIXORA — Tiket Saya</title>
     <link rel="stylesheet" href="<?= BASE_URL ?>/user/styles.css">
+    <script>
+        function filterTickets(tab, btn) {
+            document.querySelectorAll('.tab').forEach(b => b.classList.remove('tab-active'));
+            btn.classList.add('tab-active');
+            
+            const up = document.getElementById('sec-upcoming');
+            const comp = document.getElementById('sec-completed');
+            const canc = document.getElementById('sec-cancelled');
+            
+            if (tab === 'all' || tab === 'upcoming') up.style.display = 'block'; else up.style.display = 'none';
+            if (tab === 'all' || tab === 'completed') comp.style.display = 'block'; else comp.style.display = 'none';
+            if (tab === 'all' || tab === 'cancelled') canc.style.display = 'block'; else canc.style.display = 'none';
+        }
+    </script>
 </head>
 
 <body>
     <div class="frame tx-style-1f688caae9">
-        <header class="navbar">
-            <div class="container">
-                <div class="logo"><svg width="30" height="30" viewBox="0 0 32 32" role="img" aria-label="Logo TIXORA">
-                        <path
-                            d="M8 2h16a6 6 0 0 1 6 6v5.5a2.5 2.5 0 0 0 0 5V24a6 6 0 0 1-6 6H8a6 6 0 0 1-6-6v-5.5a2.5 2.5 0 0 0 0-5V8a6 6 0 0 1 6-6z"
-                            fill="#4B34DB" />
-                        <path d="M11 11l10 10M21 11L11 21" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"
-                            fill="none" />
-                    </svg><span class="logo-text">tixora</span></div>
-                <nav class="nav-links"><span>Jelajahi acara</span><span>Tiket saya</span></nav><span
-                    class="nav-actions"><span class="avatar">AR</span><span
-                        class="button ghost-button small-button">Keluar</span></span>
-            </div>
-        </header>
+        <?php ViewHelper::renderNavbar('tiket'); ?>
+
         <main class="tx-style-7aca552fb6">
-            <h1 class="page-title tx-style-49f14f8f83">Tiket saya</h1>
-            <div class="tabs"><span class="tab tab-active">Akan datang (2)</span><span class="tab">Selesai
-                    (1)</span><span class="tab">Dibatalkan (1)</span></div>
-            <div class="ticket-row">
-                <div class="">
-                    <div class="poster poster-indigo tx-style-9947bf77d5">
-                        <div class="poster-art"><span class="art-circle-cyan"></span><span class="art-ring-dark"></span>
-                        </div><span class="poster-kicker">SEMINAR</span><span
-                            class="poster-title poster-title-card">SENTEK</span>
-                    </div>
-                </div>
-                <div class="ticket-row-body"><span class="badge badge-success"><span class="badge-dot"></span>Sah</span>
-                    <h3 class="ticket-row-title">Seminar Nasional Teknologi Informatika 2026</h3>
-                    <p class="ticket-row-meta">Sab, 24 Okt 2026 · TXR-2610-0482</p>
-                </div><span class="button primary-button">Lihat tiket</span>
+            <h1 class="page-title tx-style-49f14f8f83">Tiket Saya</h1>
+            
+            <div class="tabs">
+                <span class="tab tab-active" onclick="filterTickets('upcoming', this)">Akan datang (<?= count($upcoming) ?>)</span>
+                <span class="tab" onclick="filterTickets('completed', this)">Selesai (<?= count($completed) ?>)</span>
+                <span class="tab" onclick="filterTickets('cancelled', this)">Dibatalkan (<?= count($cancelled) ?>)</span>
+                <span class="tab" onclick="filterTickets('all', this)">Semua (<?= count($allTickets) ?>)</span>
             </div>
-            <div class="ticket-row">
-                <div class="">
-                    <div class="poster poster-cyan tx-style-9947bf77d5">
-                        <div class="poster-art"><span class="art-circle-indigo"></span><span
-                                class="art-square-ink"></span></div><span class="poster-kicker">WORKSHOP</span><span
-                            class="poster-title poster-title-card">UI/UX</span>
+
+            <div id="sec-upcoming">
+                <?php if (!empty($upcoming)): ?>
+                    <?php foreach ($upcoming as $t): ?>
+                        <div class="ticket-row">
+                            <div>
+                                <div class="poster poster-indigo tx-style-9947bf77d5">
+                                    <div class="poster-art"><span class="art-circle-cyan"></span><span class="art-ring-dark"></span></div>
+                                    <span class="poster-kicker"><?= strtoupper(htmlspecialchars($t['kategori'])) ?></span>
+                                    <span class="poster-title poster-title-card"><?= htmlspecialchars(mb_strimwidth($t['judul_event'], 0, 16, '...')) ?></span>
+                                </div>
+                            </div>
+                            <div class="ticket-row-body">
+                                <span class="badge badge-success"><span class="badge-dot"></span>Sah / Aktif</span>
+                                <h3 class="ticket-row-title"><?= htmlspecialchars($t['judul_event']) ?></h3>
+                                <p class="ticket-row-meta"><?= date('d M Y', strtotime($t['tanggal_mulai'])) ?> · <?= htmlspecialchars($t['kode_tiket']) ?> · Kategori: <?= htmlspecialchars($t['jenis_tiket']) ?></p>
+                            </div>
+                            <a href="<?= BASE_URL ?>/tiket-digital?id=<?= $t['id'] ?>" class="button primary-button" style="text-decoration:none">Buka Tiket</a>
+                        </div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <div style="padding:32px 16px;text-align:center;background:#fff;border-radius:12px;border:1px solid #E4E4EE;margin-bottom:20px">
+                        <p class="slate">Belum ada tiket aktif untuk acara mendatang.</p>
+                        <a href="<?= BASE_URL ?>/jelajah-acara" class="button secondary-button" style="margin-top:12px;display:inline-block">Cari Acara Menarik</a>
                     </div>
-                </div>
-                <div class="ticket-row-body"><span class="badge badge-warning"><span class="badge-dot"></span>Menunggu
-                        pembayaran</span>
-                    <h3 class="ticket-row-title">Workshop UI/UX untuk Pemula</h3>
-                    <p class="ticket-row-meta">Min, 1 Nov 2026 · TXR-2611-0117</p>
-                </div><span class="button secondary-button">Bayar sekarang</span>
+                <?php endif; ?>
             </div>
-            <h2 class="group-label">SELESAI</h2>
-            <div class="ticket-row">
-                <div class="is-dimmed">
-                    <div class="poster poster-indigo tx-style-9947bf77d5">
-                        <div class="poster-art"><span class="art-circle-cyan"></span><span class="art-ring-dark"></span>
-                        </div><span class="poster-kicker">SEMINAR</span><span
-                            class="poster-title poster-title-card">Karier</span>
-                    </div>
-                </div>
-                <div class="ticket-row-body"><span class="badge badge-neutral"><span class="badge-dot"></span>Sudah
-                        dipakai</span>
-                    <h3 class="ticket-row-title">Seminar Karier dan Magang 2026</h3>
-                    <p class="ticket-row-meta">Sab, 3 Okt 2026 · TXR-2609-0231</p>
-                </div><span class="button ghost-button">Detail</span>
+
+            <div id="sec-completed" style="display:none">
+                <h2 class="group-label">SELESAI</h2>
+                <?php if (!empty($completed)): ?>
+                    <?php foreach ($completed as $t): ?>
+                        <div class="ticket-row">
+                            <div class="is-dimmed">
+                                <div class="poster poster-cyan tx-style-9947bf77d5">
+                                    <span class="poster-kicker"><?= strtoupper(htmlspecialchars($t['kategori'])) ?></span>
+                                    <span class="poster-title poster-title-card"><?= htmlspecialchars(mb_strimwidth($t['judul_event'], 0, 16, '...')) ?></span>
+                                </div>
+                            </div>
+                            <div class="ticket-row-body">
+                                <span class="badge badge-neutral"><span class="badge-dot"></span><?= $t['status_kehadiran'] ? 'Sudah Digunakan' : 'Selesai' ?></span>
+                                <h3 class="ticket-row-title"><?= htmlspecialchars($t['judul_event']) ?></h3>
+                                <p class="ticket-row-meta"><?= date('d M Y', strtotime($t['tanggal_mulai'])) ?> · <?= htmlspecialchars($t['kode_tiket']) ?></p>
+                            </div>
+                            <a href="<?= BASE_URL ?>/tiket-digital?id=<?= $t['id'] ?>" class="button ghost-button" style="text-decoration:none">Detail</a>
+                        </div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <p class="slate" style="padding:16px 0">Tidak ada riwayat acara yang selesai.</p>
+                <?php endif; ?>
             </div>
-            <h2 class="group-label">DIBATALKAN</h2>
-            <div class="ticket-row">
-                <div class="is-dimmed">
-                    <div class="poster poster-cyan tx-style-9947bf77d5">
-                        <div class="poster-art"><span class="art-circle-indigo"></span><span
-                                class="art-square-ink"></span></div><span class="poster-kicker">WORKSHOP</span><span
-                            class="poster-title poster-title-card">Foto</span>
-                    </div>
-                </div>
-                <div class="ticket-row-body"><span class="badge badge-error"><span
-                            class="badge-dot"></span>Dibatalkan</span>
-                    <h3 class="ticket-row-title">Workshop Fotografi Dasar dengan Kamera Ponsel</h3>
-                    <p class="ticket-row-meta">Dibatalkan oleh penyelenggara · TXR-2610-0390</p>
-                </div><span class="button ghost-button">Detail</span>
+
+            <div id="sec-cancelled" style="display:none">
+                <h2 class="group-label">DIBATALKAN</h2>
+                <?php if (!empty($cancelled)): ?>
+                    <?php foreach ($cancelled as $t): ?>
+                        <div class="ticket-row">
+                            <div class="is-dimmed">
+                                <div class="poster poster-coral tx-style-9947bf77d5">
+                                    <span class="poster-kicker"><?= strtoupper(htmlspecialchars($t['kategori'])) ?></span>
+                                    <span class="poster-title poster-title-card"><?= htmlspecialchars(mb_strimwidth($t['judul_event'], 0, 16, '...')) ?></span>
+                                </div>
+                            </div>
+                            <div class="ticket-row-body">
+                                <span class="badge badge-error"><span class="badge-dot"></span>Dibatalkan</span>
+                                <h3 class="ticket-row-title"><?= htmlspecialchars($t['judul_event']) ?></h3>
+                                <p class="ticket-row-meta"><?= htmlspecialchars($t['kode_tiket']) ?></p>
+                            </div>
+                            <a href="<?= BASE_URL ?>/tiket-digital?id=<?= $t['id'] ?>" class="button ghost-button" style="text-decoration:none">Detail</a>
+                        </div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <p class="slate" style="padding:16px 0">Tidak ada tiket yang dibatalkan.</p>
+                <?php endif; ?>
             </div>
         </main>
+
         <footer class="footer">
-            <div class="container">
+            <div class="container tx-style-a3d12b9b83">
                 <div>
-                    <div class="logo"><svg width="30" height="30" viewBox="0 0 32 32" role="img"
-                            aria-label="Logo TIXORA">
-                            <path
-                                d="M8 2h16a6 6 0 0 1 6 6v5.5a2.5 2.5 0 0 0 0 5V24a6 6 0 0 1-6 6H8a6 6 0 0 1-6-6v-5.5a2.5 2.5 0 0 0 0-5V8a6 6 0 0 1 6-6z"
-                                fill="#4B34DB" />
-                            <path d="M11 11l10 10M21 11L11 21" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"
-                                fill="none" />
-                        </svg><span class="logo-text">tixora</span></div>
+                    <div class="logo">
+                        <svg width="30" height="30" viewBox="0 0 32 32" role="img" aria-label="Logo TIXORA">
+                            <path d="M8 2h16a6 6 0 0 1 6 6v5.5a2.5 2.5 0 0 0 0 5V24a6 6 0 0 1-6 6H8a6 6 0 0 1-6-6v-5.5a2.5 2.5 0 0 0 0-5V8a6 6 0 0 1 6-6z" fill="#4B34DB" />
+                            <path d="M11 11l10 10M21 11L11 21" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" fill="none" />
+                        </svg>
+                        <span class="logo-text">tixora</span>
+                    </div>
                     <p class="footer-text">Platform acara dan tiket digital.</p>
                 </div>
-                <nav class="footer-links"><span>Bantuan</span><span>Syarat &amp; ketentuan</span><span>Kebijakan
-                        privasi</span></nav>
+                <nav class="footer-links">
+                    <a href="#">Bantuan</a>
+                    <a href="#">Syarat &amp; ketentuan</a>
+                    <a href="#">Kebijakan privasi</a>
+                </nav>
             </div>
         </footer>
     </div>

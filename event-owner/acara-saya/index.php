@@ -1,5 +1,49 @@
 <?php
+declare(strict_types=1);
+
 require_once __DIR__ . '/../_bootstrap.php';
+require_once __DIR__ . '/../../api/helpers/ViewHelper.php';
+$db = ViewHelper::getDb();
+
+$owner = ViewHelper::requireLogin('EVENT_OWNER');
+
+$status = trim($_GET['status'] ?? 'SEMUA');
+$search = trim($_GET['search'] ?? '');
+
+$sql = "
+    SELECT e.*, 
+           (SELECT COUNT(*) FROM tickets t WHERE t.event_id = e.id AND t.status_tiket != 'BATAL') as total_pendaftar
+    FROM events e 
+    WHERE e.owner_id = :owner_id
+";
+$params = ['owner_id' => $owner['id']];
+
+if (!empty($status) && strtoupper($status) !== 'SEMUA') {
+    $sql .= " AND e.status_verifikasi = :status";
+    $params['status'] = strtoupper($status);
+}
+
+if (!empty($search)) {
+    $sql .= " AND (e.judul_event ILIKE :search OR e.nama_tempat ILIKE :search)";
+    $params['search'] = "%{$search}%";
+}
+
+$sql .= " ORDER BY e.created_at DESC";
+
+$stmt = $db->prepare($sql);
+$stmt->execute($params);
+$events = $stmt->fetchAll();
+
+// Hitung counts per status
+$stmtCounts = $db->prepare("
+    SELECT status_verifikasi, COUNT(*) as cnt 
+    FROM events 
+    WHERE owner_id = :owner_id 
+    GROUP BY status_verifikasi
+");
+$stmtCounts->execute(['owner_id' => $owner['id']]);
+$rawCounts = $stmtCounts->fetchAll(PDO::FETCH_KEY_PAIR);
+$totalSemua = array_sum($rawCounts);
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -12,142 +56,112 @@ require_once __DIR__ . '/../_bootstrap.php';
 </head>
 
 <body>
-    <div class="frame" style="width:1440px;height:881px">
+    <div class="frame" style="width:1440px;min-height:881px;height:auto">
         <div class="app">
             <aside class="sidebar">
-                <div class="logo"><svg width="30" height="30" viewBox="0 0 32 32" role="img" aria-label="Logo TIXORA">
-                        <path
-                            d="M8 2h16a6 6 0 0 1 6 6v5.5a2.5 2.5 0 0 0 0 5V24a6 6 0 0 1-6 6H8a6 6 0 0 1-6-6v-5.5a2.5 2.5 0 0 0 0-5V8a6 6 0 0 1 6-6z"
-                            fill="#4B34DB" />
-                        <path d="M11 11l10 10M21 11L11 21" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"
-                            fill="none" />
-                    </svg><span class="logo-text">tixora</span></div><span class="side-item">Dasbor</span><span
-                    class="side-item side-item-active">Acara saya</span><span class="side-item">Buat acara</span><span
-                    class="side-item">Pengaturan</span><span class="side-item">Keluar</span>
-                <div class="side-user"><b>Dimas Prakoso</b>HMTI Fakultas Ilmu Komputer</div>
+                <div class="logo">
+                    <svg width="30" height="30" viewBox="0 0 32 32" role="img" aria-label="Logo TIXORA">
+                        <path d="M8 2h16a6 6 0 0 1 6 6v5.5a2.5 2.5 0 0 0 0 5V24a6 6 0 0 1-6 6H8a6 6 0 0 1-6-6v-5.5a2.5 2.5 0 0 0 0-5V8a6 6 0 0 1 6-6z" fill="#4B34DB" />
+                        <path d="M11 11l10 10M21 11L11 21" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" fill="none" />
+                    </svg>
+                    <span class="logo-text">tixora</span>
+                </div>
+                <a href="<?= BASE_URL ?>/event-owner" class="side-item" style="text-decoration:none">Dasbor</a>
+                <a href="<?= BASE_URL ?>/event-owner/acara-saya" class="side-item side-item-active" style="text-decoration:none">Acara saya</a>
+                <a href="<?= BASE_URL ?>/event-owner/buat-acara" class="side-item" style="text-decoration:none">Buat acara</a>
+                <a href="<?= BASE_URL ?>/jelajah-acara" class="side-item" style="text-decoration:none">Jelajah Acara</a>
+                <a href="<?= BASE_URL ?>/logout" class="side-item" style="text-decoration:none;color:#B91C1C">Keluar</a>
+                <div class="side-user">
+                    <b><?= htmlspecialchars($owner['nama']) ?></b>
+                    <?= htmlspecialchars($owner['email']) ?>
+                </div>
             </aside>
+
             <main class="main">
                 <p class="crumb">Acara saya</p>
                 <div class="head">
                     <div>
-                        <h1 class="page-title">Acara saya</h1>
+                        <h1 class="page-title">Acara Saya</h1>
                         <p class="page-subtitle">Kelola semua acara dalam satu daftar</p>
                     </div>
-                    <div class="head-actions"><span class="button primary-button button-large">+ Buat acara</span></div>
-                </div>
-                <div class="filter-bar">
-                    <div class="input" style="flex:1;width:auto"><span class="input-placeholder">Cari nama acara</span>
+                    <div class="head-actions">
+                        <a href="<?= BASE_URL ?>/event-owner/buat-acara" class="button primary-button button-large" style="text-decoration:none">+ Buat acara</a>
                     </div>
-                    <div class="input" style="width:180px"><span>Tanggal terdekat</span><svg width="16" height="16"
-                            viewBox="0 0 16 16" aria-hidden="true">
-                            <path d="M4 6l4 4 4-4" stroke="#5F6483" stroke-width="1.5" fill="none"
-                                stroke-linecap="round" stroke-linejoin="round" />
-                        </svg></div>
                 </div>
-                <div class="chip-row"><span class="chip chip-active">Semua 12</span><span class="chip">Draf
-                        3</span><span class="chip">Menunggu tinjauan 1</span><span class="chip">Disetujui 1</span><span
-                        class="chip">Terbit 3</span><span class="chip">Ditolak 1</span><span class="chip">Selesai
-                        2</span><span class="chip">Dibatalkan 1</span></div>
+
+                <form method="GET" action="" class="filter-bar">
+                    <?php if ($status !== 'SEMUA'): ?>
+                        <input type="hidden" name="status" value="<?= htmlspecialchars($status) ?>">
+                    <?php endif; ?>
+                    <input type="text" name="search" class="input" style="flex:1;width:auto" placeholder="Cari nama acara..." value="<?= htmlspecialchars($search) ?>">
+                    <button type="submit" class="button secondary-button">Cari</button>
+                </form>
+
+                <div class="chip-row">
+                    <a href="<?= BASE_URL ?>/event-owner/acara-saya" class="chip <?= $status === 'SEMUA' ? 'chip-active' : '' ?>" style="text-decoration:none">
+                        Semua <?= $totalSemua ?>
+                    </a>
+                    <a href="<?= BASE_URL ?>/event-owner/acara-saya?status=DRAF" class="chip <?= $status === 'DRAF' ? 'chip-active' : '' ?>" style="text-decoration:none">
+                        Draf <?= $rawCounts['DRAF'] ?? 0 ?>
+                    </a>
+                    <a href="<?= BASE_URL ?>/event-owner/acara-saya?status=MENUNGGU_TINJAUAN" class="chip <?= $status === 'MENUNGGU_TINJAUAN' ? 'chip-active' : '' ?>" style="text-decoration:none">
+                        Menunggu <?= $rawCounts['MENUNGGU_TINJAUAN'] ?? 0 ?>
+                    </a>
+                    <a href="<?= BASE_URL ?>/event-owner/acara-saya?status=TERBIT" class="chip <?= $status === 'TERBIT' ? 'chip-active' : '' ?>" style="text-decoration:none">
+                        Terbit <?= ($rawCounts['TERBIT'] ?? 0) + ($rawCounts['PUBLISHED'] ?? 0) ?>
+                    </a>
+                    <a href="<?= BASE_URL ?>/event-owner/acara-saya?status=DITOLAK" class="chip <?= $status === 'DITOLAK' ? 'chip-active' : '' ?>" style="text-decoration:none">
+                        Ditolak <?= $rawCounts['DITOLAK'] ?? 0 ?>
+                    </a>
+                </div>
+
                 <div class="tbl-card">
                     <div class="tbl-head">
-                        <div class="tbl-cell" style="width:410px">ACARA</div>
-                        <div class="tbl-cell" style="width:130px">TANGGAL</div>
-                        <div class="tbl-cell" style="width:160px">TIKET TERJUAL</div>
-                        <div class="tbl-cell" style="width:190px">STATUS</div>
-                        <div class="tbl-cell tbl-right" style="width:206px">TINDAKAN</div>
+                        <div class="tbl-cell" style="width:380px">ACARA</div>
+                        <div class="tbl-cell" style="width:140px">TANGGAL</div>
+                        <div class="tbl-cell" style="width:150px">PENDAFTAR</div>
+                        <div class="tbl-cell" style="width:160px">STATUS</div>
+                        <div class="tbl-cell tbl-right" style="width:220px">TINDAKAN</div>
                     </div>
-                    <div class="tbl-row">
-                        <div class="tbl-cell" style="width:410px"><b>Seminar Nasional Teknologi Informatika 2026</b>
-                        </div>
-                        <div class="tbl-cell" style="width:130px">24 Okt 2026</div>
-                        <div class="tbl-cell" style="width:160px">
-                            <div class="progress">
-                                <div class="progress-fill" style="width:78%"></div>
+
+                    <?php if (!empty($events)): ?>
+                        <?php foreach ($events as $ev): ?>
+                            <div class="tbl-row">
+                                <div class="tbl-cell" style="width:380px">
+                                    <b><?= htmlspecialchars($ev['judul_event']) ?></b>
+                                    <div class="cell-sub"><?= htmlspecialchars($ev['nama_tempat']) ?>, <?= htmlspecialchars($ev['kota']) ?></div>
+                                </div>
+                                <div class="tbl-cell" style="width:140px">
+                                    <?= date('d M Y', strtotime($ev['tanggal_mulai'])) ?>
+                                </div>
+                                <div class="tbl-cell" style="width:150px">
+                                    <b><?= (int)$ev['total_pendaftar'] ?></b> / <?= (int)$ev['kuota'] ?>
+                                </div>
+                                <div class="tbl-cell" style="width:160px">
+                                    <span class="badge <?= $ev['status_verifikasi'] === 'TERBIT' ? 'badge-success' : ($ev['status_verifikasi'] === 'MENUNGGU_TINJAUAN' ? 'badge-warning' : ($ev['status_verifikasi'] === 'DITOLAK' ? 'badge-error' : 'badge-neutral')) ?>">
+                                        <span class="badge-dot"></span><?= htmlspecialchars($ev['status_verifikasi']) ?>
+                                    </span>
+                                </div>
+                                <div class="tbl-cell tbl-right" style="width:220px">
+                                    <?php if ($ev['status_verifikasi'] === 'DRAF'): ?>
+                                        <form method="POST" action="<?= BASE_URL ?>/api/owner/submit-event/<?= $ev['id'] ?>" style="display:inline">
+                                            <button type="submit" class="button primary-button small-button" style="cursor:pointer">Ajukan</button>
+                                        </form>
+                                    <?php elseif ($ev['status_verifikasi'] === 'TERBIT'): ?>
+                                        <a href="<?= BASE_URL ?>/detail-acara?id=<?= $ev['id'] ?>" class="button secondary-button small-button" style="text-decoration:none">Lihat Publik</a>
+                                    <?php else: ?>
+                                        <span class="muted" style="font-size:13px"><?= htmlspecialchars($ev['status_verifikasi']) ?></span>
+                                    <?php endif; ?>
+                                </div>
                             </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div style="padding:48px 16px;text-align:center">
+                            <p class="slate">Tidak ada acara yang sesuai filter saat ini.</p>
+                            <a href="<?= BASE_URL ?>/event-owner/buat-acara" class="button primary-button small-button" style="margin-top:12px;display:inline-block;text-decoration:none">+ Buat Acara Baru</a>
                         </div>
-                        <div class="tbl-cell" style="width:190px"><span class="badge badge-success"><span
-                                    class="badge-dot"></span>Terbit</span></div>
-                        <div class="tbl-cell tbl-right" style="width:206px"><span
-                                class="button secondary-button small-button">Kelola</span></div>
-                    </div>
-                    <div class="tbl-row">
-                        <div class="tbl-cell" style="width:410px"><b>Kuliah Umum Kewirausahaan</b></div>
-                        <div class="tbl-cell" style="width:130px">17 Okt 2026</div>
-                        <div class="tbl-cell" style="width:160px">
-                            <div class="progress">
-                                <div class="progress-fill" style="width:94%"></div>
-                            </div>
-                        </div>
-                        <div class="tbl-cell" style="width:190px"><span class="badge badge-success"><span
-                                    class="badge-dot"></span>Terbit</span></div>
-                        <div class="tbl-cell tbl-right" style="width:206px"><span
-                                class="button secondary-button small-button">Kelola</span></div>
-                    </div>
-                    <div class="tbl-row">
-                        <div class="tbl-cell" style="width:410px"><b>Konferensi Pendidikan Digital Jawa Timur</b></div>
-                        <div class="tbl-cell" style="width:130px">12 Nov 2026</div>
-                        <div class="tbl-cell" style="width:160px"><span class="muted">—</span></div>
-                        <div class="tbl-cell" style="width:190px"><span class="badge badge-warning"><span
-                                    class="badge-dot"></span>Menunggu tinjauan</span></div>
-                        <div class="tbl-cell tbl-right" style="width:206px"><span
-                                class="button ghost-button small-button">Lihat pengajuan</span></div>
-                    </div>
-                    <div class="tbl-row">
-                        <div class="tbl-cell" style="width:410px"><b>Workshop UI/UX untuk Pemula</b></div>
-                        <div class="tbl-cell" style="width:130px">1 Nov 2026</div>
-                        <div class="tbl-cell" style="width:160px"><span class="muted">—</span></div>
-                        <div class="tbl-cell" style="width:190px"><span class="badge badge-info"><span
-                                    class="badge-dot"></span>Disetujui</span></div>
-                        <div class="tbl-cell tbl-right" style="width:206px"><span
-                                class="button primary-button small-button">Terbitkan</span></div>
-                    </div>
-                    <div class="tbl-row">
-                        <div class="tbl-cell" style="width:410px"><b>Lomba Esai Nasional Mahasiswa</b></div>
-                        <div class="tbl-cell" style="width:130px">20 Nov 2026</div>
-                        <div class="tbl-cell" style="width:160px"><span class="muted">—</span></div>
-                        <div class="tbl-cell" style="width:190px"><span class="badge badge-error"><span
-                                    class="badge-dot"></span>Ditolak</span></div>
-                        <div class="tbl-cell tbl-right" style="width:206px"><span
-                                class="button primary-button small-button">Revisi &amp; ajukan ulang</span></div>
-                    </div>
-                    <div class="tbl-row">
-                        <div class="tbl-cell" style="width:410px"><b>Pelatihan Public Speaking</b></div>
-                        <div class="tbl-cell" style="width:130px">31 Okt 2026</div>
-                        <div class="tbl-cell" style="width:160px"><span class="muted">—</span></div>
-                        <div class="tbl-cell" style="width:190px"><span class="badge badge-neutral"><span
-                                    class="badge-dot"></span>Draf</span></div>
-                        <div class="tbl-cell tbl-right" style="width:206px"><span
-                                class="button secondary-button small-button">Lanjutkan</span></div>
-                    </div>
-                    <div class="tbl-row">
-                        <div class="tbl-cell" style="width:410px"><b>Seminar Karier dan Magang 2026</b></div>
-                        <div class="tbl-cell" style="width:130px">3 Okt 2026</div>
-                        <div class="tbl-cell" style="width:160px">
-                            <div class="progress">
-                                <div class="progress-fill" style="width:100%"></div>
-                            </div>
-                        </div>
-                        <div class="tbl-cell" style="width:190px"><span class="badge badge-cyan"><span
-                                    class="badge-dot"></span>Selesai</span></div>
-                        <div class="tbl-cell tbl-right" style="width:206px"><span
-                                class="button secondary-button small-button">Lihat laporan</span></div>
-                    </div>
-                    <div class="tbl-row">
-                        <div class="tbl-cell" style="width:410px"><b>Workshop Fotografi Dasar</b></div>
-                        <div class="tbl-cell" style="width:130px">25 Okt 2026</div>
-                        <div class="tbl-cell" style="width:160px">
-                            <div class="progress">
-                                <div class="progress-fill" style="width:22%"></div>
-                            </div>
-                        </div>
-                        <div class="tbl-cell" style="width:190px"><span class="badge badge-error"><span
-                                    class="badge-dot"></span>Dibatalkan</span></div>
-                        <div class="tbl-cell tbl-right" style="width:206px"><span
-                                class="button secondary-button small-button">Lihat detail</span></div>
-                    </div>
+                    <?php endif; ?>
                 </div>
-                <p class="help" style="margin-top:12px">Tindakan menyesuaikan status: acara menunggu tinjauan tidak
-                    dapat diedit; acara terbit tidak dapat dihapus.</p>
             </main>
         </div>
     </div>

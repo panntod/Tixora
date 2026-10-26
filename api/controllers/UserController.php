@@ -113,7 +113,7 @@ class UserController {
 
             // Ambil kategori tiket
             $stmtTickets = $this->db->prepare("
-                SELECT id, nama_kategori, harga, kuota, wajib_ktm 
+                SELECT id, nama_kategori, kuota, wajib_ktm 
                 FROM ticket_categories 
                 WHERE event_id = :event_id
             ");
