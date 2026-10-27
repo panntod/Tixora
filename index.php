@@ -387,6 +387,10 @@ $routes = [
     'tiket-digital' =>
         'user/tiket-digital.php',
 
+    // E-ticket publik (tujuan QR Code, tanpa login, wajib tanda tangan valid)
+    'e-ticket' =>
+        'user/e-ticket.php',
+
     // Transactions
     'pembayaran' =>
         'user/pembayaran.php',

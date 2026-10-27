@@ -2540,3 +2540,82 @@ textarea.input:focus {
   text-align: center;
   align-items: center;
 }
+
+/* ===== E-ticket responsif (dipakai tiket-digital & e-ticket publik) ===== */
+.ticket-page-main {
+  width: 100%;
+  max-width: 430px;
+  margin: 0 auto;
+  padding: 16px 16px 32px;
+  box-sizing: border-box;
+}
+
+.ticket.ticket-fluid {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  transform: none;
+  box-sizing: border-box;
+}
+
+/* Banner mengikuti lebar kartu, rasio 390:200, bagian kiri (judul) tetap terlihat */
+.ticket-fluid > img {
+  width: 100% !important;
+  height: auto !important;
+  aspect-ratio: 390 / 200;
+  object-fit: cover;
+  object-position: left center;
+}
+
+/* Badan tiket disusun vertikal, bukan baris sejajar */
+.ticket-fluid .ticket-stub {
+  display: block;
+  padding: 20px 16px;
+}
+
+.ticket-fluid .row-between {
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.ticket-fluid .badge {
+  white-space: nowrap;
+}
+
+.ticket-fluid .ticket-id {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.ticket-fluid .qr-box {
+  margin: 16px 0;
+  padding: 16px 12px;
+}
+
+.ticket-fluid .qr-canvas {
+  width: min(200px, 62vw);
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ticket-fluid .definition div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 340px) {
+  .ticket-fluid .definition div {
+    width: 100%;
+  }
+}
+
+/* Cetak e-ticket: pertahankan warna poster & sembunyikan catatan khusus layar */
+@media print {
+  .no-print { display: none !important; }
+  .ticket, .ticket * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

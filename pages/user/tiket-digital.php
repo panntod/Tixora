@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once defined('ROOT_DIR') ? ROOT_DIR . '/api/helpers/ViewHelper.php' : __DIR__ . '/../../../api/helpers/ViewHelper.php';
 require_once defined('ROOT_DIR') ? ROOT_DIR . '/api/helpers/BannerHelper.php' : __DIR__ . '/../../../api/helpers/BannerHelper.php';
+require_once defined('ROOT_DIR') ? ROOT_DIR . '/api/helpers/TicketLinkHelper.php' : __DIR__ . '/../../api/helpers/TicketLinkHelper.php';
 $db = ViewHelper::getDb();
 PaymentHelper::ensureSchema($db);
 PaymentHelper::expireOverdue($db);
@@ -62,6 +63,8 @@ $kickerDate = strtoupper(date('D · d M Y', strtotime($ticket['tanggal_mulai']))
 
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
     <title>TIXORA — E-Ticket <?= htmlspecialchars($ticket['kode_tiket']) ?></title>
     <link rel="stylesheet" href="<?= BASE_URL ?>/user/styles.css">
 </head>
@@ -81,14 +84,14 @@ $kickerDate = strtoupper(date('D · d M Y', strtotime($ticket['tanggal_mulai']))
             <span class="badge badge-purple">TIXORA E-PASS</span>
         </header>
 
-        <main class="tx-style-d84e93a035" style="max-width:390px;margin:0 auto">
+        <main class="tx-style-d84e93a035 ticket-page-main">
             <?php if ($isSuccess): ?>
                 <div class="alert alert-success" style="margin-bottom:20px;text-align:center">
                     🎉 Pendaftaran Berhasil! E-Ticket Anda telah aktif dan siap digunakan.
                 </div>
             <?php endif; ?>
 
-            <div class="ticket tx-style-d944635d3c">
+            <div class="ticket ticket-fluid tx-style-d944635d3c">
                 <?= BannerHelper::render($ticket, 'ticket', ['kicker' => $kickerDate]) ?>
 
                 <div class="ticket-stub tx-style-2a1b75c911">
@@ -108,18 +111,9 @@ $kickerDate = strtoupper(date('D · d M Y', strtotime($ticket['tanggal_mulai']))
                     </div>
 
                     <div class="qr-box tx-style-f63b87b3fb" style="text-align:center;padding:16px 0">
-                        <!-- SVG QR Code Visual Representation -->
-                        <svg width="180" height="180" viewBox="0 0 25 25" role="img"
-                            aria-label="QR Code <?= htmlspecialchars($ticket['kode_tiket']) ?>"
-                            shape-rendering="crispEdges" style="background:#fff;padding:8px;border-radius:8px">
-                            <!-- Outer Position Markers -->
-                            <rect width="25" height="25" fill="#fff" />
-                            <path fill="#0E1128"
-                                d="M1 1h7v7H1zM2 2v5h5V2H2zM3 3h3v3H3zM17 1h7v7h-7zM18 2v5h5V2h-5zM19 3h3v3h-3zM1 17h7v7H1zM2 18v5h5v-5H2zM3 19h3v3H3z" />
-                            <!-- Inner decorative matrix dots -->
-                            <path fill="#0E1128"
-                                d="M10 2h1v1h-1zM13 2h2v1h-2zM10 4h2v2h-2zM13 5h1v1h-1zM11 7h3v1h-3zM3 10h2v1H3zM7 10h1v2H7zM10 10h4v1h-4zM16 10h2v2h-2zM20 10h3v1h-3zM1 12h2v2H1zM4 13h2v1H4zM10 12h2v1h-2zM14 12h3v1h-3zM21 12h1v3h-1zM6 14h3v1H6zM11 14h2v2h-2zM18 14h2v1h-2zM1 15h1v1H1zM14 15h2v1h-2zM10 17h1v1h-1zM12 17h2v3h-2zM16 17h1v1h-1zM20 17h3v1h-3zM11 19h1v1h-1zM15 19h3v1h-3zM19 19h1v2h-1zM10 21h2v2h-2zM14 21h1v2h-1zM17 21h2v1h-2zM21 21h2v3h-2zM13 23h3v1h-3z" />
-                        </svg>
+                        <!-- QR asli: berisi tautan e-ticket bertanda tangan, dirender oleh assets/qr.js -->
+                        <div id="qr" class="qr-canvas"></div>
+                        <noscript><span class="help" style="display:block">Aktifkan JavaScript untuk menampilkan kode QR.</span></noscript>
                         <span class="help tx-style-1169661891" style="display:block;margin-top:8px">Tunjukkan kode QR
                             ini ke panitia di meja registrasi</span>
                     </div>
@@ -149,6 +143,9 @@ $kickerDate = strtoupper(date('D · d M Y', strtotime($ticket['tanggal_mulai']))
                 </div>
             </div>
 
+            <?php if (TicketLinkHelper::isLocalhostUrl()): ?>
+                <p class="help no-print" style="text-align:center;margin-top:8px;color:#B45309">Mode lokal: QR mengarah ke <b>localhost</b> sehingga tidak bisa dibuka dari HP. Buka halaman ini lewat IP jaringan (mis. 192.168.x.x) atau atur TIXORA_PUBLIC_URL.</p>
+            <?php endif; ?>
             <div class="stack gap-10 tx-style-1b0f4999d2" style="margin-top:20px">
                 <button onclick="window.print()" class="button button-large primary-button full-width"
                     style="cursor:pointer">
@@ -164,6 +161,10 @@ $kickerDate = strtoupper(date('D · d M Y', strtotime($ticket['tanggal_mulai']))
         </main>
     </div>
     <script src="<?= BASE_URL ?>/assets/default-banner.js"></script>
+    <script src="<?= BASE_URL ?>/assets/qr.js"></script>
+    <script>
+        TixoraQR.render('#qr', <?= json_encode(TicketLinkHelper::url($ticket['kode_tiket']), JSON_UNESCAPED_SLASHES) ?>, {label: 'QR Code <?= htmlspecialchars($ticket['kode_tiket'], ENT_QUOTES) ?>'});
+    </script>
 </body>
 
 </html>

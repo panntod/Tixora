@@ -13,7 +13,7 @@ class Database {
     private string $port = '5432';
     private string $dbName = 'db_tixora';
     private string $username = 'postgres';
-    private string $password = '';
+    private string $password = 'Basisdl123!_';
 
     private function __construct() {
         // Ambil konfigurasi dari environment jika tersedia (.env)
