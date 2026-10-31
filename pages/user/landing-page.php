@@ -205,10 +205,7 @@ $events = $stmt->fetchAll();
                 <div class="cta tx-style-13313b1a3a">
                     <h2 class="cta-title">Punya acara berikutnya? Mulai dari satu draf.</h2>
                     <div class="cta-actions">
-                        <a href="<?= BASE_URL ?>/register" class="button button-large white-button">Buat akun
-                            penyelenggara</a>
-                        <a href="<?= BASE_URL ?>/jelajah-acara"
-                            class="button button-large outline-light-button">Jelajahi acara</a>
+                        <a href="<?= BASE_URL ?>/register" class="button button-large white-button">Hubungi Admin</a>
                     </div>
                 </div>
             </div>
