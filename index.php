@@ -250,6 +250,11 @@ if (isset($staticMimeTypes[$extension])) {
             $staticMimeTypes[$extension]
         );
 
+        // Jangan simpan CSS/JS di cache browser agar perubahan langsung terlihat
+        if (in_array($extension, ['css', 'js'], true)) {
+            header('Cache-Control: no-cache, must-revalidate');
+        }
+
         readfile($resolvedFile);
         exit;
     }
