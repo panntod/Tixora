@@ -690,7 +690,7 @@ body {
 .cta {
   width: 100%;
   max-width: 1152px;
-  min-height: 128px;
+  min-height: 180px;
   box-sizing: border-box;
   padding: 32px 48px;
   gap: 24px;

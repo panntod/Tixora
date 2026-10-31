@@ -129,9 +129,10 @@ class ViewHelper {
 
                 <div class="nav-actions" style="display:flex;align-items:center;gap:12px">
                     <?php if ($user): ?>
-                        <div class="user-menu" style="display:flex;align-items:center;gap:8px">
-                            <span style="font-size:14px;font-weight:700;color:#0E1128"><?= htmlspecialchars($user['nama']) ?></span>
-                            <span class="badge badge-purple" style="font-size:11px"><?= htmlspecialchars($user['role']) ?></span>
+                        <?php $initials = strtoupper(mb_substr($user['nama'] ?? 'User', 0, 2)); ?>
+                        <div class="user-menu" style="display:flex;align-items:center;gap:12px">
+                            <span class="avatar" title="<?= htmlspecialchars($user['nama']) ?>"><?= htmlspecialchars($initials) ?></span>
+                            <a href="<?= BASE_URL ?>/logout" class="button ghost-button small-button" style="text-decoration:none">Keluar</a>
                             <div class="dropdown-menu">
                                 <?php if ($user['role'] === 'USER'): ?>
                                     <a class="dropdown-item" href="<?= BASE_URL ?>/akun">Akun Saya</a>
@@ -143,8 +144,6 @@ class ViewHelper {
                                     <a class="dropdown-item" href="<?= BASE_URL ?>/admin">Dasbor Admin</a>
                                     <a class="dropdown-item" href="<?= BASE_URL ?>/admin/antrean-acara">Antrean Acara</a>
                                 <?php endif; ?>
-                                <hr style="border:0;border-top:1px solid #E4E4EE;margin:4px 0">
-                                <a class="dropdown-item" href="<?= BASE_URL ?>/logout" style="color:#B91C1C">Keluar</a>
                             </div>
                         </div>
                     <?php else: ?>
