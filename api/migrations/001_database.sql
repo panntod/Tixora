@@ -1,17 +1,10 @@
--- Hapus tabel jika sudah ada untuk reset migrasi (berdasarkan urutan foreign key yang benar)
-DROP TABLE IF EXISTS moderation_logs CASCADE;
-DROP TABLE IF EXISTS event_submission_logs CASCADE;
-DROP TABLE IF EXISTS rundowns CASCADE;
-DROP TABLE IF EXISTS rab_details CASCADE;
-DROP TABLE IF EXISTS committees CASCADE;
-DROP TABLE IF EXISTS tickets CASCADE;
-DROP TABLE IF EXISTS ticket_categories CASCADE;
-DROP TABLE IF EXISTS events CASCADE;
-DROP TABLE IF EXISTS users CASCADE;
-DROP TABLE IF EXISTS roles CASCADE;
+-- Migrasi 001: skema dasar + data seed demo.
+-- Aman dijalankan ulang: tidak menghapus apa pun (CREATE ... IF NOT EXISTS, seed ON CONFLICT DO NOTHING).
+-- Untuk MENGULANG dari nol di lingkungan pengembangan, jalankan dulu 000_reset_dev.sql.
+-- Urutan: 001 -> 002 -> 003 (002 juga dijalankan otomatis oleh aplikasi bila kolom harga belum ada).
 
 -- 1. Tabel Roles (Manajemen Hak Akses / RBAC)
-CREATE TABLE roles (
+CREATE TABLE IF NOT EXISTS roles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     kode VARCHAR(50) UNIQUE NOT NULL,
     nama VARCHAR(100) UNIQUE NOT NULL,
@@ -19,7 +12,7 @@ CREATE TABLE roles (
 );
 
 -- 2. Tabel Users (Pengguna Sistem: Admin, Event Owner, User)
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     nama VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
@@ -32,10 +25,10 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-CREATE INDEX idx_users_role_id ON users(role_id);
+CREATE INDEX IF NOT EXISTS idx_users_role_id ON users(role_id);
 
 -- 3. Tabel Events (Manajemen Acara oleh Event Owner)
-CREATE TABLE events (
+CREATE TABLE IF NOT EXISTS events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     judul_event VARCHAR(255) NOT NULL,
@@ -47,16 +40,16 @@ CREATE TABLE events (
     nama_tempat VARCHAR(255) NOT NULL,
     kota VARCHAR(100) NOT NULL,
     banner_url TEXT,
-    status_verifikasi VARCHAR(50) DEFAULT 'DRAF', -- DRAF, MENUNGGU_TINJAUAN, DISETUJUI, TERBIT, DITOLAK, SELESAI, BATAL
+    status_verifikasi VARCHAR(50) DEFAULT 'DRAF', -- DRAF, MENUNGGU_TINJAUAN, DISETUJUI, TERBIT, PUBLISHED, DITOLAK, SELESAI, BATAL (dijaga CHECK di 003)
     alasan_penolakan TEXT,
     alasan_pembatalan TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-CREATE INDEX idx_events_owner_id ON events(owner_id);
+CREATE INDEX IF NOT EXISTS idx_events_owner_id ON events(owner_id);
 
 -- 4. Tabel Ticket Categories (Kategori Jenis Tiket Event Gratis)
-CREATE TABLE ticket_categories (
+CREATE TABLE IF NOT EXISTS ticket_categories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     nama_kategori VARCHAR(100) NOT NULL, -- Contoh: Umum, Mahasiswa, VIP
@@ -65,27 +58,27 @@ CREATE TABLE ticket_categories (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-CREATE INDEX idx_ticket_categories_event_id ON ticket_categories(event_id);
+CREATE INDEX IF NOT EXISTS idx_ticket_categories_event_id ON ticket_categories(event_id);
 
 -- 5. Tabel Tickets (Pendaftaran E-Ticket Peserta / QR Code)
-CREATE TABLE tickets (
+CREATE TABLE IF NOT EXISTS tickets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     ticket_category_id UUID REFERENCES ticket_categories(id) ON DELETE SET NULL,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     kode_tiket VARCHAR(100) UNIQUE NOT NULL, -- Format: TXR-YYYYMMDD-Random
     jenis_tiket VARCHAR(100) DEFAULT 'Umum',
-    status_tiket VARCHAR(50) DEFAULT 'AKTIF', -- AKTIF, BATAL
+    status_tiket VARCHAR(50) DEFAULT 'AKTIF', -- AKTIF, MENUNGGU_PEMBAYARAN, SUDAH_PAKAI, BATAL (dijaga CHECK di 003)
     status_kehadiran BOOLEAN DEFAULT FALSE,
     waktu_daftar TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-CREATE INDEX idx_tickets_event_id ON tickets(event_id);
-CREATE INDEX idx_tickets_user_id ON tickets(user_id);
+CREATE INDEX IF NOT EXISTS idx_tickets_event_id ON tickets(event_id);
+CREATE INDEX IF NOT EXISTS idx_tickets_user_id ON tickets(user_id);
 
 -- 6. Tabel Committees (Struktur Panitia Internal Event)
-CREATE TABLE committees (
+CREATE TABLE IF NOT EXISTS committees (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     nama_panitia VARCHAR(255) NOT NULL,
@@ -97,10 +90,10 @@ CREATE TABLE committees (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-CREATE INDEX idx_committees_event_id ON committees(event_id);
+CREATE INDEX IF NOT EXISTS idx_committees_event_id ON committees(event_id);
 
 -- 7. Tabel RabDetails (Rincian Anggaran Biaya Internal Event)
-CREATE TABLE rab_details (
+CREATE TABLE IF NOT EXISTS rab_details (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     kategori VARCHAR(100) NOT NULL,
@@ -109,10 +102,10 @@ CREATE TABLE rab_details (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-CREATE INDEX idx_rab_details_event_id ON rab_details(event_id);
+CREATE INDEX IF NOT EXISTS idx_rab_details_event_id ON rab_details(event_id);
 
 -- 8. Tabel Rundowns (Susunan Acara / Sesi Kegiatan)
-CREATE TABLE rundowns (
+CREATE TABLE IF NOT EXISTS rundowns (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     committee_id UUID REFERENCES committees(id) ON DELETE SET NULL,
@@ -124,21 +117,21 @@ CREATE TABLE rundowns (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-CREATE INDEX idx_rundowns_event_id ON rundowns(event_id);
-CREATE INDEX idx_rundowns_committee_id ON rundowns(committee_id);
+CREATE INDEX IF NOT EXISTS idx_rundowns_event_id ON rundowns(event_id);
+CREATE INDEX IF NOT EXISTS idx_rundowns_committee_id ON rundowns(committee_id);
 
 -- 9. Tabel EventSubmissionLogs (Riwayat Pengajuan / Revisi Event)
-CREATE TABLE event_submission_logs (
+CREATE TABLE IF NOT EXISTS event_submission_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     status VARCHAR(50) NOT NULL,
     catatan TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-CREATE INDEX idx_event_submission_logs_event_id ON event_submission_logs(event_id);
+CREATE INDEX IF NOT EXISTS idx_event_submission_logs_event_id ON event_submission_logs(event_id);
 
 -- 10. Tabel ModerationLogs (Catatan Validasi & Keputusan Admin)
-CREATE TABLE moderation_logs (
+CREATE TABLE IF NOT EXISTS moderation_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     admin_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
@@ -146,14 +139,14 @@ CREATE TABLE moderation_logs (
     catatan TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-CREATE INDEX idx_moderation_logs_admin_id ON moderation_logs(admin_id);
-CREATE INDEX idx_moderation_logs_event_id ON moderation_logs(event_id);
+CREATE INDEX IF NOT EXISTS idx_moderation_logs_admin_id ON moderation_logs(admin_id);
+CREATE INDEX IF NOT EXISTS idx_moderation_logs_event_id ON moderation_logs(event_id);
 
 -- Seed Data Role Default
 INSERT INTO roles (kode, nama, description) VALUES
 ('ADMIN', 'Admin Kampus', 'Pengelola & Verifikator Sistem'),
 ('EVENT_OWNER', 'Event Owner', 'Penyelenggara Acara / Ormawa'),
-('USER', 'Peserta', 'Mahasiswa / Peserta Acara');
+('USER', 'Peserta', 'Mahasiswa / Peserta Acara') ON CONFLICT DO NOTHING;
 
 -- =================================================================
 -- SEED DATA AWAL (AKUN DEMO & SAMPLE EVENT SIAP PAKAI)
@@ -169,17 +162,17 @@ INSERT INTO users (id, nama, email, password, no_whatsapp, institusi, role_id, i
 ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', 'HMTI Polinema', 'hmti@polinema.ac.id', '$2y$12$/w/ZLMlUwM3v/KIDMFveQu1Aw4smMVBd3OR5p5SA5wK72CafEp9cC', '089876543210', 'Himpunan Mahasiswa Teknologi Informasi', (SELECT id FROM roles WHERE kode = 'EVENT_OWNER'), TRUE),
 
 -- User / Peserta: Alya Rahma
-('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', 'Alya Rahma', 'alyarahma@gmail.com', '$2y$12$/w/ZLMlUwM3v/KIDMFveQu1Aw4smMVBd3OR5p5SA5wK72CafEp9cC', '085123456789', 'Politeknik Negeri Malang', (SELECT id FROM roles WHERE kode = 'USER'), TRUE);
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', 'Alya Rahma', 'alyarahma@gmail.com', '$2y$12$/w/ZLMlUwM3v/KIDMFveQu1Aw4smMVBd3OR5p5SA5wK72CafEp9cC', '085123456789', 'Politeknik Negeri Malang', (SELECT id FROM roles WHERE kode = 'USER'), TRUE) ON CONFLICT DO NOTHING;
 
 -- 2. Seed Data Event Contoh (Diselenggarakan oleh HMTI Polinema dan Berstatus TERBIT)
 INSERT INTO events (id, owner_id, judul_event, deskripsi, kategori, kuota, tanggal_mulai, tanggal_selesai, nama_tempat, kota, banner_url, status_verifikasi) VALUES
-('e1234567-89ab-cdef-0123-456789abcdef', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', 'Seminar Nasional Teknologi Informasi 2026', 'Seminar nasional tahunan HMTI Polinema yang membahas perkembangan Artificial Intelligence dan Future Tech.', 'Seminar', 150, '2026-11-15 08:00:00', '2026-11-15 15:00:00', 'Auditorium Gedung AH Polinema', 'Malang', '/uploads/banner_20261019095836_d57de3d4.png', 'TERBIT');
+('e1234567-89ab-cdef-0123-456789abcdef', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', 'Seminar Nasional Teknologi Informasi 2026', 'Seminar nasional tahunan HMTI Polinema yang membahas perkembangan Artificial Intelligence dan Future Tech.', 'Seminar', 150, '2026-11-15 08:00:00', '2026-11-15 15:00:00', 'Auditorium Gedung AH Polinema', 'Malang', '/uploads/banner_20261019095836_d57de3d4.png', 'TERBIT') ON CONFLICT DO NOTHING;
 
 -- 3. Seed Data Kategori Tiket untuk Event Contoh
 INSERT INTO ticket_categories (id, event_id, nama_kategori, kuota, wajib_ktm) VALUES
 ('c1234567-89ab-cdef-0123-456789abcdef', 'e1234567-89ab-cdef-0123-456789abcdef', 'Mahasiswa Polinema', 100, TRUE),
-('c2234567-89ab-cdef-0123-456789abcdef', 'e1234567-89ab-cdef-0123-456789abcdef', 'Umum / Luar Kampus', 50, FALSE);
+('c2234567-89ab-cdef-0123-456789abcdef', 'e1234567-89ab-cdef-0123-456789abcdef', 'Umum / Luar Kampus', 50, FALSE) ON CONFLICT DO NOTHING;
 
 -- 4. Seed Data E-Ticket Contoh (Alya Rahma Mendaftar pada Event HMTI)
 INSERT INTO tickets (id, event_id, ticket_category_id, user_id, kode_tiket, jenis_tiket, status_tiket, status_kehadiran) VALUES
-('f1234567-89ab-cdef-0123-456789abcdef', 'e1234567-89ab-cdef-0123-456789abcdef', 'c1234567-89ab-cdef-0123-456789abcdef', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', 'TXR-20261115-ALYA01', 'Mahasiswa Polinema', 'AKTIF', FALSE);
+('f1234567-89ab-cdef-0123-456789abcdef', 'e1234567-89ab-cdef-0123-456789abcdef', 'c1234567-89ab-cdef-0123-456789abcdef', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', 'TXR-20261115-ALYA01', 'Mahasiswa Polinema', 'AKTIF', FALSE) ON CONFLICT DO NOTHING;
