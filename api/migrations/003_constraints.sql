@@ -10,7 +10,7 @@ BEGIN
     -- Status acara: satu daftar nilai yang sah untuk seluruh aplikasi
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_events_status') THEN
         ALTER TABLE events ADD CONSTRAINT chk_events_status
-            CHECK (status_verifikasi IN ('DRAF','MENUNGGU_TINJAUAN','DISETUJUI','TERBIT','PUBLISHED','DITOLAK','SELESAI','BATAL')) NOT VALID;
+            CHECK (status_verifikasi IN ('DRAF','MENUNGGU_TINJAUAN','DISETUJUI','TERBIT','DITOLAK','SELESAI','BATAL')) NOT VALID;
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_events_kuota') THEN
