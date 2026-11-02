@@ -3,12 +3,17 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../config/Database.php';
 require_once __DIR__ . '/../helpers/AuthHelper.php';
+require_once __DIR__ . '/../helpers/TicketLinkHelper.php';
 require_once __DIR__ . '/../models/Ticket.php';
 
 /**
  * Controller ScannerController
  * Menangani validasi presensi e-ticket digital (Check-in) secara real-time di lokasi acara
  * dengan mekanisme pencegahan duplikasi (single-use validation) sesuai spesifikasi Tixora.
+ *
+ * Endpoint: POST /api/scanner/scan
+ * Body JSON: { "kode_tiket": "TXR-20261115-ABCD" }
+ *        atau { "kode_tiket": "<isi QR berupa URL e-ticket lengkap>" }
  */
 class ScannerController {
     private PDO $db;
@@ -16,11 +21,37 @@ class ScannerController {
 
     public function __construct() {
         AuthHelper::initSession();
-        // Hanya Event Owner atau Panitia (atau Admin) yang diizinkan melakukan scan tiket
+        // Hanya Event Owner (pemilik acara) atau Admin yang diizinkan melakukan scan tiket
         AuthHelper::checkAnyRole(['EVENT_OWNER', 'ADMIN']);
-        
+
         $this->db = Database::getInstance()->getConnection();
         $this->ticketModel = new Ticket($this->db);
+    }
+
+    private function respond(int $status, bool $success, string $message, ?array $data = null): void {
+        http_response_code($status);
+        $body = ['success' => $success, 'message' => $message];
+        if ($data !== null) {
+            $body['data'] = $data;
+        }
+        echo json_encode($body);
+    }
+
+    /**
+     * Isi QR berupa URL e-ticket ber-tanda-tangan (?code=...&s=...).
+     * Jika yang dikirim URL, tanda tangannya wajib valid; jika kode polos, cukup dicari di DB.
+     */
+    private function extractCode(string $raw, bool &$signatureValid): string {
+        $signatureValid = true;
+        if (stripos($raw, 'code=') === false) {
+            return $raw;
+        }
+        $query = parse_url($raw, PHP_URL_QUERY) ?: '';
+        parse_str($query, $params);
+        $code = trim((string)($params['code'] ?? ''));
+        $sig = trim((string)($params['s'] ?? ''));
+        $signatureValid = TicketLinkHelper::verify($code, $sig);
+        return $code;
     }
 
     /**
@@ -28,69 +59,68 @@ class ScannerController {
      */
     public function scanTicket(): void {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            http_response_code(405);
-            echo json_encode(['success' => false, 'message' => 'Metode HTTP tidak diizinkan.']);
+            $this->respond(405, false, 'Metode HTTP tidak diizinkan.');
             return;
         }
 
         $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
-        $kodeTiket = trim($input['kode_tiket'] ?? '');
+        $raw = trim((string)($input['kode_tiket'] ?? ''));
 
-        if (empty($kodeTiket)) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Kode tiket wajib disertakan dalam pemindaian.']);
+        if ($raw === '' || strlen($raw) > 600) {
+            $this->respond(400, false, 'Kode tiket wajib disertakan dalam pemindaian.');
+            return;
+        }
+
+        $signatureValid = true;
+        $kodeTiket = $this->extractCode($raw, $signatureValid);
+        if ($kodeTiket === '' || !$signatureValid) {
+            $this->respond(400, false, 'QR tiket tidak valid atau telah dimanipulasi.');
             return;
         }
 
         try {
-            $this->db->beginTransaction();
-
             // 1. Cari tiket berdasarkan kode unik (beserta data event dan user)
             $ticket = $this->ticketModel->findByCode($kodeTiket);
-
             if (!$ticket) {
-                throw new Exception('Tiket tidak valid atau tidak ditemukan dalam sistem.');
+                $this->respond(404, false, 'Tiket tidak valid atau tidak ditemukan dalam sistem.');
+                return;
             }
 
-            // 2. Periksa status keaktifan tiket
+            // 2. Event Owner hanya boleh memindai tiket untuk acaranya sendiri (Admin bebas)
+            $user = $_SESSION['user'];
+            if ($user['role'] !== 'ADMIN' && $ticket['event_owner_id'] !== $user['id']) {
+                $this->respond(403, false, 'Tiket ini bukan untuk acara yang Anda kelola.');
+                return;
+            }
+
+            // 3. Tiket yang sudah dipakai (single-use)
+            if ((bool)$ticket['status_kehadiran'] === true || $ticket['status_tiket'] === 'SUDAH_PAKAI') {
+                $this->respond(409, false, "PERINGATAN: Tiket ini SUDAH DIGUNAKAN (check-in sebelumnya) oleh peserta {$ticket['user_nama']}!");
+                return;
+            }
+
+            // 4. Status keaktifan tiket (menunggu pembayaran / batal tidak boleh masuk)
             if ($ticket['status_tiket'] !== 'AKTIF') {
-                throw new Exception("Tiket ini sudah tidak aktif (Status: {$ticket['status_tiket']}).");
+                $this->respond(400, false, "Tiket ini tidak dapat digunakan (Status: {$ticket['status_tiket']}).");
+                return;
             }
 
-            // 3. Mekanisme Single-Use Validation (Anti-duplikasi presensi)
-            if ((bool)$ticket['status_kehadiran'] === true) {
-                throw new Exception("PERINGATAN: Tiket ini SUDAH DIGUNAKAN (Check-in sebelumnya) oleh peserta {$ticket['user_nama']}!");
+            // 5. Update atomik: hanya satu scan yang menang bila dua petugas memindai bersamaan
+            if (!$this->ticketModel->markAsPresent($ticket['id'])) {
+                $this->respond(409, false, 'PERINGATAN: Tiket ini baru saja digunakan oleh pemindaian lain.');
+                return;
             }
 
-            // 4. Ubah status kehadiran menjadi TRUE dan status tiket menjadi 'SUDAH_PAKAI'
-            $updated = $this->ticketModel->markAsPresent($ticket['id']);
-
-            if (!$updated) {
-                throw new Exception('Gagal memperbarui status kehadiran peserta ke dalam database.');
-            }
-
-            $this->db->commit();
-
-            http_response_code(200);
-            echo json_encode([
-                'success' => true,
-                'message' => 'Check-in berhasil! Kehadiran peserta telah dicatat.',
-                'data' => [
-                    'kode_tiket' => $ticket['kode_tiket'],
-                    'nama_peserta' => $ticket['user_nama'],
-                    'email_peserta' => $ticket['user_email'],
-                    'judul_event' => $ticket['judul_event'],
-                    'waktu_check_in' => date('Y-m-d H:i:s')
-                ]
+            $this->respond(200, true, 'Check-in berhasil! Kehadiran peserta telah dicatat.', [
+                'kode_tiket' => $ticket['kode_tiket'],
+                'nama_peserta' => $ticket['user_nama'],
+                'email_peserta' => $ticket['user_email'],
+                'judul_event' => $ticket['judul_event'],
+                'waktu_check_in' => date('Y-m-d H:i:s')
             ]);
-
-        } catch (Exception $e) {
-            $this->db->rollBack();
-            http_response_code(400);
-            echo json_encode([
-                'success' => false,
-                'message' => $e->getMessage()
-            ]);
+        } catch (Throwable $e) {
+            error_log('[TIXORA] Scan tiket gagal: ' . $e->getMessage());
+            $this->respond(500, false, 'Terjadi kesalahan pada server saat memproses tiket.');
         }
     }
 }

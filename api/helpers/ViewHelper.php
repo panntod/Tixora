@@ -22,9 +22,7 @@ class ViewHelper {
     }
 
     public static function getCurrentUser(): ?array {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
+        AuthHelper::initSession();
         return $_SESSION['user'] ?? null;
     }
 
@@ -35,6 +33,11 @@ class ViewHelper {
             if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
                 $_SESSION['after_login'] = $_SERVER['REQUEST_URI'] ?? '';
             }
+            header('Location: ' . BASE_URL . '/login');
+            exit;
+        }
+        // Akun yang ditangguhkan Admin langsung kehilangan akses, tanpa menunggu sesi habis.
+        if (!AuthHelper::isSessionUserActive()) {
             header('Location: ' . BASE_URL . '/login');
             exit;
         }

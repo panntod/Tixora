@@ -1,4 +1,4 @@
--- 000_reset.sql  --  HANYA UNTUK PENGEMBANGAN LOKAL.
+-- 000_reset_dev.sql  --  HANYA UNTUK PENGEMBANGAN LOKAL.
 -- Menghapus SEMUA tabel dan datanya agar bisa memulai dari nol.
 -- JANGAN dijalankan di server demo/produksi yang sudah berisi data.
 -- Setelah ini jalankan: 001_database.sql, 002_payment.sql, 003_constraints.sql

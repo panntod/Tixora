@@ -488,6 +488,7 @@ body {
   line-height: 21px;
   font-weight: 700;
   color: #5f6483;
+  cursor: pointer;
 }
 
 .tab-active {

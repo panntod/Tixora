@@ -65,7 +65,7 @@ foreach ($categories as $cat) {
 }
 if ($selectedCategory === null && !empty($categories)) {
     foreach ($categories as $cat) {
-        if ((int)$cat['kuota'] - (int)$cat['terpakai'] > 0) {
+        if ((int) $cat['kuota'] - (int) $cat['terpakai'] > 0) {
             $selectedCategory = $cat;
             break;
         }
@@ -73,13 +73,13 @@ if ($selectedCategory === null && !empty($categories)) {
     $selectedCategory = $selectedCategory ?? $categories[0];
 }
 $categoryId = $selectedCategory['id'] ?? '';
-$harga = $selectedCategory ? (float)$selectedCategory['harga'] : 0.0;
+$harga = $selectedCategory ? (float) $selectedCategory['harga'] : 0.0;
 $berbayar = $harga > 0;
 
 $errorMessage = '';
-$sisaKuotaEvent = max(0, (int)$event['kuota'] - (int)$event['total_pendaftar']);
+$sisaKuotaEvent = max(0, (int) $event['kuota'] - (int) $event['total_pendaftar']);
 $sisaKuotaKategori = $selectedCategory
-    ? max(0, (int)$selectedCategory['kuota'] - (int)$selectedCategory['terpakai'])
+    ? max(0, (int) $selectedCategory['kuota'] - (int) $selectedCategory['terpakai'])
     : $sisaKuotaEvent;
 $sisaKuota = min($sisaKuotaEvent, $sisaKuotaKategori);
 
@@ -125,7 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ORDER BY p.created_at DESC LIMIT 1) AS order_id
                 FROM tickets t
                 WHERE t.event_id = :event_id AND t.user_id = :user_id
-                  AND t.status_tiket IN ('AKTIF', 'MENUNGGU_PEMBAYARAN')
+                  AND t.status_tiket IN ('AKTIF', 'MENUNGGU_PEMBAYARAN', 'SUDAH_PAKAI')
                 LIMIT 1
             ");
             $stmtCheck->execute(['event_id' => $eventId, 'user_id' => $currentUser['id']]);
@@ -142,7 +142,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $stmtCount = $db->prepare("SELECT COUNT(*) FROM tickets WHERE event_id = :id AND status_tiket != 'BATAL'");
                 $stmtCount->execute(['id' => $eventId]);
-                $terpakaiEvent = (int)$stmtCount->fetchColumn();
+                $terpakaiEvent = (int) $stmtCount->fetchColumn();
 
                 $kategoriPenuh = false;
                 $hargaFinal = 0.0;
@@ -158,14 +158,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                     $stmtCatCount = $db->prepare("SELECT COUNT(*) FROM tickets WHERE ticket_category_id = :id AND status_tiket != 'BATAL'");
                     $stmtCatCount->execute(['id' => $lockedCat['id']]);
-                    $kategoriPenuh = (int)$stmtCatCount->fetchColumn() >= (int)$lockedCat['kuota'];
+                    $kategoriPenuh = (int) $stmtCatCount->fetchColumn() >= (int) $lockedCat['kuota'];
                     // Harga selalu diambil ulang dari database, bukan dari input form
-                    $hargaFinal = (float)$lockedCat['harga'];
+                    $hargaFinal = (float) $lockedCat['harga'];
                     $jenisTiket = $lockedCat['nama_kategori'];
                     $ticketCatId = $lockedCat['id'];
                 }
 
-                if ($terpakaiEvent >= (int)$lockedEvent['kuota']) {
+                if ($terpakaiEvent >= (int) $lockedEvent['kuota']) {
                     $db->rollBack();
                     $errorMessage = 'Maaf, kuota tiket untuk acara ini sudah penuh.';
                 } elseif ($kategoriPenuh) {
@@ -180,10 +180,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             updated_at = CURRENT_TIMESTAMP
                         WHERE id = :id
                     ")->execute([
-                        'no_whatsapp' => $noWhatsapp,
-                        'institusi' => $institusi,
-                        'id' => $currentUser['id'],
-                    ]);
+                                'no_whatsapp' => $noWhatsapp,
+                                'institusi' => $institusi,
+                                'id' => $currentUser['id'],
+                            ]);
 
                     $statusTiket = $hargaFinal > 0 ? 'MENUNGGU_PEMBAYARAN' : 'AKTIF';
 
@@ -210,12 +210,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             VALUES (:ticket_id, :user_id, :order_id, :jumlah, 'MENUNGGU',
                                     CURRENT_TIMESTAMP + make_interval(hours => :jam))
                         ")->execute([
-                            'ticket_id' => $newTicketId,
-                            'user_id' => $currentUser['id'],
-                            'order_id' => $orderId,
-                            'jumlah' => $hargaFinal,
-                            'jam' => PaymentHelper::PAYMENT_WINDOW_HOURS,
-                        ]);
+                                    'ticket_id' => $newTicketId,
+                                    'user_id' => $currentUser['id'],
+                                    'order_id' => $orderId,
+                                    'jumlah' => $hargaFinal,
+                                    'jam' => PaymentHelper::PAYMENT_WINDOW_HOURS,
+                                ]);
                     }
 
                     $db->commit();
@@ -259,7 +259,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <?= htmlspecialchars($errorMessage) ?>
                     <?php if (str_contains($errorMessage, 'sudah terdaftar')): ?>
                         <div style="margin-top:8px">
-                            <a href="<?= BASE_URL ?>/tiket-saya" class="button secondary-button small-button">Buka Tiket Saya</a>
+                            <a href="<?= BASE_URL ?>/tiket-saya" class="button secondary-button small-button">Buka Tiket
+                                Saya</a>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -277,21 +278,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="two-fields">
                                 <div>
                                     <label class="field-label">Nama lengkap</label>
-                                    <input type="text" class="input" value="<?= htmlspecialchars($userData['nama'] ?? '') ?>" readonly style="background:#F8F8FC">
+                                    <input type="text" class="input"
+                                        value="<?= htmlspecialchars($userData['nama'] ?? '') ?>" readonly
+                                        style="background:#F8F8FC">
                                 </div>
                                 <div>
                                     <label class="field-label">Surel</label>
-                                    <input type="email" class="input" value="<?= htmlspecialchars($userData['email'] ?? '') ?>" readonly style="background:#F8F8FC">
+                                    <input type="email" class="input"
+                                        value="<?= htmlspecialchars($userData['email'] ?? '') ?>" readonly
+                                        style="background:#F8F8FC">
                                 </div>
                             </div>
                             <div class="two-fields">
                                 <div>
                                     <label class="field-label">Nomor WhatsApp</label>
-                                    <input type="text" name="no_whatsapp" class="input" placeholder="081234567890" value="<?= htmlspecialchars($userData['no_whatsapp'] ?? '') ?>" required>
+                                    <input type="text" name="no_whatsapp" class="input" placeholder="081234567890"
+                                        value="<?= htmlspecialchars($userData['no_whatsapp'] ?? '') ?>" required>
                                 </div>
                                 <div>
                                     <label class="field-label">Institusi / Instansi</label>
-                                    <input type="text" name="institusi" class="input" placeholder="Nama kampus atau instansi" value="<?= htmlspecialchars($userData['institusi'] ?? '') ?>">
+                                    <input type="text" name="institusi" class="input"
+                                        placeholder="Nama kampus atau instansi"
+                                        value="<?= htmlspecialchars($userData['institusi'] ?? '') ?>">
                                 </div>
                             </div>
                         </div>
@@ -303,7 +311,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="option option-selected">
                                 <?php if ($berbayar): ?>
                                     <b>Tiket Berbayar</b>
-                                    <span class="badge badge-purple"><span class="badge-dot"></span><?= PaymentHelper::rupiah($harga) ?></span>
+                                    <span class="badge badge-purple"><span
+                                            class="badge-dot"></span><?= PaymentHelper::rupiah($harga) ?></span>
                                 <?php else: ?>
                                     <b>Tiket Terbuka (Gratis)</b>
                                     <span class="badge badge-purple"><span class="badge-dot"></span>Tanpa Biaya</span>
@@ -311,22 +320,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </div>
                         </div>
                         <?php if ($berbayar): ?>
-                            <p class="help" style="margin-top:8px">Kursi Anda ditahan selama <?= PaymentHelper::PAYMENT_WINDOW_HOURS ?> jam. Pilih metode dan selesaikan pembayaran di langkah berikutnya; tiket QR aktif setelah pembayaran berhasil.</p>
+                            <p class="help" style="margin-top:8px">Kursi Anda ditahan selama
+                                <?= PaymentHelper::PAYMENT_WINDOW_HOURS ?> jam. Pilih metode dan selesaikan pembayaran di
+                                langkah berikutnya; tiket QR aktif setelah pembayaran berhasil.</p>
                         <?php else: ?>
-                            <p class="help" style="margin-top:8px">E-Ticket QR Code resmi langsung diterbitkan setelah Anda menekan tombol di bawah.</p>
+                            <p class="help" style="margin-top:8px">E-Ticket QR Code resmi langsung diterbitkan setelah Anda
+                                menekan tombol di bawah.</p>
                         <?php endif; ?>
                         <?php if ($selectedCategory && $selectedCategory['wajib_ktm']): ?>
-                            <p class="help" style="margin-top:8px">Kategori ini wajib membawa KTM aktif saat registrasi ulang di lokasi.</p>
+                            <p class="help" style="margin-top:8px">Kategori ini wajib membawa KTM aktif saat registrasi
+                                ulang di lokasi.</p>
                         <?php endif; ?>
                     </div>
 
                     <div class="check-row">
                         <input type="checkbox" id="agree" required checked>
-                        <label for="agree" style="font-size:14px;color:#4B5170">Data yang saya isi sudah benar dan saya menyetujui Syarat &amp; Ketentuan kegiatan.</label>
+                        <label for="agree" style="font-size:14px;color:#4B5170">Data yang saya isi sudah benar dan saya
+                            menyetujui Syarat &amp; Ketentuan kegiatan.</label>
                     </div>
 
                     <div class="row">
-                        <a href="<?= BASE_URL ?>/detail-acara?id=<?= $event['id'] ?>" class="button button-large secondary-button" style="text-decoration:none">Kembali</a>
+                        <a href="<?= BASE_URL ?>/detail-acara?id=<?= $event['id'] ?>"
+                            class="button button-large secondary-button" style="text-decoration:none">Kembali</a>
                         <?php if ($eventTerbuka && $sisaKuota > 0): ?>
                             <button type="submit" class="button button-large primary-button" style="cursor:pointer">
                                 <?= $berbayar ? 'Lanjut ke Pembayaran' : 'Konfirmasi &amp; Dapatkan Tiket' ?>
@@ -341,14 +356,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <aside class="col-side card">
                     <div class="poster poster-indigo tx-style-63c893b1c4">
-                        <div class="poster-art"><span class="art-circle-cyan"></span><span class="art-ring-dark"></span></div>
-                        <span class="poster-title poster-title-card"><?= htmlspecialchars(mb_strimwidth($event['judul_event'], 0, 24, '...')) ?></span>
+                        <div class="poster-art"><span class="art-circle-cyan"></span><span class="art-ring-dark"></span>
+                        </div>
+                        <span
+                            class="poster-title poster-title-card"><?= htmlspecialchars(mb_strimwidth($event['judul_event'], 0, 24, '...')) ?></span>
                     </div>
-                    <h3 class="tx-style-e9c0b256f0" style="margin-top:12px"><?= htmlspecialchars($event['judul_event']) ?></h3>
+                    <h3 class="tx-style-e9c0b256f0" style="margin-top:12px">
+                        <?= htmlspecialchars($event['judul_event']) ?></h3>
                     <p class="slate tx-style-95668ca799">
-                        <?= date('d M Y', strtotime($event['tanggal_mulai'])) ?> · <?= htmlspecialchars($event['nama_tempat']) ?>, <?= htmlspecialchars($event['kota']) ?>
+                        <?= date('d M Y', strtotime($event['tanggal_mulai'])) ?> ·
+                        <?= htmlspecialchars($event['nama_tempat']) ?>, <?= htmlspecialchars($event['kota']) ?>
                     </p>
-                    <div class="stack gap-10 tx-style-b8fb61d376" style="margin-top:16px;border-top:1px solid #E4E4EE;padding-top:12px">
+                    <div class="stack gap-10 tx-style-b8fb61d376"
+                        style="margin-top:16px;border-top:1px solid #E4E4EE;padding-top:12px">
                         <div class="summary-row">
                             <span>Kategori</span>
                             <b><?= htmlspecialchars($selectedCategory['nama_kategori'] ?? 'Umum / Terbuka') ?></b>

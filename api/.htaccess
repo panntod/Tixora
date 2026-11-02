@@ -17,6 +17,6 @@
 Options -Indexes
 
 # Lindungi file SQL dan konfigurasi sensitif
-<FilesMatch "\.(sql|env|ini|log|bak)$">
+<FilesMatch "(\.(sql|env|ini|log|bak|key)$|database\.local(\.example)?\.php$)">
     Require all denied
 </FilesMatch>

@@ -2,7 +2,19 @@
 declare(strict_types=1);
 
 // Konfigurasi Header CORS & Response JSON
-header("Access-Control-Allow-Origin: *");
+// CORS dibatasi: hanya origin yang sama dengan host aplikasi ini yang boleh memakai API
+// dengan cookie session. (Sebelumnya "*", yang membuka API untuk situs mana pun.)
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+if ($origin !== '') {
+    $originHost = parse_url($origin, PHP_URL_HOST);
+    $originPort = parse_url($origin, PHP_URL_PORT);
+    $originAuthority = $originHost . ($originPort ? ':' . $originPort : '');
+    if ($originHost && strcasecmp($originAuthority, $_SERVER['HTTP_HOST'] ?? '') === 0) {
+        header("Access-Control-Allow-Origin: " . $origin);
+        header("Access-Control-Allow-Credentials: true");
+        header("Vary: Origin");
+    }
+}
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
@@ -18,6 +30,7 @@ require_once __DIR__ . '/controllers/AuthController.php';
 require_once __DIR__ . '/controllers/UserController.php';
 require_once __DIR__ . '/controllers/OwnerController.php';
 require_once __DIR__ . '/controllers/AdminController.php';
+require_once __DIR__ . '/controllers/ScannerController.php';
 
 // Ambil jalur URI dan bersihkan dari query string & base path
 $requestUri = rawurldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '/');
@@ -147,6 +160,17 @@ switch ($endpoint) {
         } else {
             http_response_code(404);
             echo json_encode(['success' => false, 'message' => 'Endpoint Admin tidak ditemukan.']);
+        }
+        break;
+
+    case 'scanner':
+        // Check-in tiket di lokasi acara (khusus EVENT_OWNER pemilik acara / ADMIN)
+        $scannerController = new ScannerController();
+        if ($action === 'scan' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+            $scannerController->scanTicket();
+        } else {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Endpoint Scanner tidak ditemukan.']);
         }
         break;
 

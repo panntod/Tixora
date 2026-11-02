@@ -9,6 +9,9 @@ require_once __DIR__ . '/../helpers/AuthHelper.php';
  * Mengelola eksplorasi event, pendaftaran tiket, profil akun saya, ganti kata sandi, dan daftar pengguna.
  */
 class UserController {
+    /** Status acara yang tampil & bisa didaftar publik (disamakan dengan halaman web). */
+    private const OPEN_STATUSES = ['TERBIT', 'PUBLISHED', 'DISETUJUI'];
+
     private PDO $db;
 
     public function __construct() {
@@ -33,7 +36,7 @@ class UserController {
                        (SELECT COUNT(*) FROM tickets t WHERE t.event_id = e.id AND t.status_tiket != 'BATAL') as total_pendaftar
                 FROM events e
                 JOIN users u ON e.owner_id = u.id
-                WHERE e.status_verifikasi IN ('TERBIT', 'PUBLISHED', 'APPROVED', 'DISETUJUI')
+                WHERE e.status_verifikasi IN ('TERBIT', 'PUBLISHED', 'DISETUJUI')
             ";
             
             $params = [];
@@ -80,9 +83,10 @@ class UserController {
             ]);
         } catch (PDOException $e) {
             http_response_code(500);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
             echo json_encode([
-                'success' => false, 
-                'message' => 'Gagal mengambil data event: ' . $e->getMessage()
+                'success' => false,
+                'message' => 'Gagal mengambil data event. Terjadi kesalahan pada server.'
             ]);
         }
     }
@@ -97,7 +101,7 @@ class UserController {
                 SELECT e.*, u.nama as owner_nama, u.email as owner_email 
                 FROM events e
                 JOIN users u ON e.owner_id = u.id
-                WHERE e.id = :id AND e.status_verifikasi IN ('TERBIT', 'PUBLISHED')
+                WHERE e.id = :id AND e.status_verifikasi IN ('TERBIT', 'PUBLISHED', 'DISETUJUI')
             ");
             $stmt->execute(['id' => $eventId]);
             $event = $stmt->fetch();
@@ -113,7 +117,7 @@ class UserController {
 
             // Ambil kategori tiket
             $stmtTickets = $this->db->prepare("
-                SELECT id, nama_kategori, kuota, wajib_ktm 
+                SELECT id, nama_kategori, kuota, wajib_ktm, harga 
                 FROM ticket_categories 
                 WHERE event_id = :event_id
             ");
@@ -149,16 +153,21 @@ class UserController {
             ]);
         } catch (PDOException $e) {
             http_response_code(500);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
             echo json_encode([
-                'success' => false, 
-                'message' => 'Gagal mengambil detail event: ' . $e->getMessage()
+                'success' => false,
+                'message' => 'Gagal mengambil detail event. Terjadi kesalahan pada server.'
             ]);
         }
     }
 
     /**
-     * 2. Pendaftaran event / reservasi tiket gratis (Create transaksi/pendaftaran)
-     * Dilengkapi pencegahan race condition menggunakan Transaction & Row Locking (FOR UPDATE)
+     * 2. Pendaftaran event / reservasi TIKET GRATIS (Create transaksi/pendaftaran)
+     * Dilengkapi pencegahan race condition menggunakan Transaction & Row Locking (FOR UPDATE).
+     * Tiket berbayar wajib lewat halaman /pendaftaran -> /pembayaran.
+     *
+     * Body JSON: event_id (wajib), ticket_category_id (wajib jika acara punya kategori),
+     *            no_whatsapp, institusi (opsional)
      */
     public function registerEvent(): void {
         AuthHelper::initSession();
@@ -172,92 +181,132 @@ class UserController {
 
         $userId = $_SESSION['user']['id'];
         $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
-        $eventId = $input['event_id'] ?? '';
-        $jenisTiket = $input['jenis_tiket'] ?? 'Gratis';
+        $eventId = (string)($input['event_id'] ?? '');
+        $categoryId = (string)($input['ticket_category_id'] ?? '');
         $noWhatsApp = trim($input['no_whatsapp'] ?? '');
         $institusi = trim($input['institusi'] ?? '');
 
-        if (empty($eventId)) {
+        $uuid = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i';
+        if ($eventId === '' || !preg_match($uuid, $eventId)) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'ID Event wajib diisi.']);
+            echo json_encode(['success' => false, 'message' => 'ID Event wajib diisi dengan benar.']);
+            return;
+        }
+        if ($categoryId !== '' && !preg_match($uuid, $categoryId)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'ID kategori tiket tidak valid.']);
             return;
         }
 
+        require_once __DIR__ . '/../helpers/PaymentHelper.php';
+
         try {
+            PaymentHelper::ensureSchema($this->db);
+            PaymentHelper::expireOverdue($this->db);
+
             $this->db->beginTransaction();
 
-            // 1. Cek event dan kunci baris untuk mencegah race condition (kuota penuh bersamaan)
+            // 1. Kunci baris event untuk mencegah race condition (kuota penuh bersamaan)
             $stmtEvent = $this->db->prepare("
-                SELECT id, kuota, status_verifikasi 
-                FROM events 
+                SELECT id, kuota, status_verifikasi, tanggal_selesai, (tanggal_selesai < CURRENT_TIMESTAMP) AS sudah_selesai
+                FROM events
                 WHERE id = :event_id FOR UPDATE
             ");
             $stmtEvent->execute(['event_id' => $eventId]);
             $event = $stmtEvent->fetch();
 
-            if (!$event || !in_array($event['status_verifikasi'], ['TERBIT', 'PUBLISHED', 'APPROVED'])) {
-                throw new Exception('Event tidak ditemukan atau belum disetujui/terbit oleh Admin.');
+            if (!$event || !in_array($event['status_verifikasi'], self::OPEN_STATUSES, true)) {
+                throw new DomainException('Event tidak ditemukan atau belum disetujui/terbit oleh Admin.');
+            }
+            if ($event['sudah_selesai']) {
+                throw new DomainException('Pendaftaran untuk acara ini sudah ditutup.');
             }
 
-            // 2. Hitung jumlah tiket aktif yang sudah terdaftar
-            $stmtCount = $this->db->prepare("
-                SELECT COUNT(*) as total 
-                FROM tickets 
-                WHERE event_id = :event_id AND status_tiket != 'BATAL'
-            ");
+            // 2. Kuota total event (semua tiket selain BATAL, termasuk yang sudah check-in)
+            $stmtCount = $this->db->prepare("SELECT COUNT(*) FROM tickets WHERE event_id = :event_id AND status_tiket != 'BATAL'");
             $stmtCount->execute(['event_id' => $eventId]);
-            $ticketCount = (int)$stmtCount->fetch()['total'];
-
-            if ($ticketCount >= (int)$event['kuota']) {
-                throw new Exception('Mohon maaf, kuota pendaftaran untuk event ini sudah penuh!');
+            if ((int)$stmtCount->fetchColumn() >= (int)$event['kuota']) {
+                throw new DomainException('Mohon maaf, kuota pendaftaran untuk event ini sudah penuh!');
             }
 
-            // 3. Cek apakah user sudah terdaftar di event ini
+            // 3. Satu peserta = satu tiket per event (AKTIF, MENUNGGU_PEMBAYARAN, atau SUDAH_PAKAI)
             $stmtDup = $this->db->prepare("
-                SELECT id FROM tickets 
-                WHERE event_id = :event_id AND user_id = :user_id AND status_tiket IN ('AKTIF', 'MENUNGGU_PEMBAYARAN')
+                SELECT 1 FROM tickets
+                WHERE event_id = :event_id AND user_id = :user_id
+                  AND status_tiket IN ('AKTIF', 'MENUNGGU_PEMBAYARAN', 'SUDAH_PAKAI')
             ");
             $stmtDup->execute(['event_id' => $eventId, 'user_id' => $userId]);
-            if ($stmtDup->fetch()) {
-                throw new Exception('Anda sudah terdaftar dalam event ini.');
+            if ($stmtDup->fetchColumn()) {
+                throw new DomainException('Anda sudah terdaftar dalam event ini.');
             }
 
-            // 3b. Endpoint ini hanya untuk tiket gratis; tiket berbayar wajib lewat alur pembayaran (/pendaftaran)
-            require_once __DIR__ . '/../helpers/PaymentHelper.php';
-            PaymentHelper::ensureSchema($this->db);
-            $stmtPaid = $this->db->prepare("SELECT 1 FROM ticket_categories WHERE event_id = :event_id AND harga > 0 LIMIT 1");
-            $stmtPaid->execute(['event_id' => $eventId]);
-            if ($stmtPaid->fetch()) {
-                throw new Exception('Acara ini memiliki tiket berbayar. Silakan pesan melalui halaman pendaftaran agar dapat membayar.');
-            }
+            // 4. Kategori tiket: wajib dipilih bila acara punya kategori; kuota & harga dibaca dari DB
+            $stmtCats = $this->db->prepare("SELECT COUNT(*) FROM ticket_categories WHERE event_id = :event_id");
+            $stmtCats->execute(['event_id' => $eventId]);
+            $punyaKategori = (int)$stmtCats->fetchColumn() > 0;
 
-            // 4. Perbarui data profil opsional jika disertakan saat pendaftaran
-            if (!empty($noWhatsApp) || !empty($institusi)) {
-                $stmtUpdateUser = $this->db->prepare("
-                    UPDATE users 
-                    SET no_whatsapp = COALESCE(NULLIF(:no_whatsapp, ''), no_whatsapp),
-                        institusi = COALESCE(NULLIF(:institusi, ''), institusi)
-                    WHERE id = :user_id
+            $jenisTiket = 'Umum';
+            $ticketCatId = null;
+
+            if ($punyaKategori) {
+                if ($categoryId === '') {
+                    throw new DomainException('Pilih kategori tiket terlebih dahulu (ticket_category_id).');
+                }
+                $stmtCat = $this->db->prepare("
+                    SELECT id, nama_kategori, kuota, harga
+                    FROM ticket_categories
+                    WHERE id = :id AND event_id = :event_id FOR UPDATE
                 ");
-                $stmtUpdateUser->execute([
+                $stmtCat->execute(['id' => $categoryId, 'event_id' => $eventId]);
+                $cat = $stmtCat->fetch();
+                if (!$cat) {
+                    throw new DomainException('Kategori tiket tidak ditemukan untuk acara ini.');
+                }
+                if ((float)$cat['harga'] > 0) {
+                    throw new DomainException('Kategori tiket ini berbayar. Silakan pesan melalui halaman pendaftaran agar dapat membayar.');
+                }
+                $stmtCatCount = $this->db->prepare("SELECT COUNT(*) FROM tickets WHERE ticket_category_id = :id AND status_tiket != 'BATAL'");
+                $stmtCatCount->execute(['id' => $cat['id']]);
+                if ((int)$stmtCatCount->fetchColumn() >= (int)$cat['kuota']) {
+                    throw new DomainException('Maaf, kuota untuk kategori tiket ini sudah penuh.');
+                }
+                $jenisTiket = $cat['nama_kategori'];
+                $ticketCatId = $cat['id'];
+            }
+
+            // 5. Perbarui data profil opsional jika disertakan saat pendaftaran
+            if ($noWhatsApp !== '' || $institusi !== '') {
+                $this->db->prepare("
+                    UPDATE users
+                    SET no_whatsapp = COALESCE(NULLIF(:no_whatsapp, ''), no_whatsapp),
+                        institusi = COALESCE(NULLIF(:institusi, ''), institusi),
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = :user_id
+                ")->execute([
                     'no_whatsapp' => $noWhatsApp,
                     'institusi' => $institusi,
                     'user_id' => $userId
                 ]);
             }
 
-            // 5. Generate Kode Tiket Unik (Format: TXR-YYYYMMDD-Random)
-            $dateStr = date('Ymd');
-            $randomCode = strtoupper(bin2hex(random_bytes(2)));
-            $kodeTiket = "TXR-{$dateStr}-{$randomCode}";
+            // 6. Kode tiket unik (Format: TXR-YYYYMMDD-Random), diulang bila bentrok
+            $kodeTiket = '';
+            $stmtKode = $this->db->prepare("SELECT 1 FROM tickets WHERE kode_tiket = :kode");
+            for ($i = 0; $i < 5; $i++) {
+                $kodeTiket = 'TXR-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(3)));
+                $stmtKode->execute(['kode' => $kodeTiket]);
+                if (!$stmtKode->fetchColumn()) {
+                    break;
+                }
+            }
 
-            // 6. Simpan pendaftaran tiket ke database
-            $stmtInsert = $this->db->prepare("
-                INSERT INTO tickets (event_id, user_id, kode_tiket, jenis_tiket, status_tiket, status_kehadiran) 
-                VALUES (:event_id, :user_id, :kode_tiket, :jenis_tiket, 'AKTIF', FALSE)
-            ");
-            $stmtInsert->execute([
+            // 7. Simpan pendaftaran tiket
+            $this->db->prepare("
+                INSERT INTO tickets (event_id, ticket_category_id, user_id, kode_tiket, jenis_tiket, status_tiket, status_kehadiran)
+                VALUES (:event_id, :ticket_category_id, :user_id, :kode_tiket, :jenis_tiket, 'AKTIF', FALSE)
+            ")->execute([
                 'event_id' => $eventId,
+                'ticket_category_id' => $ticketCatId,
                 'user_id' => $userId,
                 'kode_tiket' => $kodeTiket,
                 'jenis_tiket' => $jenisTiket
@@ -275,13 +324,20 @@ class UserController {
                 ]
             ]);
 
-        } catch (Exception $e) {
-            $this->db->rollBack();
+        } catch (DomainException $e) {
+            // Pesan aturan bisnis aman ditampilkan ke pengguna
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             http_response_code(400);
-            echo json_encode([
-                'success' => false,
-                'message' => $e->getMessage()
-            ]);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        } catch (Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Pendaftaran gagal diproses. Silakan coba lagi.']);
         }
     }
 
@@ -290,12 +346,7 @@ class UserController {
      */
     public function updateProfile(): void {
         AuthHelper::initSession();
-        
-        if (!isset($_SESSION['user'])) {
-            http_response_code(401);
-            echo json_encode(['success' => false, 'message' => 'Unauthorized: Silakan login terlebih dahulu.']);
-            return;
-        }
+        AuthHelper::checkAnyRole(['USER', 'EVENT_OWNER', 'ADMIN']);
 
         $userId = $_SESSION['user']['id'];
         $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
@@ -334,33 +385,47 @@ class UserController {
             ]);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Gagal memperbarui profil: ' . $e->getMessage()]);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Gagal memperbarui profil. Terjadi kesalahan pada server, silakan coba lagi.']);
         }
     }
 
     /**
      * 4. Ganti Kata Sandi (Halaman Akun Saya)
+     * Wajib menyertakan kata sandi lama, supaya sesi yang dibajak tidak langsung bisa
+     * mengambil alih akun.
      */
     public function changePassword(): void {
         AuthHelper::initSession();
-        
-        if (!isset($_SESSION['user'])) {
-            http_response_code(401);
-            echo json_encode(['success' => false, 'message' => 'Unauthorized: Silakan login terlebih dahulu.']);
-            return;
-        }
+        AuthHelper::checkAnyRole(['USER', 'EVENT_OWNER', 'ADMIN']);
 
         $userId = $_SESSION['user']['id'];
         $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
-        $kataSandiBaru = $input['kata_sandi_baru'] ?? '';
+        $kataSandiLama = (string)($input['kata_sandi_lama'] ?? '');
+        $kataSandiBaru = (string)($input['kata_sandi_baru'] ?? '');
 
-        if (strlen($kataSandiBaru) < 6) {
+        if ($kataSandiLama === '') {
             http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Kata sandi baru minimal harus 6 karakter.']);
+            echo json_encode(['success' => false, 'message' => 'Kata sandi lama wajib diisi.']);
+            return;
+        }
+        if (strlen($kataSandiBaru) < 8) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Kata sandi baru minimal harus 8 karakter.']);
             return;
         }
 
         try {
+            $stmtOld = $this->db->prepare("SELECT password FROM users WHERE id = :id");
+            $stmtOld->execute(['id' => $userId]);
+            $hashLama = $stmtOld->fetchColumn();
+
+            if (!$hashLama || !password_verify($kataSandiLama, (string)$hashLama)) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Kata sandi lama tidak sesuai.']);
+                return;
+            }
+
             $hashedPassword = password_hash($kataSandiBaru, PASSWORD_BCRYPT);
             $stmt = $this->db->prepare("UPDATE users SET password = :password, updated_at = CURRENT_TIMESTAMP WHERE id = :id");
             $stmt->execute(['password' => $hashedPassword, 'id' => $userId]);
@@ -370,77 +435,9 @@ class UserController {
                 'message' => 'Kata sandi berhasil diperbarui.'
             ]);
         } catch (PDOException $e) {
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Gagal mengubah kata sandi: ' . $e->getMessage()]);
-        }
-    }
-
-    /**
-     * 5. Hapus Akun Pengguna secara Permanen
-     */
-    public function deleteAccount(): void {
-        AuthHelper::initSession();
-        
-        if (!isset($_SESSION['user'])) {
-            http_response_code(401);
-            echo json_encode(['success' => false, 'message' => 'Unauthorized: Silakan login terlebih dahulu.']);
-            return;
-        }
-
-        $userId = $_SESSION['user']['id'];
-
-        try {
-            $stmt = $this->db->prepare("DELETE FROM users WHERE id = :id");
-            $stmt->execute(['id' => $userId]);
-
-            session_destroy();
-
-            echo json_encode([
-                'success' => true,
-                'message' => 'Akun dan seluruh riwayat berhasil dihapus permanen.'
-            ]);
-        } catch (PDOException $e) {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Gagal menghapus akun: ' . $e->getMessage()]);
-        }
-    }
-
-    /**
-     * 6. Mengambil Daftar Seluruh Pengguna (Fitur Manajemen Admin)
-     */
-    public function getAllUsers(): void {
-        AuthHelper::initSession();
-        AuthHelper::checkRole('ADMIN');
-
-        try {
-            $search = $_GET['search'] ?? '';
-            $query = "
-                SELECT u.id, u.nama, u.email, u.no_whatsapp, u.institusi, u.is_active, u.created_at, r.nama as role_nama, r.kode as role_kode
-                FROM users u
-                JOIN roles r ON u.role_id = r.id
-            ";
-
-            if (!empty($search)) {
-                $query .= " WHERE u.nama ILIKE :search OR u.email ILIKE :search";
-            }
-            $query .= " ORDER BY u.created_at DESC";
-
-            $stmt = $this->db->prepare($query);
-            if (!empty($search)) {
-                $stmt->execute(['search' => "%{$search}%"]);
-            } else {
-                $stmt->execute();
-            }
-            $users = $stmt->fetchAll();
-
-            echo json_encode([
-                'success' => true,
-                'message' => 'Daftar pengguna berhasil diambil.',
-                'data' => $users
-            ]);
-        } catch (PDOException $e) {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Gagal mengambil data pengguna: ' . $e->getMessage()]);
+            echo json_encode(['success' => false, 'message' => 'Gagal mengubah kata sandi. Terjadi kesalahan pada server, silakan coba lagi.']);
         }
     }
 }

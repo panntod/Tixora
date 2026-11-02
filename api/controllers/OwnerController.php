@@ -8,38 +8,66 @@ require_once __DIR__ . '/../helpers/AuthHelper.php';
  * Controller Modul Event Owner (Penyelenggara Acara) Tixora
  * Mengelola Dasbor, Wizard Pembuatan Acara, Tiket, Rundown, Panitia, RAB, Peserta, Analitik, hingga Pengaturan & Publikasi.
  */
-class OwnerController {
+class OwnerController
+{
     private PDO $db;
     private string $ownerId;
 
-    public function __construct() {
+    public function __construct()
+    {
         AuthHelper::initSession();
         AuthHelper::checkRole('EVENT_OWNER');
-        
+
         $this->db = Database::getInstance()->getConnection();
         $this->ownerId = $_SESSION['user']['id'] ?? '';
     }
 
     /**
+     * Pastikan event ada DAN dimiliki Event Owner yang sedang login.
+     * Dipakai oleh semua endpoint yang menerima {eventId} dari URL, supaya owner lain
+     * tidak bisa membaca/mengubah data acara yang bukan miliknya (mencegah IDOR).
+     * Mengirim respons 404 dan mengembalikan false bila tidak lolos.
+     */
+    private function assertOwnsEvent(string $eventId): bool
+    {
+        $isUuid = (bool) preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $eventId);
+        if ($isUuid) {
+            try {
+                $stmt = $this->db->prepare("SELECT 1 FROM events WHERE id = :id AND owner_id = :owner_id");
+                $stmt->execute(['id' => $eventId, 'owner_id' => $this->ownerId]);
+                if ($stmt->fetchColumn()) {
+                    return true;
+                }
+            } catch (PDOException $e) {
+                error_log('[TIXORA] assertOwnsEvent: ' . $e->getMessage());
+            }
+        }
+        http_response_code(404);
+        echo json_encode(['success' => false, 'message' => 'Acara tidak ditemukan atau akses ditolak.']);
+        return false;
+    }
+
+    /**
      * 1. Ringkasan Dasbor Event Owner (/event-owner)
      */
-    public function getDashboardSummary(): void {
+    public function getDashboardSummary(): void
+    {
         try {
             $stmtTotal = $this->db->prepare("SELECT COUNT(*) FROM events WHERE owner_id = :owner_id");
             $stmtTotal->execute(['owner_id' => $this->ownerId]);
-            $totalAcara = (int)$stmtTotal->fetchColumn();
+            $totalAcara = (int) $stmtTotal->fetchColumn();
 
             $stmtTerbit = $this->db->prepare("SELECT COUNT(*) FROM events WHERE owner_id = :owner_id AND status_verifikasi = 'TERBIT'");
             $stmtTerbit->execute(['owner_id' => $this->ownerId]);
-            $acaraTerbit = (int)$stmtTerbit->fetchColumn();
+            $acaraTerbit = (int) $stmtTerbit->fetchColumn();
 
             $stmtDraft = $this->db->prepare("SELECT COUNT(*) FROM events WHERE owner_id = :owner_id AND status_verifikasi = 'DRAF'");
             $stmtDraft->execute(['owner_id' => $this->ownerId]);
-            $draftCount = (int)$stmtDraft->fetchColumn();
+            $draftCount = (int) $stmtDraft->fetchColumn();
 
             $stmtPending = $this->db->prepare("SELECT COUNT(*) FROM events WHERE owner_id = :owner_id AND status_verifikasi = 'MENUNGGU_TINJAUAN'");
             $stmtPending->execute(['owner_id' => $this->ownerId]);
-            $pendingCount = (int)$stmtPending->fetchColumn();
+            $pendingCount = (int) $stmtPending->fetchColumn();
 
             // Total tiket terjual & pendaftar
             $stmtTickets = $this->db->prepare("
@@ -49,7 +77,7 @@ class OwnerController {
                 WHERE e.owner_id = :owner_id AND t.status_tiket != 'BATAL'
             ");
             $stmtTickets->execute(['owner_id' => $this->ownerId]);
-            $totalPendaftar = (int)$stmtTickets->fetchColumn();
+            $totalPendaftar = (int) $stmtTickets->fetchColumn();
 
             // Acara mendatang (tanggal mulai > hari ini)
             $stmtUpcoming = $this->db->prepare("
@@ -75,14 +103,16 @@ class OwnerController {
             ]);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Gagal memuat ringkasan dasbor: ' . $e->getMessage()]);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Gagal memuat ringkasan dasbor. Terjadi kesalahan pada server, silakan coba lagi.']);
         }
     }
 
     /**
      * 2. Daftar Acara Saya (/event-owner/acara-saya)
      */
-    public function getMyEvents(): void {
+    public function getMyEvents(): void
+    {
         try {
             $status = $_GET['status'] ?? null;
             $search = $_GET['search'] ?? null;
@@ -113,14 +143,16 @@ class OwnerController {
             ]);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Gagal mengambil data acara: ' . $e->getMessage()]);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Gagal mengambil data acara. Terjadi kesalahan pada server, silakan coba lagi.']);
         }
     }
 
     /**
      * 3. Buat Draf Acara Baru (/event-owner/buat-acara)
      */
-    public function createEventDraft(): void {
+    public function createEventDraft(): void
+    {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             http_response_code(405);
             echo json_encode(['success' => false, 'message' => 'Metode HTTP tidak diizinkan.']);
@@ -128,16 +160,22 @@ class OwnerController {
         }
 
         $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
-        
+
         $judulEvent = trim($input['judul_event'] ?? $input['judulEvent'] ?? '');
         $deskripsi = trim($input['deskripsi'] ?? '');
         $kategori = trim($input['kategori'] ?? 'Seminar');
-        $kuota = (int)($input['kuota'] ?? 100);
+        $kuota = (int) ($input['kuota'] ?? 100);
         $tanggalMulai = $input['tanggal_mulai'] ?? $input['tanggalMulai'] ?? '';
         $tanggalSelesai = $input['tanggal_selesai'] ?? $input['tanggalSelesai'] ?? '';
         $namaTempat = trim($input['nama_tempat'] ?? $input['namaTempat'] ?? '');
         $kota = trim($input['kota'] ?? '');
         $bannerUrl = trim($input['banner_url'] ?? $input['bannerUrl'] ?? $input['posterUrl'] ?? '');
+
+        // Jika banner kosong, pilih banner default secara acak
+        if ($bannerUrl === '') {
+            $randomBanner = rand(1, 4);
+            $bannerUrl = "default-" . $randomBanner;
+        }
 
         if (!$judulEvent || !$tanggalMulai || !$tanggalSelesai || !$namaTempat || !$kota) {
             http_response_code(400);
@@ -155,7 +193,7 @@ class OwnerController {
                     :tanggal_mulai, :tanggal_selesai, :nama_tempat, :kota, :banner_url, 'DRAF'
                 ) RETURNING id
             ");
-            
+
             $stmt->execute([
                 'owner_id' => $this->ownerId,
                 'judul_event' => $judulEvent,
@@ -166,7 +204,7 @@ class OwnerController {
                 'tanggal_selesai' => $tanggalSelesai,
                 'nama_tempat' => $namaTempat,
                 'kota' => $kota,
-                'banner_url' => $bannerUrl ?: null
+                'banner_url' => $bannerUrl
             ]);
 
             $newId = $stmt->fetchColumn();
@@ -185,14 +223,16 @@ class OwnerController {
             ]);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Gagal menyimpan draf event: ' . $e->getMessage()]);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Gagal menyimpan draf event. Terjadi kesalahan pada server, silakan coba lagi.']);
         }
     }
 
     /**
      * 4. Sunting Informasi Acara (/event-owner/edit-informasi)
      */
-    public function updateOwnerEvent(string $eventId): void {
+    public function updateOwnerEvent(string $eventId): void
+    {
         if ($_SERVER['REQUEST_METHOD'] !== 'PUT' && $_SERVER['REQUEST_METHOD'] !== 'PATCH') {
             http_response_code(405);
             echo json_encode(['success' => false, 'message' => 'Metode HTTP tidak diizinkan.']);
@@ -237,7 +277,7 @@ class OwnerController {
                 'judul_event' => $input['judul_event'] ?? $input['judulEvent'] ?? null,
                 'deskripsi' => $input['deskripsi'] ?? null,
                 'kategori' => $input['kategori'] ?? null,
-                'kuota' => isset($input['kuota']) ? (int)$input['kuota'] : null,
+                'kuota' => isset($input['kuota']) ? (int) $input['kuota'] : null,
                 'tanggal_mulai' => $input['tanggal_mulai'] ?? $input['tanggalMulai'] ?? null,
                 'tanggal_selesai' => $input['tanggal_selesai'] ?? $input['tanggalSelesai'] ?? null,
                 'nama_tempat' => $input['nama_tempat'] ?? $input['namaTempat'] ?? null,
@@ -249,18 +289,23 @@ class OwnerController {
             echo json_encode(['success' => true, 'message' => 'Detail draf acara berhasil diperbarui.']);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Gagal memperbarui draf acara: ' . $e->getMessage()]);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Gagal memperbarui draf acara. Terjadi kesalahan pada server, silakan coba lagi.']);
         }
     }
 
     /**
      * 5. Kelola Kategori Tiket (/event-owner/buat-acara/tiket & /tiket)
      */
-    public function manageTicketCategory(string $eventId): void {
+    public function manageTicketCategory(string $eventId): void
+    {
+        if (!$this->assertOwnsEvent($eventId)) {
+            return;
+        }
         $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
         $namaKategori = trim($input['nama_kategori'] ?? $input['namaKategori'] ?? 'Umum');
-        $harga = (float)($input['harga'] ?? 0);
-        $kuota = (int)($input['kuota'] ?? 0);
+        $harga = (float) ($input['harga'] ?? 0);
+        $kuota = (int) ($input['kuota'] ?? 0);
         $mulaiJual = $input['mulai_jual'] ?? $input['mulaiJual'] ?? null;
         $berakhir = $input['berakhir'] ?? null;
         $wajibKtm = filter_var($input['wajib_ktm'] ?? $input['wajibKTM'] ?? false, FILTER_VALIDATE_BOOLEAN);
@@ -296,14 +341,19 @@ class OwnerController {
             echo json_encode(['success' => true, 'message' => 'Kategori tiket berhasil ditambahkan.']);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Gagal menambah kategori tiket: ' . $e->getMessage()]);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Gagal menambah kategori tiket. Terjadi kesalahan pada server, silakan coba lagi.']);
         }
     }
 
     /**
      * 6. Kelola Rundown Acara & PIC Panitia (/event-owner/rundown)
      */
-    public function manageRundown(string $eventId): void {
+    public function manageRundown(string $eventId): void
+    {
+        if (!$this->assertOwnsEvent($eventId)) {
+            return;
+        }
         $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
         $waktuMulai = trim($input['waktu_mulai'] ?? $input['waktuMulai'] ?? '');
         $waktuSelesai = trim($input['waktu_selesai'] ?? $input['waktuSelesai'] ?? '');
@@ -316,6 +366,21 @@ class OwnerController {
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Waktu mulai, selesai, dan judul sesi wajib diisi.']);
             return;
+        }
+
+        if (!empty($committeeId)) {
+            $stmtPic = $this->db->prepare("SELECT 1 FROM committees WHERE id = :cid AND event_id = :eid");
+            try {
+                $stmtPic->execute(['cid' => $committeeId, 'eid' => $eventId]);
+                $picValid = (bool) $stmtPic->fetchColumn();
+            } catch (PDOException $e) {
+                $picValid = false; // bukan UUID valid, dsb.
+            }
+            if (!$picValid) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'PIC panitia tidak valid untuk acara ini.']);
+                return;
+            }
         }
 
         try {
@@ -338,14 +403,19 @@ class OwnerController {
             echo json_encode(['success' => true, 'message' => 'Sesi rundown berhasil ditambahkan.']);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Gagal menambah rundown: ' . $e->getMessage()]);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Gagal menambah rundown. Terjadi kesalahan pada server, silakan coba lagi.']);
         }
     }
 
     /**
      * 7. Kelola Panitia / Kepanitiaan (/event-owner/panitia)
      */
-    public function managePanitia(string $eventId): void {
+    public function managePanitia(string $eventId): void
+    {
+        if (!$this->assertOwnsEvent($eventId)) {
+            return;
+        }
         $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
         $namaPanitia = trim($input['nama_panitia'] ?? $input['namaPanitia'] ?? $input['nama'] ?? '');
         $posisiJabatan = trim($input['posisi_jabatan'] ?? $input['posisiJabatan'] ?? $input['peran'] ?? '');
@@ -380,18 +450,23 @@ class OwnerController {
             echo json_encode(['success' => true, 'message' => 'Anggota panitia berhasil ditambahkan.']);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Gagal menambah panitia: ' . $e->getMessage()]);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Gagal menambah panitia. Terjadi kesalahan pada server, silakan coba lagi.']);
         }
     }
 
     /**
      * 8. Kelola RAB / Anggaran Biaya (/event-owner/rab)
      */
-    public function manageRabItem(string $eventId): void {
+    public function manageRabItem(string $eventId): void
+    {
+        if (!$this->assertOwnsEvent($eventId)) {
+            return;
+        }
         $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
         $kategori = trim($input['kategori'] ?? '');
-        $rencana = (float)($input['rencana'] ?? $input['estimasiBiaya'] ?? 0);
-        $realisasi = (float)($input['realisasi'] ?? 0);
+        $rencana = (float) ($input['rencana'] ?? $input['estimasiBiaya'] ?? 0);
+        $realisasi = (float) ($input['realisasi'] ?? 0);
 
         if (!$kategori) {
             http_response_code(400);
@@ -416,14 +491,16 @@ class OwnerController {
             echo json_encode(['success' => true, 'message' => 'Item RAB berhasil ditambahkan.']);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Gagal menambah item RAB: ' . $e->getMessage()]);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Gagal menambah item RAB. Terjadi kesalahan pada server, silakan coba lagi.']);
         }
     }
 
     /**
      * 9. Daftar Peserta Event (/event-owner/peserta)
      */
-    public function getEventParticipants(string $eventId): void {
+    public function getEventParticipants(string $eventId): void
+    {
         try {
             $stmtCheck = $this->db->prepare("SELECT id FROM events WHERE id = :event_id AND owner_id = :owner_id");
             $stmtCheck->execute(['event_id' => $eventId, 'owner_id' => $this->ownerId]);
@@ -447,14 +524,16 @@ class OwnerController {
             echo json_encode(['success' => true, 'message' => 'Daftar peserta berhasil diambil.', 'data' => $participants]);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Gagal mengambil daftar peserta: ' . $e->getMessage()]);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Gagal mengambil daftar peserta. Terjadi kesalahan pada server, silakan coba lagi.']);
         }
     }
 
     /**
      * 10. Batalkan Tiket Peserta Tertentu
      */
-    public function cancelParticipantTicket(string $ticketId): void {
+    public function cancelParticipantTicket(string $ticketId): void
+    {
         if ($_SERVER['REQUEST_METHOD'] !== 'PATCH') {
             http_response_code(405);
             echo json_encode(['success' => false, 'message' => 'Metode HTTP tidak diizinkan.']);
@@ -482,14 +561,16 @@ class OwnerController {
             echo json_encode(['success' => true, 'message' => 'Tiket peserta berhasil dibatalkan.']);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Gagal membatalkan tiket: ' . $e->getMessage()]);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Gagal membatalkan tiket. Terjadi kesalahan pada server, silakan coba lagi.']);
         }
     }
 
     /**
      * 11. Pengajuan Acara ke Admin (/event-owner/pengajuan)
      */
-    public function submitEventForReview(string $eventId): void {
+    public function submitEventForReview(string $eventId): void
+    {
         if ($_SERVER['REQUEST_METHOD'] !== 'PATCH') {
             http_response_code(405);
             echo json_encode(['success' => false, 'message' => 'Metode HTTP tidak diizinkan.']);
@@ -526,14 +607,16 @@ class OwnerController {
             echo json_encode(['success' => true, 'message' => 'Acara berhasil diajukan kepada Admin untuk ditinjau.']);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Gagal mengajukan acara: ' . $e->getMessage()]);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Gagal mengajukan acara. Terjadi kesalahan pada server, silakan coba lagi.']);
         }
     }
 
     /**
      * 12. Tarik Pengajuan Acara Kembali ke Draf
      */
-    public function withdrawEventSubmission(string $eventId): void {
+    public function withdrawEventSubmission(string $eventId): void
+    {
         if ($_SERVER['REQUEST_METHOD'] !== 'PATCH') {
             http_response_code(405);
             echo json_encode(['success' => false, 'message' => 'Metode HTTP tidak diizinkan.']);
@@ -557,14 +640,16 @@ class OwnerController {
             echo json_encode(['success' => true, 'message' => 'Pengajuan acara berhasil ditarik kembali ke draf.']);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Gagal menarik pengajuan: ' . $e->getMessage()]);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Gagal menarik pengajuan. Terjadi kesalahan pada server, silakan coba lagi.']);
         }
     }
 
     /**
      * 13. Publikasi Acara Resmi (/event-owner/pengaturan-acara)
      */
-    public function publishEvent(string $eventId): void {
+    public function publishEvent(string $eventId): void
+    {
         if ($_SERVER['REQUEST_METHOD'] !== 'PATCH') {
             http_response_code(405);
             echo json_encode(['success' => false, 'message' => 'Metode HTTP tidak diizinkan.']);
@@ -588,14 +673,16 @@ class OwnerController {
             echo json_encode(['success' => true, 'message' => 'Acara berhasil dipublikasikan secara resmi.']);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Gagal mempublikasikan acara: ' . $e->getMessage()]);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Gagal mempublikasikan acara. Terjadi kesalahan pada server, silakan coba lagi.']);
         }
     }
 
     /**
      * 14. Pembatalan Acara Oleh Owner (/event-owner/dialog-publikasi)
      */
-    public function cancelEventByOwner(string $eventId): void {
+    public function cancelEventByOwner(string $eventId): void
+    {
         if ($_SERVER['REQUEST_METHOD'] !== 'PATCH') {
             http_response_code(405);
             echo json_encode(['success' => false, 'message' => 'Metode HTTP tidak diizinkan.']);
@@ -628,14 +715,16 @@ class OwnerController {
             echo json_encode(['success' => true, 'message' => 'Acara berhasil dibatalkan. Peserta akan diberi tahu.']);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Gagal membatalkan acara: ' . $e->getMessage()]);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Gagal membatalkan acara. Terjadi kesalahan pada server, silakan coba lagi.']);
         }
     }
 
     /**
      * 15. Tab Ringkasan Detail Acara (/event-owner/ringkasan)
      */
-    public function getEventSummaryDetail(string $eventId): void {
+    public function getEventSummaryDetail(string $eventId): void
+    {
         try {
             $stmtCheck = $this->db->prepare("SELECT * FROM events WHERE id = :id AND owner_id = :owner_id");
             $stmtCheck->execute(['id' => $eventId, 'owner_id' => $this->ownerId]);
@@ -649,11 +738,11 @@ class OwnerController {
 
             $stmtCount = $this->db->prepare("SELECT COUNT(*) FROM tickets WHERE event_id = :event_id AND status_tiket != 'BATAL'");
             $stmtCount->execute(['event_id' => $eventId]);
-            $totalPendaftar = (int)$stmtCount->fetchColumn();
+            $totalPendaftar = (int) $stmtCount->fetchColumn();
 
             $stmtHadir = $this->db->prepare("SELECT COUNT(*) FROM tickets WHERE event_id = :event_id AND status_kehadiran = TRUE AND status_tiket != 'BATAL'");
             $stmtHadir->execute(['event_id' => $eventId]);
-            $totalHadir = (int)$stmtHadir->fetchColumn();
+            $totalHadir = (int) $stmtHadir->fetchColumn();
 
             // Total Estimasi RAB
             $stmtRab = $this->db->prepare("SELECT SUM(rencana) as total_rencana, SUM(realisasi) as total_realisasi FROM rab_details WHERE event_id = :event_id");
@@ -673,36 +762,46 @@ class OwnerController {
                         'total_pendaftar' => $totalPendaftar,
                         'total_hadir' => $totalHadir,
                         'persentase_kehadiran' => $totalPendaftar > 0 ? round(($totalHadir / $totalPendaftar) * 100, 1) . '%' : '0%',
-                        'total_estimasi_rab' => (float)($rabSummary['total_rencana'] ?? 0),
-                        'sisa_kuota' => max(0, (int)$event['kuota'] - $totalPendaftar)
+                        'total_estimasi_rab' => (float) ($rabSummary['total_rencana'] ?? 0),
+                        'sisa_kuota' => max(0, (int) $event['kuota'] - $totalPendaftar)
                     ],
                     'kategori_tiket' => $kategoriTiket
                 ]
             ]);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Gagal mengambil ringkasan acara: ' . $e->getMessage()]);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Gagal mengambil ringkasan acara. Terjadi kesalahan pada server, silakan coba lagi.']);
         }
     }
 
     /**
      * 16. Tab Tiket Acara (/event-owner/tiket)
      */
-    public function getEventTickets(string $eventId): void {
+    public function getEventTickets(string $eventId): void
+    {
+        if (!$this->assertOwnsEvent($eventId)) {
+            return;
+        }
         try {
             $stmt = $this->db->prepare("SELECT * FROM ticket_categories WHERE event_id = :event_id");
             $stmt->execute(['event_id' => $eventId]);
             echo json_encode(['success' => true, 'message' => 'Daftar kategori tiket berhasil diambil.', 'data' => $stmt->fetchAll()]);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Gagal mengambil tiket: ' . $e->getMessage()]);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Gagal mengambil tiket. Terjadi kesalahan pada server, silakan coba lagi.']);
         }
     }
 
     /**
      * 17. Tab Rundown Acara (/event-owner/rundown)
      */
-    public function getEventRundowns(string $eventId): void {
+    public function getEventRundowns(string $eventId): void
+    {
+        if (!$this->assertOwnsEvent($eventId)) {
+            return;
+        }
         try {
             $stmt = $this->db->prepare("
                 SELECT r.*, c.nama_panitia as pic_nama 
@@ -715,14 +814,19 @@ class OwnerController {
             echo json_encode(['success' => true, 'message' => 'Daftar rundown berhasil diambil.', 'data' => $stmt->fetchAll()]);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Gagal mengambil rundown: ' . $e->getMessage()]);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Gagal mengambil rundown. Terjadi kesalahan pada server, silakan coba lagi.']);
         }
     }
 
     /**
      * 18. Tab RAB Anggaran Acara (/event-owner/rab)
      */
-    public function getEventRab(string $eventId): void {
+    public function getEventRab(string $eventId): void
+    {
+        if (!$this->assertOwnsEvent($eventId)) {
+            return;
+        }
         try {
             $stmt = $this->db->prepare("SELECT * FROM rab_details WHERE event_id = :event_id");
             $stmt->execute(['event_id' => $eventId]);
@@ -731,8 +835,8 @@ class OwnerController {
             $totalRencana = 0;
             $totalRealisasi = 0;
             foreach ($rab as $item) {
-                $totalRencana += (float)$item['rencana'];
-                $totalRealisasi += (float)$item['realisasi'];
+                $totalRencana += (float) $item['rencana'];
+                $totalRealisasi += (float) $item['realisasi'];
             }
 
             echo json_encode([
@@ -747,42 +851,54 @@ class OwnerController {
             ]);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Gagal mengambil RAB: ' . $e->getMessage()]);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Gagal mengambil RAB. Terjadi kesalahan pada server, silakan coba lagi.']);
         }
     }
 
     /**
      * 19. Tab Panitia Acara (/event-owner/panitia)
      */
-    public function getEventCommittees(string $eventId): void {
+    public function getEventCommittees(string $eventId): void
+    {
+        if (!$this->assertOwnsEvent($eventId)) {
+            return;
+        }
         try {
             $stmt = $this->db->prepare("SELECT * FROM committees WHERE event_id = :event_id");
             $stmt->execute(['event_id' => $eventId]);
             echo json_encode(['success' => true, 'message' => 'Daftar panitia berhasil diambil.', 'data' => $stmt->fetchAll()]);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Gagal mengambil panitia: ' . $e->getMessage()]);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Gagal mengambil panitia. Terjadi kesalahan pada server, silakan coba lagi.']);
         }
     }
 
     /**
      * 20. Tab Riwayat Log Pengajuan Acara (/event-owner/pengajuan)
      */
-    public function getEventSubmissionLogs(string $eventId): void {
+    public function getEventSubmissionLogs(string $eventId): void
+    {
+        if (!$this->assertOwnsEvent($eventId)) {
+            return;
+        }
         try {
             $stmt = $this->db->prepare("SELECT * FROM event_submission_logs WHERE event_id = :event_id ORDER BY created_at DESC");
             $stmt->execute(['event_id' => $eventId]);
             echo json_encode(['success' => true, 'message' => 'Riwayat pengajuan berhasil diambil.', 'data' => $stmt->fetchAll()]);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Gagal mengambil riwayat pengajuan: ' . $e->getMessage()]);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Gagal mengambil riwayat pengajuan. Terjadi kesalahan pada server, silakan coba lagi.']);
         }
     }
 
     /**
      * 21. Tab Analitik Acara (/event-owner/analitik)
      */
-    public function getEventAnalytics(string $eventId): void {
+    public function getEventAnalytics(string $eventId): void
+    {
         try {
             $stmtCheck = $this->db->prepare("SELECT * FROM events WHERE id = :id AND owner_id = :owner_id");
             $stmtCheck->execute(['id' => $eventId, 'owner_id' => $this->ownerId]);
@@ -796,11 +912,11 @@ class OwnerController {
 
             $stmtPendaftar = $this->db->prepare("SELECT COUNT(*) FROM tickets WHERE event_id = :event_id AND status_tiket != 'BATAL'");
             $stmtPendaftar->execute(['event_id' => $eventId]);
-            $totalPendaftar = (int)$stmtPendaftar->fetchColumn();
+            $totalPendaftar = (int) $stmtPendaftar->fetchColumn();
 
             $stmtHadir = $this->db->prepare("SELECT COUNT(*) FROM tickets WHERE event_id = :event_id AND status_kehadiran = TRUE AND status_tiket != 'BATAL'");
             $stmtHadir->execute(['event_id' => $eventId]);
-            $totalHadir = (int)$stmtHadir->fetchColumn();
+            $totalHadir = (int) $stmtHadir->fetchColumn();
 
             $stmtRab = $this->db->prepare("SELECT SUM(rencana) as total_rencana, SUM(realisasi) as total_realisasi FROM rab_details WHERE event_id = :event_id");
             $stmtRab->execute(['event_id' => $eventId]);
@@ -821,21 +937,22 @@ class OwnerController {
                 'data' => [
                     'event_id' => $eventId,
                     'judul_event' => $event['judul_event'],
-                    'kuota_total' => (int)$event['kuota'],
+                    'kuota_total' => (int) $event['kuota'],
                     'total_pendaftar' => $totalPendaftar,
                     'total_hadir' => $totalHadir,
                     'persentase_kehadiran' => $totalPendaftar > 0 ? round(($totalHadir / $totalPendaftar) * 100, 1) . '%' : '0%',
-                    'sisa_kuota' => max(0, (int)$event['kuota'] - $totalPendaftar),
+                    'sisa_kuota' => max(0, (int) $event['kuota'] - $totalPendaftar),
                     'anggaran_rab' => [
-                        'total_rencana' => (float)($rabSummary['total_rencana'] ?? 0),
-                        'total_realisasi' => (float)($rabSummary['total_realisasi'] ?? 0)
+                        'total_rencana' => (float) ($rabSummary['total_rencana'] ?? 0),
+                        'total_realisasi' => (float) ($rabSummary['total_realisasi'] ?? 0)
                     ],
                     'statistik_kategori_tiket' => $statistikTiket
                 ]
             ]);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Gagal mengambil data analitik: ' . $e->getMessage()]);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Gagal mengambil data analitik. Terjadi kesalahan pada server, silakan coba lagi.']);
         }
     }
 }

@@ -13,7 +13,7 @@ class AdminController {
 
     public function __construct() {
         AuthHelper::initSession();
-        AuthHelper::checkRole('ADMIN'); // Proteksi RBAC ketat khusus ADMIN[cite: 9]
+        AuthHelper::checkRole('ADMIN'); // Proteksi RBAC ketat khusus ADMIN
         
         $this->db = Database::getInstance()->getConnection();
     }
@@ -66,7 +66,8 @@ class AdminController {
             ]);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Gagal mengambil statistik dasbor: ' . $e->getMessage()]);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Gagal mengambil statistik dasbor. Terjadi kesalahan pada server, silakan coba lagi.']);
         }
     }
 
@@ -116,7 +117,8 @@ class AdminController {
             ]);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Gagal mengambil antrean event: ' . $e->getMessage()]);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Gagal mengambil antrean event. Terjadi kesalahan pada server, silakan coba lagi.']);
         }
     }
 
@@ -172,7 +174,8 @@ class AdminController {
             ]);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Gagal mengambil detail acara: ' . $e->getMessage()]);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Gagal mengambil detail acara. Terjadi kesalahan pada server, silakan coba lagi.']);
         }
     }
 
@@ -260,7 +263,8 @@ class AdminController {
         } catch (Exception $e) {
             $this->db->rollBack();
             http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Gagal memverifikasi event: ' . $e->getMessage()]);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Gagal memverifikasi event. Terjadi kesalahan pada server, silakan coba lagi.']);
         }
     }
 
@@ -296,7 +300,8 @@ class AdminController {
             ]);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Gagal mengambil daftar pengguna: ' . $e->getMessage()]);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Gagal mengambil daftar pengguna. Terjadi kesalahan pada server, silakan coba lagi.']);
         }
     }
 
@@ -320,6 +325,19 @@ class AdminController {
             return;
         }
 
+        if (!preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $userId)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'ID pengguna tidak valid.']);
+            return;
+        }
+
+        // Admin tidak boleh menangguhkan akunnya sendiri (akan terkunci dari sistem)
+        if (!$isActive && $userId === ($_SESSION['user']['id'] ?? '')) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Anda tidak dapat menangguhkan akun Anda sendiri.']);
+            return;
+        }
+
         try {
             $stmtUser = $this->db->prepare("SELECT nama FROM users WHERE id = :id");
             $stmtUser->execute(['id' => $userId]);
@@ -339,7 +357,7 @@ class AdminController {
                 WHERE id = :id
             ");
             $stmt->execute([
-                'is_active' => $isActive ? 1 : 0,
+                'is_active' => $isActive ? 'true' : 'false',
                 'alasan' => $isActive ? null : $alasan,
                 'id' => $userId
             ]);
@@ -351,7 +369,8 @@ class AdminController {
             ]);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Gagal memperbarui status akun: ' . $e->getMessage()]);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Gagal memperbarui status akun. Terjadi kesalahan pada server, silakan coba lagi.']);
         }
     }
 
@@ -386,7 +405,8 @@ class AdminController {
             ]);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Gagal mengambil laporan platform: ' . $e->getMessage()]);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Gagal mengambil laporan platform. Terjadi kesalahan pada server, silakan coba lagi.']);
         }
     }
 
@@ -424,7 +444,8 @@ class AdminController {
             ]);
         } catch (PDOException $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Gagal mengambil notifikasi: ' . $e->getMessage()]);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Gagal mengambil notifikasi. Terjadi kesalahan pada server, silakan coba lagi.']);
         }
     }
 

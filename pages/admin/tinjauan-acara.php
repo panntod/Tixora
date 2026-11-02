@@ -45,7 +45,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $keputusan = trim($_POST['keputusan'] ?? '');
     $catatan = trim($_POST['catatan'] ?? '');
 
-    if (!in_array($keputusan, ['APPROVE', 'REJECT'])) {
+    if (!ViewHelper::checkCsrf()) {
+        $errorMsg = 'Sesi formulir kedaluwarsa. Muat ulang halaman lalu coba lagi.';
+    } elseif (($event['status_verifikasi'] ?? '') !== 'MENUNGGU_TINJAUAN') {
+        // Hanya acara yang sedang diajukan yang boleh dimoderasi (mencegah menyetujui DRAF/BATAL)
+        $errorMsg = 'Acara ini tidak sedang menunggu tinjauan, keputusan tidak dapat diubah.';
+    } elseif (!in_array($keputusan, ['APPROVE', 'REJECT'], true)) {
         $errorMsg = 'Pilihan keputusan moderasi tidak valid.';
     } elseif ($keputusan === 'REJECT' && strlen($catatan) < 10) {
         $errorMsg = 'Untuk menolak acara, wajib menyertakan alasan yang jelas minimal 10 karakter.';
@@ -96,12 +101,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Refresh data event
             $event['status_verifikasi'] = $statusVerifikasi;
-            $successMsg = ($statusVerifikasi === 'TERBIT') 
-                ? 'Acara berhasil DISETUJUI & DITERBITKAN ke portal publik.' 
+            $successMsg = ($statusVerifikasi === 'TERBIT')
+                ? 'Acara berhasil DISETUJUI & DITERBITKAN ke portal publik.'
                 : 'Acara berhasil DITOLAK. Penyelenggara akan menerima catatan revisi.';
-        } catch (Exception $e) {
-            $db->rollBack();
-            $errorMsg = 'Gagal menyimpan keputusan moderasi: ' . $e->getMessage();
+        } catch (Throwable $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            error_log('[TIXORA] Moderasi gagal: ' . $e->getMessage());
+            $errorMsg = 'Gagal menyimpan keputusan moderasi. Silakan coba lagi.';
         }
     }
 }
@@ -155,19 +163,24 @@ $kickerDate = strtoupper(date('d M Y', strtotime($event['tanggal_mulai'])));
             </aside>
 
             <main class="main">
-                <p class="crumb"><a href="<?= BASE_URL ?>/admin/antrean-acara" style="color:inherit;text-decoration:none">Antrean acara</a> / Tinjauan</p>
+                <p class="crumb"><a href="<?= BASE_URL ?>/admin/antrean-acara"
+                        style="color:inherit;text-decoration:none">Antrean acara</a> / Tinjauan</p>
                 <div class="head">
                     <div>
                         <h1 class="page-title"><?= htmlspecialchars($event['judul_event']) ?></h1>
                         <p class="page-subtitle">
-                            <span class="badge <?= $event['status_verifikasi'] === 'TERBIT' ? 'badge-success' : ($event['status_verifikasi'] === 'MENUNGGU_TINJAUAN' ? 'badge-warning' : ($event['status_verifikasi'] === 'DITOLAK' ? 'badge-error' : 'badge-neutral')) ?>">
+                            <span
+                                class="badge <?= $event['status_verifikasi'] === 'TERBIT' ? 'badge-success' : ($event['status_verifikasi'] === 'MENUNGGU_TINJAUAN' ? 'badge-warning' : ($event['status_verifikasi'] === 'DITOLAK' ? 'badge-error' : 'badge-neutral')) ?>">
                                 <span class="badge-dot"></span><?= htmlspecialchars($event['status_verifikasi']) ?>
                             </span>
-                            &nbsp;<span class="slate" style="font-size:14px">Diajukan oleh <?= htmlspecialchars($event['owner_nama']) ?> (<?= htmlspecialchars($event['owner_email']) ?>)</span>
+                            &nbsp;<span class="slate" style="font-size:14px">Diajukan oleh
+                                <?= htmlspecialchars($event['owner_nama']) ?>
+                                (<?= htmlspecialchars($event['owner_email']) ?>)</span>
                         </p>
                     </div>
                     <div class="head-actions">
-                        <a href="<?= BASE_URL ?>/admin/antrean-acara" class="button secondary-button" style="text-decoration:none">← Kembali ke Antrean</a>
+                        <a href="<?= BASE_URL ?>/admin/antrean-acara" class="button secondary-button"
+                            style="text-decoration:none">← Kembali ke Antrean</a>
                     </div>
                 </div>
 
@@ -182,12 +195,14 @@ $kickerDate = strtoupper(date('d M Y', strtotime($event['tanggal_mulai'])));
                     <div class="stack gap-24" style="width:740px">
                         <div class="poster poster-indigo" style="height:200px;border-radius:12px;padding:24px">
                             <span class="poster-kicker"><?= $kickerDate ?></span>
-                            <span class="poster-title" style="font-size:32px;line-height:36px"><?= htmlspecialchars(mb_strimwidth($event['judul_event'], 0, 36, '...')) ?></span>
+                            <span class="poster-title"
+                                style="font-size:32px;line-height:36px"><?= htmlspecialchars(mb_strimwidth($event['judul_event'], 0, 36, '...')) ?></span>
                         </div>
 
                         <div class="card">
                             <h2 class="card-title">Informasi &amp; Deskripsi Acara</h2>
-                            <p style="margin:12px 0 16px;line-height:1.6"><?= nl2br(htmlspecialchars($event['deskripsi'])) ?></p>
+                            <p style="margin:12px 0 16px;line-height:1.6">
+                                <?= nl2br(htmlspecialchars($event['deskripsi'])) ?></p>
                             <div class="two-fields" style="border-top:1px solid #E4E4EE;padding-top:16px">
                                 <div>
                                     <span class="slate" style="font-size:13px">Kategori:</span>
@@ -195,17 +210,20 @@ $kickerDate = strtoupper(date('d M Y', strtotime($event['tanggal_mulai'])));
                                 </div>
                                 <div>
                                     <span class="slate" style="font-size:13px">Kapasitas Kuota:</span>
-                                    <div style="font-weight:700"><?= (int)$event['kuota'] ?> Peserta</div>
+                                    <div style="font-weight:700"><?= (int) $event['kuota'] ?> Peserta</div>
                                 </div>
                             </div>
                             <div class="two-fields" style="margin-top:12px">
                                 <div>
                                     <span class="slate" style="font-size:13px">Waktu Pelaksanaan:</span>
-                                    <div style="font-weight:700"><?= date('d M Y, H:i', strtotime($event['tanggal_mulai'])) ?> – <?= date('H:i', strtotime($event['tanggal_selesai'])) ?> WIB</div>
+                                    <div style="font-weight:700">
+                                        <?= date('d M Y, H:i', strtotime($event['tanggal_mulai'])) ?> –
+                                        <?= date('H:i', strtotime($event['tanggal_selesai'])) ?> WIB</div>
                                 </div>
                                 <div>
                                     <span class="slate" style="font-size:13px">Lokasi Tempat:</span>
-                                    <div style="font-weight:700"><?= htmlspecialchars($event['nama_tempat']) ?>, <?= htmlspecialchars($event['kota']) ?></div>
+                                    <div style="font-weight:700"><?= htmlspecialchars($event['nama_tempat']) ?>,
+                                        <?= htmlspecialchars($event['kota']) ?></div>
                                 </div>
                             </div>
                         </div>
@@ -220,7 +238,7 @@ $kickerDate = strtoupper(date('d M Y', strtotime($event['tanggal_mulai'])));
                                             <?= $cat['wajib_ktm'] ? '<span class="badge badge-purple" style="font-size:11px;margin-left:8px">Wajib KTM</span>' : '' ?>
                                         </div>
                                         <div>
-                                            <span class="slate">Kuota: <?= (int)$cat['kuota'] ?></span>
+                                            <span class="slate">Kuota: <?= (int) $cat['kuota'] ?></span>
                                         </div>
                                     </div>
                                 <?php endforeach; ?>
@@ -237,7 +255,8 @@ $kickerDate = strtoupper(date('d M Y', strtotime($event['tanggal_mulai'])));
                                         <span class="rundown-time"><?= htmlspecialchars($rd['waktu_mulai']) ?></span>
                                         <div>
                                             <b><?= htmlspecialchars($rd['judul_sesi']) ?></b>
-                                            <?php if ($rd['pembicara']): ?> · <?= htmlspecialchars($rd['pembicara']) ?><?php endif; ?>
+                                            <?php if ($rd['pembicara']): ?> ·
+                                                <?= htmlspecialchars($rd['pembicara']) ?>        <?php endif; ?>
                                         </div>
                                     </div>
                                 <?php endforeach; ?>
@@ -250,20 +269,28 @@ $kickerDate = strtoupper(date('d M Y', strtotime($event['tanggal_mulai'])));
                         <div class="card card-raised">
                             <h2 class="card-title">Keputusan Moderasi</h2>
                             <form method="POST" action="" class="stack gap-12" style="margin-top:12px">
+                                <?= ViewHelper::csrfField() ?>
                                 <div>
                                     <label class="field-label">Catatan / Alasan Moderasi</label>
-                                    <textarea name="catatan" class="input input-area" style="height:90px;font-family:inherit;padding:8px" placeholder="Tulis catatan persetujuan atau alasan revisi/penolakan jika ditolak..."></textarea>
+                                    <textarea name="catatan" class="input input-area"
+                                        style="height:90px;font-family:inherit;padding:8px"
+                                        placeholder="Tulis catatan persetujuan atau alasan revisi/penolakan jika ditolak..."></textarea>
                                 </div>
                                 <div class="stack gap-8">
-                                    <button type="submit" name="keputusan" value="APPROVE" class="button button-large primary-button full-width" style="cursor:pointer">
+                                    <button type="submit" name="keputusan" value="APPROVE"
+                                        class="button button-large primary-button full-width" style="cursor:pointer">
                                         ✓ Setujui &amp; Terbitkan Acara
                                     </button>
-                                    <button type="submit" name="keputusan" value="REJECT" class="button button-large danger-outline-button full-width" style="cursor:pointer" onclick="return confirm('Apakah Anda yakin ingin menolak acara ini?')">
+                                    <button type="submit" name="keputusan" value="REJECT"
+                                        class="button button-large danger-outline-button full-width"
+                                        style="cursor:pointer"
+                                        onclick="return confirm('Apakah Anda yakin ingin menolak acara ini?')">
                                         ✕ Tolak / Minta Revisi
                                     </button>
                                 </div>
                             </form>
-                            <p class="help" style="margin-top:8px">Penyelenggara akan dapat melihat status dan catatan ini.</p>
+                            <p class="help" style="margin-top:8px">Penyelenggara akan dapat melihat status dan catatan
+                                ini.</p>
                         </div>
 
                         <!-- Riwayat Moderasi -->
@@ -274,9 +301,12 @@ $kickerDate = strtoupper(date('d M Y', strtotime($event['tanggal_mulai'])));
                                     <?php foreach ($modLogs as $ml): ?>
                                         <div class="timeline-item">
                                             <span class="timeline-dot"></span>
-                                            <b><?= htmlspecialchars($ml['admin_nama']) ?></b>: <?= htmlspecialchars($ml['keputusan']) ?>
-                                            <p class="slate" style="font-size:12px;margin:2px 0"><?= htmlspecialchars($ml['catatan'] ?? '') ?></p>
-                                            <div class="feed-time" style="font-size:11px"><?= date('d M, H:i', strtotime($ml['created_at'])) ?></div>
+                                            <b><?= htmlspecialchars($ml['admin_nama']) ?></b>:
+                                            <?= htmlspecialchars($ml['keputusan']) ?>
+                                            <p class="slate" style="font-size:12px;margin:2px 0">
+                                                <?= htmlspecialchars($ml['catatan'] ?? '') ?></p>
+                                            <div class="feed-time" style="font-size:11px">
+                                                <?= date('d M, H:i', strtotime($ml['created_at'])) ?></div>
                                         </div>
                                     <?php endforeach; ?>
                                 </div>

@@ -89,10 +89,16 @@ class AuthController {
                 'message' => 'Registrasi berhasil! Silakan masuk menggunakan akun Anda.'
             ]);
         } catch (PDOException $e) {
+            if ($e->getCode() === '23505') { // unique_violation: email didaftarkan bersamaan
+                http_response_code(409);
+                echo json_encode(['success' => false, 'message' => 'Email sudah terdaftar di sistem.']);
+                return;
+            }
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
-                'success' => false, 
-                'message' => 'Gagal mendaftarkan akun: ' . $e->getMessage()
+                'success' => false,
+                'message' => 'Gagal mendaftarkan akun. Terjadi kesalahan pada server, silakan coba lagi.'
             ]);
         }
     }
