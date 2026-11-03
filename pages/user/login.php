@@ -23,6 +23,8 @@ if (isset($_GET['registered'])) {
     $successMessage = 'Registrasi berhasil! Silakan masuk menggunakan akun Anda.';
 } elseif (isset($_GET['reset'])) {
     $successMessage = 'Kata sandi berhasil diubah. Silakan masuk dengan kata sandi baru.';
+} elseif (isset($_GET['deleted'])) {
+    $successMessage = 'Akun Anda telah dihapus permanen.';
 }
 
 // Pembatasan percobaan masuk per sesi: 5 kali gagal -> kunci 60 detik.
