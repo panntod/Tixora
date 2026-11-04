@@ -159,6 +159,21 @@ $kickerDate = strtoupper(date('D · d M Y', strtotime($ticket['tanggal_mulai']))
             <p class="help tx-style-1294536864" style="text-align:center;margin-top:12px">Kode QR bersifat pribadi dan
                 unik per peserta. Jangan dibagikan kepada orang lain.</p>
         </main>
+        <footer class="footer">
+            <div class="container tx-style-a3d12b9b83">
+                <div>
+                    <div class="logo">
+                        <img class="logo-img" src="<?= BASE_URL ?>/assets/logo.png" alt="Logo TIXORA">
+                    </div>
+                    <p class="footer-text">Platform acara dan tiket digital.</p>
+                </div>
+                <nav class="footer-links">
+                    <a href="#">Bantuan</a>
+                    <a href="#">Syarat &amp; ketentuan</a>
+                    <a href="#">Kebijakan privasi</a>
+                </nav>
+            </div>
+        </footer>
     </div>
     <script src="<?= BASE_URL ?>/assets/default-banner.js"></script>
     <script src="<?= BASE_URL ?>/assets/qr.js"></script>

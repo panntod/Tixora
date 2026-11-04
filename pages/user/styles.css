@@ -2596,6 +2596,21 @@ textarea.input:focus {
   background: #fef2f2;
 }
 
+.frame-sticky {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.frame-sticky > main {
+  flex: 1 0 auto;   
+}
+
+.frame-sticky > .footer {
+  flex-shrink: 0;      
+  margin-top: auto;    
+}
+
 /* ===== E-ticket responsif (dipakai tiket-digital & e-ticket publik) ===== */
 .ticket-page-main {
   width: 100%;

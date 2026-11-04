@@ -107,7 +107,7 @@ foreach ($allTickets as $t) {
 </head>
 
 <body>
-    <div class="frame tx-style-1f688caae9">
+    <div class="frame tx-style-1f688caae9 frame-sticky">
         <?php ViewHelper::renderNavbar('tiket'); ?>
 
         <main class="tx-style-7aca552fb6">
@@ -164,7 +164,7 @@ foreach ($allTickets as $t) {
                         style="padding:32px 16px;text-align:center;background:#fff;border-radius:12px;border:1px solid #E4E4EE;margin-bottom:20px">
                         <p class="slate">Belum ada tiket aktif untuk acara mendatang.</p>
                         <a href="<?= BASE_URL ?>/jelajah-acara" class="button secondary-button"
-                            style="margin-top:12px;display:inline-block">Cari Acara Menarik</a>
+                            style="margin-top:12px;display:inline-flex">Cari Acara Menarik</a>
                     </div>
                 <?php endif; ?>
             </div>
