@@ -171,7 +171,7 @@ $totalSemua = array_sum($rawCounts);
                         <div style="padding:48px 16px;text-align:center">
                             <p class="slate">Tidak ada acara yang sesuai filter saat ini.</p>
                             <a href="<?= BASE_URL ?>/event-owner/buat-acara" class="button primary-button small-button"
-                                style="margin-top:12px;display:inline-block;text-decoration:none">+ Buat Acara Baru</a>
+                                style="margin-top:12px;display:inline-flex;text-decoration:none">+ Buat Acara Baru</a>
                         </div>
                     <?php endif; ?>
                 </div>

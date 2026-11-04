@@ -1373,6 +1373,7 @@ body {
 .app {
   display: flex;
   align-items: stretch;
+  min-height: 100vh;
 }
 
 .sidebar {
@@ -2002,4 +2003,18 @@ textarea.input:focus {
 }
 .user-menu:hover .dropdown-menu {
   display: block;
+}
+
+.dash-tbl .tbl-cell {
+  box-sizing: border-box;
+}
+.dash-tbl .col-acara {
+  flex: 1;          /* mengisi sisa lebar */
+  min-width: 0;
+}
+.dash-tbl .col-status {
+  width: 130px;
+}
+.dash-tbl .col-pendaftar {
+  width: 180px;
 }
