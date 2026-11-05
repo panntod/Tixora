@@ -1,6 +1,6 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteBase /tixora/
+    # RewriteBase /tixora/ (Aktifkan baris ini hanya jika dijalankan di subfolder Laragon tanpa vhost)
 
     # Rewrite asset CSS modul ke dalam folder pages
     RewriteRule ^(user|admin|event-owner)/(styles\.css)$ pages/$1/$2 [L]

@@ -1,0 +1,13 @@
+.git
+.github
+.gitignore
+.dockerignore
+docker-compose*.yml
+api/config/database.local.php
+api/public/uploads/*
+!api/public/uploads/.gitkeep
+*.md
+.env
+.env.*
+.DS_Store
+Thumbs.db

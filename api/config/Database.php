@@ -6,10 +6,11 @@ declare(strict_types=1);
  * untuk koneksi aman ke PostgreSQL (PHP 8.2+)
  *
  * Urutan sumber konfigurasi (yang pertama ada yang dipakai):
- *   1. Environment variable: DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD
- *   2. File api/config/database.local.php (TIDAK di-commit, lihat .gitignore;
+ *   1. Environment variable: DATABASE_URL (format standar cloud/Render: postgres://user:pass@host:port/dbname)
+ *   2. Environment variable: DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD, DB_SSLMODE
+ *   3. File api/config/database.local.php (TIDAK di-commit, lihat .gitignore;
  *      contoh format ada di database.local.example.php)
- *   3. Nilai bawaan tanpa password (hanya cocok untuk server lokal yang memakai trust auth)
+ *   4. Nilai bawaan tanpa password (hanya cocok untuk server lokal yang memakai trust auth)
  */
 class Database {
     private static ?Database $instance = null;
@@ -25,17 +26,38 @@ class Database {
             }
         }
 
-        $host     = getenv('DB_HOST')     ?: ($local['host']     ?? '127.0.0.1');
-        $port     = getenv('DB_PORT')     ?: ($local['port']     ?? '5432');
-        $dbName   = getenv('DB_DATABASE') ?: ($local['database'] ?? 'db_tixora');
-        $username = getenv('DB_USERNAME') ?: ($local['username'] ?? 'postgres');
-        $password = getenv('DB_PASSWORD');
-        if ($password === false || $password === '') {
-            $password = (string)($local['password'] ?? '');
+        $databaseUrl = getenv('DATABASE_URL');
+        $sslMode = getenv('DB_SSLMODE') ?: ($local['sslmode'] ?? null);
+
+        if (!empty($databaseUrl)) {
+            $parts = parse_url($databaseUrl);
+            $host     = $parts['host'] ?? '127.0.0.1';
+            $port     = (string)($parts['port'] ?? '5432');
+            $dbName   = ltrim($parts['path'] ?? 'db_tixora', '/');
+            $username = isset($parts['user']) ? rawurldecode((string)$parts['user']) : 'postgres';
+            $password = isset($parts['pass']) ? rawurldecode((string)$parts['pass']) : '';
+            if (!$sslMode && isset($parts['query'])) {
+                parse_str($parts['query'], $query);
+                if (!empty($query['sslmode'])) {
+                    $sslMode = $query['sslmode'];
+                }
+            }
+        } else {
+            $host     = getenv('DB_HOST')     ?: ($local['host']     ?? '127.0.0.1');
+            $port     = getenv('DB_PORT')     ?: ($local['port']     ?? '5432');
+            $dbName   = getenv('DB_DATABASE') ?: ($local['database'] ?? 'db_tixora');
+            $username = getenv('DB_USERNAME') ?: ($local['username'] ?? 'postgres');
+            $password = getenv('DB_PASSWORD');
+            if ($password === false || $password === '') {
+                $password = (string)($local['password'] ?? '');
+            }
         }
 
         try {
             $dsn = "pgsql:host={$host};port={$port};dbname={$dbName}";
+            if (!empty($sslMode)) {
+                $dsn .= ";sslmode={$sslMode}";
+            }
 
             $this->connection = new PDO($dsn, $username, $password, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
