@@ -22,7 +22,7 @@ class ScannerController {
     public function __construct() {
         AuthHelper::initSession();
         // Hanya Event Owner (pemilik acara) atau Admin yang diizinkan melakukan scan tiket
-        AuthHelper::checkAnyRole(['EVENT_OWNER', 'ADMIN']);
+        AuthHelper::checkAnyRole([AuthHelper::ROLE_EVENT_OWNER, AuthHelper::ROLE_ADMIN]);
 
         $this->db = Database::getInstance()->getConnection();
         $this->ticketModel = new Ticket($this->db);
@@ -88,7 +88,7 @@ class ScannerController {
 
             // 2. Event Owner hanya boleh memindai tiket untuk acaranya sendiri (Admin bebas)
             $user = $_SESSION['user'];
-            if ($user['role'] !== 'ADMIN' && $ticket['event_owner_id'] !== $user['id']) {
+            if ($user['role'] !== AuthHelper::ROLE_ADMIN && $ticket['event_owner_id'] !== $user['id']) {
                 $this->respond(403, false, 'Tiket ini bukan untuk acara yang Anda kelola.');
                 return;
             }

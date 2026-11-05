@@ -33,10 +33,11 @@ class AuthController {
         $nama = trim($input['nama'] ?? '');
         $email = filter_var($input['email'] ?? '', FILTER_VALIDATE_EMAIL);
         $password = $input['password'] ?? '';
-        $roleKode = strtoupper(trim($input['role_kode'] ?? 'USER')); // Default role USER
+        $roleId = strtolower(trim((string)($input['role_id'] ?? AuthHelper::ROLE_USER))); // Default role USER
+        
         // Registrasi publik tidak boleh membuat akun ADMIN.
-        if (!in_array($roleKode, ['USER', 'EVENT_OWNER'], true)) {
-            $roleKode = 'USER';
+        if (!in_array($roleId, AuthHelper::PUBLIC_ROLES, true)) {
+            $roleId = AuthHelper::ROLE_USER;
         }
 
         if (!$nama || !$email || strlen($password) < 8) {
@@ -49,8 +50,8 @@ class AuthController {
         }
 
         // Validasi keberadaan role di database menggunakan Prepared Statement
-        $stmtRole = $this->db->prepare("SELECT id FROM roles WHERE kode = :kode");
-        $stmtRole->execute(['kode' => $roleKode]);
+        $stmtRole = $this->db->prepare("SELECT id FROM roles WHERE id = :id");
+        $stmtRole->execute(['id' => $roleId]);
         $role = $stmtRole->fetch();
 
         if (!$role) {
@@ -127,9 +128,8 @@ class AuthController {
 
         // Ambil data user beserta rolenya
         $stmt = $this->db->prepare("
-            SELECT u.*, r.kode as role_kode 
+            SELECT u.* 
             FROM users u 
-            JOIN roles r ON u.role_id = r.id 
             WHERE u.email = :email
         ");
         $stmt->execute(['email' => $email]);
@@ -159,7 +159,7 @@ class AuthController {
             'id' => $user['id'],
             'nama' => $user['nama'],
             'email' => $user['email'],
-            'role' => $user['role_kode']
+            'role' => $user['role_id']
         ];
 
         echo json_encode([
@@ -169,7 +169,7 @@ class AuthController {
                 'id' => $user['id'],
                 'nama' => $user['nama'],
                 'email' => $user['email'],
-                'role' => $user['role_kode']
+                'role' => $user['role_id']
             ]
         ]);
     }

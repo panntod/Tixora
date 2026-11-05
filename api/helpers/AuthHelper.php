@@ -8,7 +8,19 @@ require_once __DIR__ . '/../config/Database.php';
  * Perlindungan Session Hijacking, Token CSRF, dan RBAC (PHP 8.x+)
  */
 class AuthHelper {
-    
+
+    /**
+     * Id (UUID) peran bawaan. Nilainya HARUS sama dengan baris tabel `roles`
+     * (lihat api/migrations/001_database.sql dan 004_hapus_roles_kode.sql).
+     * Peran dikenali hanya lewat id; $_SESSION['user']['role'] berisi id peran ini.
+     */
+    public const ROLE_ADMIN       = 'b0000000-0000-4000-8000-000000000001';
+    public const ROLE_EVENT_OWNER = 'b0000000-0000-4000-8000-000000000002';
+    public const ROLE_USER        = 'b0000000-0000-4000-8000-000000000003';
+
+    /** Peran yang boleh dipilih sendiri saat registrasi publik (ADMIN tidak boleh). */
+    public const PUBLIC_ROLES = [self::ROLE_USER, self::ROLE_EVENT_OWNER];
+
     /**
      * Inisialisasi session dengan pengamanan ketat terhadap Session Fixation & XSS
      */
@@ -117,7 +129,7 @@ class AuthHelper {
     }
 
     /**
-     * Pengecekan multi-role (jika suatu resource boleh diakses oleh beberapa role, misal: ADMIN atau EVENT_OWNER)
+     * Pengecekan multi-role (jika suatu resource boleh diakses oleh beberapa role, misal: ROLE_ADMIN atau ROLE_EVENT_OWNER)
      */
     public static function checkAnyRole(array $allowedRoles): void {
         self::initSession();

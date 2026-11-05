@@ -1,12 +1,13 @@
 -- Migrasi 001: skema dasar + data seed demo.
 -- Aman dijalankan ulang: tidak menghapus apa pun (CREATE ... IF NOT EXISTS, seed ON CONFLICT DO NOTHING).
 -- Untuk MENGULANG dari nol di lingkungan pengembangan, jalankan dulu 000_reset_dev.sql.
--- Urutan: 001 -> 002 -> 003 (002 juga dijalankan otomatis oleh aplikasi bila kolom harga belum ada).
+-- Urutan: 001 -> 002 -> 003 -> 004 (002 juga dijalankan otomatis oleh aplikasi bila kolom harga belum ada).
 
 -- 1. Tabel Roles (Manajemen Hak Akses / RBAC)
+--    Peran dikenali HANYA lewat id (UUID). Id ketiga peran bawaan bersifat tetap dan harus sama
+--    dengan konstanta AuthHelper::ROLE_ADMIN / ROLE_EVENT_OWNER / ROLE_USER di kode PHP.
 CREATE TABLE IF NOT EXISTS roles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    kode VARCHAR(50) UNIQUE NOT NULL,
     nama VARCHAR(100) UNIQUE NOT NULL,
     description TEXT
 );
@@ -143,10 +144,11 @@ CREATE INDEX IF NOT EXISTS idx_moderation_logs_admin_id ON moderation_logs(admin
 CREATE INDEX IF NOT EXISTS idx_moderation_logs_event_id ON moderation_logs(event_id);
 
 -- Seed Data Role Default
-INSERT INTO roles (kode, nama, description) VALUES
-('ADMIN', 'Admin Kampus', 'Pengelola & Verifikator Sistem'),
-('EVENT_OWNER', 'Event Owner', 'Penyelenggara Acara / Ormawa'),
-('USER', 'Peserta', 'Mahasiswa / Peserta Acara') ON CONFLICT DO NOTHING;
+-- Id tetap (UUID) supaya konsisten di semua lingkungan; sama dengan konstanta di AuthHelper.php.
+INSERT INTO roles (id, nama, description) VALUES
+('b0000000-0000-4000-8000-000000000001', 'Admin Kampus', 'Pengelola & Verifikator Sistem'),
+('b0000000-0000-4000-8000-000000000002', 'Event Owner', 'Penyelenggara Acara / Ormawa'),
+('b0000000-0000-4000-8000-000000000003', 'Peserta', 'Mahasiswa / Peserta Acara') ON CONFLICT DO NOTHING;
 
 -- =================================================================
 -- SEED DATA AWAL (AKUN DEMO & SAMPLE EVENT SIAP PAKAI)
@@ -156,13 +158,13 @@ INSERT INTO roles (kode, nama, description) VALUES
 -- 1. Seed Data Users (Admin, Event Owner, Peserta)
 INSERT INTO users (id, nama, email, password, no_whatsapp, institusi, role_id, is_active) VALUES
 -- Admin Kampus: Budi Admin
-('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Budi Admin', 'admin@tixora.ac.id', '$2y$12$/w/ZLMlUwM3v/KIDMFveQu1Aw4smMVBd3OR5p5SA5wK72CafEp9cC', '081234567890', 'Politeknik Negeri Malang', (SELECT id FROM roles WHERE kode = 'ADMIN'), TRUE),
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Budi Admin', 'admin@tixora.ac.id', '$2y$12$/w/ZLMlUwM3v/KIDMFveQu1Aw4smMVBd3OR5p5SA5wK72CafEp9cC', '081234567890', 'Politeknik Negeri Malang', 'b0000000-0000-4000-8000-000000000001', TRUE),
 
 -- Event Owner: HMTI Polinema
-('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', 'HMTI Polinema', 'hmti@polinema.ac.id', '$2y$12$/w/ZLMlUwM3v/KIDMFveQu1Aw4smMVBd3OR5p5SA5wK72CafEp9cC', '089876543210', 'Himpunan Mahasiswa Teknologi Informasi', (SELECT id FROM roles WHERE kode = 'EVENT_OWNER'), TRUE),
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', 'HMTI Polinema', 'hmti@polinema.ac.id', '$2y$12$/w/ZLMlUwM3v/KIDMFveQu1Aw4smMVBd3OR5p5SA5wK72CafEp9cC', '089876543210', 'Himpunan Mahasiswa Teknologi Informasi', 'b0000000-0000-4000-8000-000000000002', TRUE),
 
 -- User / Peserta: Alya Rahma
-('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', 'Alya Rahma', 'alyarahma@gmail.com', '$2y$12$/w/ZLMlUwM3v/KIDMFveQu1Aw4smMVBd3OR5p5SA5wK72CafEp9cC', '085123456789', 'Politeknik Negeri Malang', (SELECT id FROM roles WHERE kode = 'USER'), TRUE) ON CONFLICT DO NOTHING;
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', 'Alya Rahma', 'alyarahma@gmail.com', '$2y$12$/w/ZLMlUwM3v/KIDMFveQu1Aw4smMVBd3OR5p5SA5wK72CafEp9cC', '085123456789', 'Politeknik Negeri Malang', 'b0000000-0000-4000-8000-000000000003', TRUE) ON CONFLICT DO NOTHING;
 
 -- 2. Seed Data Event Contoh (Diselenggarakan oleh HMTI Polinema dan Berstatus TERBIT)
 INSERT INTO events (id, owner_id, judul_event, deskripsi, kategori, kuota, tanggal_mulai, tanggal_selesai, nama_tempat, kota, banner_url, status_verifikasi) VALUES

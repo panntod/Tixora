@@ -440,4 +440,4 @@ class UserController {
             echo json_encode(['success' => false, 'message' => 'Gagal mengubah kata sandi. Terjadi kesalahan pada server, silakan coba lagi.']);
         }
     }
-}
+} 

@@ -42,9 +42,9 @@ class ViewHelper {
             exit;
         }
         if ($role !== null && $user['role'] !== $role) {
-            if ($user['role'] === 'ADMIN') {
+            if ($user['role'] === AuthHelper::ROLE_ADMIN) {
                 header('Location: ' . BASE_URL . '/admin');
-            } elseif ($user['role'] === 'EVENT_OWNER') {
+            } elseif ($user['role'] === AuthHelper::ROLE_EVENT_OWNER) {
                 header('Location: ' . BASE_URL . '/event-owner');
             } else {
                 header('Location: ' . BASE_URL . '/jelajah-acara');
@@ -118,13 +118,13 @@ class ViewHelper {
                     </a>
                     <nav class="nav-links">
                         <a href="<?= BASE_URL ?>/jelajah-acara" style="color:<?= $active === 'jelajah' ? '#4B34DB' : '#4B5170' ?>;text-decoration:none">Jelajahi acara</a>
-                        <?php if ($user && $user['role'] === 'USER'): ?>
+                        <?php if ($user && $user['role'] === AuthHelper::ROLE_USER): ?>
                             <a href="<?= BASE_URL ?>/tiket-saya" style="color:<?= $active === 'tiket' ? '#4B34DB' : '#4B5170' ?>;text-decoration:none">Tiket Saya</a>
                         <?php endif; ?>
-                        <?php if ($user && $user['role'] === 'EVENT_OWNER'): ?>
+                        <?php if ($user && $user['role'] === AuthHelper::ROLE_EVENT_OWNER): ?>
                             <a href="<?= BASE_URL ?>/event-owner" style="color:#4B34DB;text-decoration:none">Panel Event Owner</a>
                         <?php endif; ?>
-                        <?php if ($user && $user['role'] === 'ADMIN'): ?>
+                        <?php if ($user && $user['role'] === AuthHelper::ROLE_ADMIN): ?>
                             <a href="<?= BASE_URL ?>/admin" style="color:#4B34DB;text-decoration:none">Panel Admin</a>
                         <?php endif; ?>
                     </nav>
@@ -137,13 +137,13 @@ class ViewHelper {
                             <span class="avatar" title="<?= htmlspecialchars($user['nama']) ?>"><?= htmlspecialchars($initials) ?></span>
                             <a href="<?= BASE_URL ?>/logout" class="button ghost-button small-button" style="text-decoration:none">Keluar</a>
                             <div class="dropdown-menu">
-                                <?php if ($user['role'] === 'USER'): ?>
+                                <?php if ($user['role'] === AuthHelper::ROLE_USER): ?>
                                     <a class="dropdown-item" href="<?= BASE_URL ?>/akun">Akun Saya</a>
                                     <a class="dropdown-item" href="<?= BASE_URL ?>/tiket-saya">Tiket Saya</a>
-                                <?php elseif ($user['role'] === 'EVENT_OWNER'): ?>
+                                <?php elseif ($user['role'] === AuthHelper::ROLE_EVENT_OWNER): ?>
                                     <a class="dropdown-item" href="<?= BASE_URL ?>/event-owner">Dasbor Acara</a>
                                     <a class="dropdown-item" href="<?= BASE_URL ?>/event-owner/acara-saya">Acara Saya</a>
-                                <?php elseif ($user['role'] === 'ADMIN'): ?>
+                                <?php elseif ($user['role'] === AuthHelper::ROLE_ADMIN): ?>
                                     <a class="dropdown-item" href="<?= BASE_URL ?>/admin">Dasbor Admin</a>
                                     <a class="dropdown-item" href="<?= BASE_URL ?>/admin/antrean-acara">Antrean Acara</a>
                                 <?php endif; ?>

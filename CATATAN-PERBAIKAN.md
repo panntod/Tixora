@@ -40,3 +40,34 @@ Jalankan `php -l` pada file yang diubah dan uji alur di bawah sebelum presentasi
 
 ## Belum dikerjakan (sengaja)
 Rate-limit login API; `rundowns.waktu_*` masih VARCHAR (mengubah tipe mengubah format tampilan); validasi total kuota kategori <= kuota acara (bisa memutus wizard pembuatan acara); gateway pembayaran sungguhan; verifikasi KTM.
+
+---
+
+# Perubahan: kolom `roles.kode` dihapus (4 Nov 2026)
+
+Status: diperiksa statis (pencarian sisa referensi `kode` pada peran + pembacaan ulang diff). **Belum dijalankan** terhadap PHP + PostgreSQL.
+
+Peran sekarang dikenali **hanya lewat `roles.id` (UUID)**. Id ketiga peran bawaan bersifat tetap dan harus sama antara database dan `AuthHelper`:
+
+| Peran | UUID | Konstanta |
+|---|---|---|
+| Admin Kampus | `b0000000-0000-4000-8000-000000000001` | `AuthHelper::ROLE_ADMIN` |
+| Event Owner | `b0000000-0000-4000-8000-000000000002` | `AuthHelper::ROLE_EVENT_OWNER` |
+| Peserta | `b0000000-0000-4000-8000-000000000003` | `AuthHelper::ROLE_USER` |
+
+## Langkah pasang
+- **Database lama (sudah berisi data):** backup, lalu jalankan HANYA `api/migrations/004_hapus_roles_kode.sql`. Migrasi memindahkan peran lama ke id tetap, mengarahkan ulang `users.role_id`, lalu menghapus kolom `kode`. Aman dijalankan ulang. Jangan menjalankan ulang 001 sebelum 004 pada database lama.
+- **Database baru:** `000` (opsional) -> `001` -> `002` -> `003` -> `004` (004 tidak mengubah apa pun pada database baru).
+- Semua pengguna yang sedang login harus login ulang (isi `$_SESSION['user']['role']` kini berupa UUID, bukan teks `ADMIN`/`USER`).
+
+## Daftar perubahan
+| File | Perubahan |
+|---|---|
+| `api/migrations/001_database.sql` | tabel `roles` tanpa `kode`; seed peran dengan id tetap; seed users memakai id peran langsung |
+| `api/migrations/004_hapus_roles_kode.sql` | baru: migrasi database lama + hapus kolom `kode` |
+| `api/helpers/AuthHelper.php` | konstanta `ROLE_ADMIN`, `ROLE_EVENT_OWNER`, `ROLE_USER`, `PUBLIC_ROLES` |
+| `api/helpers/ViewHelper.php` | pengecekan peran memakai konstanta |
+| `api/controllers/AuthController.php` | register menerima `role_id` (UUID, hanya peran publik); login tanpa JOIN `roles`; sesi/respons `role` = id peran |
+| `api/controllers/{Admin,Owner,User,Scanner}Controller.php` | `checkRole`/`checkAnyRole` memakai konstanta; `getAllUsers` mengembalikan `role_id` (bukan `role_kode`) |
+| `pages/user/login.php`, `register.php`, `akun.php` | memakai id peran; field form `role_kode` -> `role_id` (value UUID) |
+| `pages/admin/*`, `pages/event-owner/*`, `pages/user/*` | `requireLogin(AuthHelper::ROLE_...)` |

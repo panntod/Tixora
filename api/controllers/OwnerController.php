@@ -16,7 +16,7 @@ class OwnerController
     public function __construct()
     {
         AuthHelper::initSession();
-        AuthHelper::checkRole('EVENT_OWNER');
+        AuthHelper::checkRole(AuthHelper::ROLE_EVENT_OWNER);
 
         $this->db = Database::getInstance()->getConnection();
         $this->ownerId = $_SESSION['user']['id'] ?? '';

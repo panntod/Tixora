@@ -13,7 +13,7 @@ class AdminController {
 
     public function __construct() {
         AuthHelper::initSession();
-        AuthHelper::checkRole('ADMIN'); // Proteksi RBAC ketat khusus ADMIN
+        AuthHelper::checkRole(AuthHelper::ROLE_ADMIN); // Proteksi RBAC ketat khusus ADMIN
         
         $this->db = Database::getInstance()->getConnection();
     }
@@ -275,7 +275,7 @@ class AdminController {
         try {
             $search = $_GET['search'] ?? null;
             $sql = "
-                SELECT u.id, u.nama, u.email, u.no_whatsapp, u.institusi, u.is_active, u.created_at, r.nama as role_nama, r.kode as role_kode
+                SELECT u.id, u.nama, u.email, u.no_whatsapp, u.institusi, u.is_active, u.created_at, r.nama as role_nama, r.id as role_id
                 FROM users u
                 JOIN roles r ON u.role_id = r.id
                 WHERE 1=1
