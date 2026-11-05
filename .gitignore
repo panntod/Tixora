@@ -1,0 +1,15 @@
+# Database & Environment Secrets
+api/config/database.local.php
+.env
+.env.*
+
+# Uploads
+api/public/uploads/*
+!api/public/uploads/.gitkeep
+
+# System & Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log

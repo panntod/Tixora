@@ -741,7 +741,7 @@ body {
 .frame {
   background: #fafafc;
   position: relative;
-  overflow: hidden;
+  overflow: clip;
 }
 
 .nav-actions {
@@ -1372,7 +1372,8 @@ body {
 
 .app {
   display: flex;
-  align-items: stretch;
+  align-items: flex-start;
+  min-height: 100vh;
 }
 
 .sidebar {
@@ -1384,6 +1385,11 @@ body {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  box-sizing: border-box;
+  overflow-y: auto;
 }
 
 .sidebar .logo {
@@ -2002,4 +2008,18 @@ textarea.input:focus {
 }
 .user-menu:hover .dropdown-menu {
   display: block;
+}
+
+.dash-tbl .tbl-cell {
+  box-sizing: border-box;
+}
+.dash-tbl .col-acara {
+  flex: 1;          /* mengisi sisa lebar */
+  min-width: 0;
+}
+.dash-tbl .col-status {
+  width: 130px;
+}
+.dash-tbl .col-pendaftar {
+  width: 180px;
 }

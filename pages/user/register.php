@@ -97,14 +97,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <p class="help tx-style-0a3b2a9f9b">Minimal 8 karakter.</p>
                     </div>
 
-                    <div>
-                        <label class="field-label tx-style-113f846dc6">Daftar sebagai</label>
-                        <select name="role_kode" class="input tx-style-0893029504">
-                            <option value="USER" <?= (($_POST['role_kode'] ?? '') === 'USER') ? 'selected' : '' ?>>Peserta / Mahasiswa</option>
-                            <option value="EVENT_OWNER" <?= (($_POST['role_kode'] ?? '') === 'EVENT_OWNER') ? 'selected' : '' ?>>Penyelenggara Acara (Event Owner)</option>
-                        </select>
-                    </div>
-
                     <div class="check-row tx-style-1dcd6d3af3">
                         <input type="checkbox" required checked id="terms">
                         <label for="terms">Saya menyetujui Syarat &amp; ketentuan dan Kebijakan privasi.</label>

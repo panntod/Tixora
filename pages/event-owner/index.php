@@ -137,29 +137,29 @@ $logs = $stmtLogs->fetchAll();
                     <div class="col-wide tbl-card" style="padding:20px 16px 8px;width:680px;box-sizing:border-box">
                         <h2 class="card-title" style="padding:0 8px">Acara Anda</h2>
                         <div style="box-shadow:none;padding:0">
-                            <div class="tbl-head">
-                                <div class="tbl-cell" style="width:360px">ACARA</div>
-                                <div class="tbl-cell" style="width:150px">STATUS</div>
-                                <div class="tbl-cell" style="width:170px">PENDAFTAR</div>
+                            <div class="tbl-head dash-tbl">
+                                <div class="tbl-cell col-acara" style="width:360px">ACARA</div>
+                                <div class="tbl-cell col-status" style="width:150px">STATUS</div>
+                                <div class="tbl-cell col-pendaftar" style="width:170px">PENDAFTAR</div>
                             </div>
                             <?php if (!empty($upcomingEvents)): ?>
                                 <?php foreach ($upcomingEvents as $ev): ?>
                                     <?php
                                     $pct = $ev['kuota'] > 0 ? min(100, round(((int) $ev['total_pendaftar'] / (int) $ev['kuota']) * 100)) : 0;
                                     ?>
-                                    <div class="tbl-row">
-                                        <div class="tbl-cell" style="width:360px">
+                                    <div class="tbl-row dash-tbl">
+                                        <div class="tbl-cell col-acara" style="width:360px">
                                             <b><?= htmlspecialchars($ev['judul_event']) ?></b>
                                             <div class="cell-sub"><?= date('d M Y', strtotime($ev['tanggal_mulai'])) ?> ·
                                                 <?= htmlspecialchars($ev['nama_tempat']) ?></div>
                                         </div>
-                                        <div class="tbl-cell" style="width:150px">
+                                        <div class="tbl-cell col-status" style="width:150px">
                                             <span
                                                 class="badge <?= $ev['status_verifikasi'] === 'TERBIT' ? 'badge-success' : ($ev['status_verifikasi'] === 'MENUNGGU_TINJAUAN' ? 'badge-warning' : 'badge-neutral') ?>">
                                                 <span class="badge-dot"></span><?= htmlspecialchars($ev['status_verifikasi']) ?>
                                             </span>
                                         </div>
-                                        <div class="tbl-cell" style="width:170px">
+                                        <div class="tbl-cell col-pendaftar" style="width:170px">
                                             <div class="progress">
                                                 <div class="progress-fill" style="width:<?= $pct ?>%"></div>
                                             </div>

@@ -742,7 +742,7 @@ body {
 .frame {
   background: #fafafc;
   position: relative;
-  overflow: hidden;
+  overflow: clip;
 }
 
 .nav-actions {
@@ -1373,7 +1373,8 @@ body {
 
 .app {
   display: flex;
-  align-items: stretch;
+  align-items: flex-start;
+  min-height: 100vh;
 }
 
 .sidebar {
@@ -1385,6 +1386,11 @@ body {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  box-sizing: border-box;
+  overflow-y: auto;
 }
 
 .sidebar .logo {

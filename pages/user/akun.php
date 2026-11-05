@@ -15,10 +15,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!ViewHelper::checkCsrf()) {
         $errorMsg = 'Sesi formulir kedaluwarsa. Muat ulang halaman lalu coba lagi.';
-        $action = '';
-    }
+    } elseif ($action === 'update_profile') {
 
-    if ($action === 'update_profile') {
         $nama = trim($_POST['nama'] ?? '');
         $noWhatsapp = trim($_POST['no_whatsapp'] ?? '');
         $institusi = trim($_POST['institusi'] ?? '');
@@ -60,6 +58,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $db->prepare("UPDATE users SET password = :password, updated_at = CURRENT_TIMESTAMP WHERE id = :id");
             $stmt->execute(['password' => $hashed, 'id' => $currentUser['id']]);
             $successMsg = 'Kata sandi berhasil diperbarui.';
+        }
+    } elseif ($action === 'delete_account') {
+        if (($currentUser['role'] ?? '') === 'ADMIN') {
+            $errorMsg = 'Akun admin tidak dapat dihapus dari halaman ini.';
+        } else {
+            try {
+                $stmt = $db->prepare("DELETE FROM users WHERE id = :id");
+                $stmt->execute(['id' => $currentUser['id']]);
+
+                $_SESSION = [];
+                if (ini_get('session.use_cookies')) {
+                    $p = session_get_cookie_params();
+                    setcookie(session_name(), '', [
+                        'expires'  => time() - 42000,
+                        'path'     => $p['path'],
+                        'domain'   => $p['domain'],
+                        'secure'   => $p['secure'],
+                        'httponly' => $p['httponly'],
+                        'samesite' => $p['samesite'] ?? 'Lax',
+                    ]);
+                }
+                session_destroy();
+                header('Location: ' . BASE_URL . '/login');
+                exit;
+            } catch (PDOException $e) {
+                $errorMsg = 'Akun tidak dapat dihapus saat ini. Coba lagi nanti.';
+            }
         }
     }
 }
@@ -180,6 +205,16 @@ $initials = strtoupper(mb_substr($user['nama'] ?? 'User', 0, 2));
                             keamanan optimal.</p>
                         <button type="submit" class="button secondary-button tx-style-1b0f4999d2"
                             style="cursor:pointer">Perbarui Kata Sandi</button>
+                    </form>
+
+                    <form method="POST" action="" class="card delete-account-card" onsubmit="return confirm('Yakin ingin menghapus akun? Tiket dan riwayat akan hilang permanen.')">
+                        <?= ViewHelper::csrfField() ?>
+                        <input type ="hidden" name="action" value="delete_account">
+                        <div>
+                            <h2 class="delete-account-title">Hapus akun</h2>
+                            <p class="help">Tiket dan riwayat pendaftaran akan hilang permanen</p>
+                        </div>
+                        <button type="submit" class="button secondary-button danger-outline-button">Hapus akun</button>
                     </form>
                 </div>
             </div>

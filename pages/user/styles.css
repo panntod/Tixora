@@ -2565,6 +2565,52 @@ textarea.input:focus {
   align-items: center;
 }
 
+.delete-account-card {
+  display: flex;
+  justify-content: space-between;  /* teks di kiri, tombol di kanan */
+  align-items: center;             /* sejajar vertikal */
+  gap: 24px;
+}
+
+.delete-account-title {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.delete-account-card .help {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.danger-outline-button {
+  flex-shrink: 0;                  /* tombol tidak ikut mengecil */
+  color: #b91c1c;
+  border-color: #b91c1c;
+  background: #ffffff;
+}
+
+.danger-outline-button:hover {
+  background: #fef2f2;
+}
+
+.frame-sticky {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.frame-sticky > main {
+  flex: 1 0 auto;   
+}
+
+.frame-sticky > .footer {
+  flex-shrink: 0;      
+  margin-top: auto;    
+}
+
 /* ===== E-ticket responsif (dipakai tiket-digital & e-ticket publik) ===== */
 .ticket-page-main {
   width: 100%;

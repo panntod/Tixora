@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../api/helpers/ViewHelper.php';
@@ -8,6 +9,49 @@ PaymentHelper::ensureSchema($db);
 PaymentHelper::expireOverdue($db);
 
 $currentUser = ViewHelper::requireLogin('USER');
+
+$successMsg = '';
+$errorMsg = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'cancel_ticket') {
+    if (!ViewHelper::checkCsrf()) {
+        $errorMsg = 'Sesi formulir kedaluwarsa. Muat ulang halaman lalu coba lagi.';
+    } else {
+        $stmt = $db->prepare("
+            SELECT t.id, t.status_tiket, t.status_kehadiran, e.tanggal_mulai,
+                   (SELECT p.order_id FROM payments p
+                    WHERE p.ticket_id = t.id AND p.status = 'MENUNGGU'
+                    ORDER BY p.created_at DESC LIMIT 1) AS order_menunggu
+            FROM tickets t
+            JOIN events e ON e.id = t.event_id
+            WHERE t.id = :id AND t.user_id = :uid
+        ");
+        $stmt->execute(['id' => $_POST['ticket_id'] ?? '', 'uid' => $currentUser['id']]);
+        $tk = $stmt->fetch();
+
+        if (!$tk) {
+            $errorMsg = 'Tiket tidak ditemukan.';
+        } elseif ($tk['status_tiket'] === 'BATAL' || $tk['status_kehadiran'] || $tk['tanggal_mulai'] < date('Y-m-d H:i:s')) {
+            $errorMsg = 'Tiket ini tidak dapat dibatalkan.';
+        } else {
+            if ($tk['status_tiket'] === 'MENUNGGU_PEMBAYARAN' && !empty($tk['order_menunggu'])) {
+                // Belum dibayar: pakai fungsi yang sudah ada (batalkan pesanan + lepas kursi)
+                PaymentHelper::cancelOrder($db, $tk['order_menunggu'], $currentUser['id']);
+            } else {
+                $db->prepare("
+                    UPDATE tickets SET status_tiket = 'BATAL', updated_at = CURRENT_TIMESTAMP
+                    WHERE id = :id AND user_id = :uid AND status_tiket IN ('AKTIF','MENUNGGU_PEMBAYARAN')
+                ")->execute(['id' => $tk['id'], 'uid' => $currentUser['id']]);
+            }
+            header('Location: ' . BASE_URL . '/tiket-saya?dibatalkan=1');
+            exit;
+        }
+    }
+}
+if (isset($_GET['dibatalkan'])) {
+    $successMsg = 'Tiket berhasil dibatalkan.';
+}
+
 
 $stmt = $db->prepare("
     SELECT t.*, e.judul_event, e.kategori, e.banner_url, e.tanggal_mulai, e.tanggal_selesai, e.nama_tempat, e.kota,
@@ -52,15 +96,18 @@ foreach ($allTickets as $t) {
             const comp = document.getElementById('sec-completed');
             const canc = document.getElementById('sec-cancelled');
 
-            if (tab === 'all' || tab === 'upcoming') up.style.display = 'block'; else up.style.display = 'none';
-            if (tab === 'all' || tab === 'completed') comp.style.display = 'block'; else comp.style.display = 'none';
-            if (tab === 'all' || tab === 'cancelled') canc.style.display = 'block'; else canc.style.display = 'none';
+            if (tab === 'all' || tab === 'upcoming') up.style.display = 'block';
+            else up.style.display = 'none';
+            if (tab === 'all' || tab === 'completed') comp.style.display = 'block';
+            else comp.style.display = 'none';
+            if (tab === 'all' || tab === 'cancelled') canc.style.display = 'block';
+            else canc.style.display = 'none';
         }
     </script>
 </head>
 
 <body>
-    <div class="frame tx-style-1f688caae9">
+    <div class="frame tx-style-1f688caae9 frame-sticky">
         <?php ViewHelper::renderNavbar('tiket'); ?>
 
         <main class="tx-style-7aca552fb6">
@@ -93,6 +140,15 @@ foreach ($allTickets as $t) {
                                     <?= htmlspecialchars($t['kode_tiket']) ?> · Kategori:
                                     <?= htmlspecialchars($t['jenis_tiket']) ?></p>
                             </div>
+                            <div style="display:flex;gap:12px;align-items:center">
+                            <form method="POST" action="" style="margin:0"
+                                onsubmit="return confirm('Batalkan tiket ini?')">
+                                <?= ViewHelper::csrfField() ?>
+                                <input type="hidden" name="action" value="cancel_ticket">
+                                <input type="hidden" name="ticket_id" value="<?= htmlspecialchars($t['id']) ?>">
+                                <button type="submit" class="button danger-button" style="cursor:pointer">Batal</button>
+                            </form>
+
                             <?php if ($t['status_tiket'] === 'MENUNGGU_PEMBAYARAN' && !empty($t['order_menunggu'])): ?>
                                 <a href="<?= BASE_URL ?>/pembayaran?order=<?= urlencode($t['order_menunggu']) ?>"
                                     class="button primary-button" style="text-decoration:none">Bayar</a>
@@ -101,13 +157,14 @@ foreach ($allTickets as $t) {
                                     style="text-decoration:none">Buka Tiket</a>
                             <?php endif; ?>
                         </div>
+                        </div>
                     <?php endforeach; ?>
                 <?php else: ?>
                     <div
                         style="padding:32px 16px;text-align:center;background:#fff;border-radius:12px;border:1px solid #E4E4EE;margin-bottom:20px">
                         <p class="slate">Belum ada tiket aktif untuk acara mendatang.</p>
                         <a href="<?= BASE_URL ?>/jelajah-acara" class="button secondary-button"
-                            style="margin-top:12px;display:inline-block">Cari Acara Menarik</a>
+                            style="margin-top:12px;display:inline-flex">Cari Acara Menarik</a>
                     </div>
                 <?php endif; ?>
             </div>

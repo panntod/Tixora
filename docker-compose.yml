@@ -1,0 +1,40 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tixora_app
+    ports:
+      - "8080:80"
+    environment:
+      - DATABASE_URL=postgresql://tixora:secret123@db:5432/db_tixora
+      - AUTO_MIGRATE=true
+      - TIXORA_QR_SECRET=tixora-local-dev-secret-key-32chars
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/var/www/html
+      # Jangan timpa vendor atau uploads jika ada
+      - uploads_data:/var/www/html/api/public/uploads
+
+  db:
+    image: postgres:15-alpine
+    container_name: tixora_db
+    environment:
+      POSTGRES_DB: db_tixora
+      POSTGRES_USER: tixora
+      POSTGRES_PASSWORD: secret123
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tixora -d db_tixora"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
+  uploads_data:

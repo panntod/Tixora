@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../api/helpers/ViewHelper.php';
+require_once __DIR__ . '/../../api/helpers/BannerHelper.php';
 $db = ViewHelper::getDb();
 
 $admin = ViewHelper::requireLogin('ADMIN');
@@ -193,16 +194,19 @@ $kickerDate = strtoupper(date('d M Y', strtotime($event['tanggal_mulai'])));
 
                 <div class="cols">
                     <div class="stack gap-24" style="width:740px">
-                        <div class="poster poster-indigo" style="height:200px;border-radius:12px;padding:24px">
-                            <span class="poster-kicker"><?= $kickerDate ?></span>
-                            <span class="poster-title"
-                                style="font-size:32px;line-height:36px"><?= htmlspecialchars(mb_strimwidth($event['judul_event'], 0, 36, '...')) ?></span>
+                        <div
+                            style="border-radius:12px;overflow:hidden;margin-bottom:0;line-height:0;background:#F1F1F7">
+                            <?= BannerHelper::render($event, 'wide', [
+                                'kicker' => strtoupper((string) $event['kategori']) . ' · ' . strtoupper(date('d M Y', strtotime($event['tanggal_mulai']))),
+                                'title' => (string) $event['judul_event'],
+                                'style' => 'height:200px'
+                            ]) ?>
                         </div>
-
                         <div class="card">
                             <h2 class="card-title">Informasi &amp; Deskripsi Acara</h2>
                             <p style="margin:12px 0 16px;line-height:1.6">
-                                <?= nl2br(htmlspecialchars($event['deskripsi'])) ?></p>
+                                <?= nl2br(htmlspecialchars($event['deskripsi'])) ?>
+                            </p>
                             <div class="two-fields" style="border-top:1px solid #E4E4EE;padding-top:16px">
                                 <div>
                                     <span class="slate" style="font-size:13px">Kategori:</span>
@@ -218,12 +222,14 @@ $kickerDate = strtoupper(date('d M Y', strtotime($event['tanggal_mulai'])));
                                     <span class="slate" style="font-size:13px">Waktu Pelaksanaan:</span>
                                     <div style="font-weight:700">
                                         <?= date('d M Y, H:i', strtotime($event['tanggal_mulai'])) ?> –
-                                        <?= date('H:i', strtotime($event['tanggal_selesai'])) ?> WIB</div>
+                                        <?= date('H:i', strtotime($event['tanggal_selesai'])) ?> WIB
+                                    </div>
                                 </div>
                                 <div>
                                     <span class="slate" style="font-size:13px">Lokasi Tempat:</span>
                                     <div style="font-weight:700"><?= htmlspecialchars($event['nama_tempat']) ?>,
-                                        <?= htmlspecialchars($event['kota']) ?></div>
+                                        <?= htmlspecialchars($event['kota']) ?>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -256,7 +262,7 @@ $kickerDate = strtoupper(date('d M Y', strtotime($event['tanggal_mulai'])));
                                         <div>
                                             <b><?= htmlspecialchars($rd['judul_sesi']) ?></b>
                                             <?php if ($rd['pembicara']): ?> ·
-                                                <?= htmlspecialchars($rd['pembicara']) ?>        <?php endif; ?>
+                                                <?= htmlspecialchars($rd['pembicara']) ?>         <?php endif; ?>
                                         </div>
                                     </div>
                                 <?php endforeach; ?>
@@ -304,9 +310,11 @@ $kickerDate = strtoupper(date('d M Y', strtotime($event['tanggal_mulai'])));
                                             <b><?= htmlspecialchars($ml['admin_nama']) ?></b>:
                                             <?= htmlspecialchars($ml['keputusan']) ?>
                                             <p class="slate" style="font-size:12px;margin:2px 0">
-                                                <?= htmlspecialchars($ml['catatan'] ?? '') ?></p>
+                                                <?= htmlspecialchars($ml['catatan'] ?? '') ?>
+                                            </p>
                                             <div class="feed-time" style="font-size:11px">
-                                                <?= date('d M, H:i', strtotime($ml['created_at'])) ?></div>
+                                                <?= date('d M, H:i', strtotime($ml['created_at'])) ?>
+                                            </div>
                                         </div>
                                     <?php endforeach; ?>
                                 </div>
@@ -319,6 +327,8 @@ $kickerDate = strtoupper(date('d M Y', strtotime($event['tanggal_mulai'])));
             </main>
         </div>
     </div>
+
+    <script src="<?= BASE_URL ?>/assets/default-banner.js"></script>
 </body>
 
 </html>
