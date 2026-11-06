@@ -1,96 +1,120 @@
-# Panduan Deployment TIXORA ke Render
+# Panduan Deploy TIXORA ke Back4App (dengan Neon PostgreSQL & Docker Hub)
 
-Repositori ini telah disiapkan dengan konfigurasi Docker lengkap sehingga siap di-deploy langsung ke [Render](https://render.com).
-
----
-
-## 🚀 Ringkasan Konfigurasi Docker
-
-- **Base Image:** `php:8.2-apache`
-- **Ekstensi PHP:** `pdo`, `pdo_pgsql`, `pgsql`
-- **Web Server:** Apache dengan `mod_rewrite` & `headers` aktif, serta `AllowOverride All`
-- **Dynamic Port:** Mendukung port dinamis Render (`$PORT`, default 10000)
-- **Database:** PostgreSQL (mendukung `DATABASE_URL` otomatis dari Render PostgreSQL)
-- **Auto Migration:** Script `bin/migrate.php` otomatis dijalankan saat container pertama kali start untuk menginisialisasi skema tabel & data seed demo (berurutan: `001`, `002`, `003`, dan migrasi peran `004`).
+Panduan lengkap untuk mempublikasikan Docker Image TIXORA ke Docker Hub dan mendeploynya ke **Back4App Containers** dengan database serverless **Neon PostgreSQL**.
 
 ---
 
-## 🛠️ Pilihan 1: Deploy Otomatis (Render Blueprint / `render.yaml`) — Direkomendasikan
+## 📋 Ringkasan Arsitektur
 
-Render mendukung Blueprint Infrastructure-as-Code. File [render.yaml](render.yaml) sudah disediakan di root project.
+- **Aplikasi Web**: Kontainer Docker TIXORA (PHP 8.2 + Apache) berjalan di Back4App Containers.
+- **Database**: PostgreSQL di [Neon.tech](https://neon.tech) (Serverless, gratis & mendukung SSL).
+- **Registry**: Docker Hub (`<username>/tixora:latest`).
+- **Migrasi Otomatis**: Skrip `bin/migrate.php` akan otomatis menginisialisasi skema (001–004) saat container pertama kali start.
 
-1. **Push project ke GitHub/GitLab:**
+---
+
+## 🗄️ Langkah 1: Siapkan Database di Neon.tech
+
+1. Buka [neon.tech](https://neon.tech) dan login / register.
+2. Klik **New Project**, beri nama misal `tixora-db`.
+3. Pilih Region terdekat (misal: `ap-southeast-1` Singapore atau `aws-ap-southeast-1`).
+4. Setelah project dibuat, pada Dashboard Neon di bagian **Connection Details**:
+   - Pilih tab **Connection string**.
+   - Centang opsi **Direct connection** (disarankan, tanpa embel-embel `-pooler` agar eksekusi migrasi DDL dan PDO prepared statement lancar).
+   - Salin connection string yang dihasilkan, bentuknya:
+     ```
+     postgresql://neondb_owner:npg_xxxx@ep-cool-fog-123456.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
+     ```
+
+---
+
+## 💻 Langkah 2: Uji Coba Lokal Terlebih Dahulu
+
+1. Salin file contoh `.env`:
    ```bash
-   git add .
-   git commit -m "Siapkan Docker & Render deployment"
-   git push origin main
+   cp .env.example .env
    ```
-2. Buka dashboard [Render](https://dashboard.render.com).
-3. Klik tombol **New +** > pilih **Blueprint**.
-4. Hubungkan repositori GitHub/GitLab kamu.
-5. Render akan otomatis mendeteksi file `render.yaml` dan membuat 2 resource:
-   - **PostgreSQL Database** (`tixora-db`)
-   - **Web Service Docker** (`tixora-app`)
-6. Klik **Apply**.
-7. Tunggu build selesai. Tixora langsung online dan database otomatis termigrasi! 🎉
+2. Buka `.env` dan tempelkan connection string Neon Anda ke `DATABASE_URL`:
+   ```env
+   DATABASE_URL=postgresql://neondb_owner:npg_xxxx@ep-cool-fog-123456.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
+   AUTO_MIGRATE=true
+   TIXORA_QR_SECRET=kunci-rahasia-qr-lokal-minimal-32-karakter
+   ```
+3. Jalankan container lokal:
+   ```bash
+   docker compose up -d --build
+   ```
+4. Cek log migrasi:
+   ```bash
+   docker compose logs -f app
+   ```
+   Tixora akan otomatis terhubung ke Neon dan mengaplikasikan file migrasi `001` sampai `004`.
+5. Buka `http://localhost:8080` untuk memastikan aplikasi berjalan normal.
+6. Hentikan container setelah selesai pengujian:
+   ```bash
+   docker compose down
+   ```
 
 ---
 
-## ⚙️ Pilihan 2: Deploy Manual di Render Dashboard
+## 🐳 Langkah 3: Build & Publish Docker Image ke Docker Hub
 
-Jika ingin membuat service satu per satu secara manual:
+> [!IMPORTANT]
+> Karena sebagian besar server cloud Back4App menggunakan arsitektur **linux/amd64 (x86_64)**, jika Anda melakukan build dari Mac Apple Silicon (M1/M2/M3/M4), **WAJIB** menyertakan flag `--platform linux/amd64` agar tidak terjadi error `exec format error` di server.
 
-### 1. Buat Database PostgreSQL di Render
-1. Di Dashboard Render, klik **New +** > pilih **PostgreSQL**.
-2. Beri nama: `tixora-db`.
-3. Database Name: `db_tixora`.
-4. User: `postgres`.
-5. Region: Pilih yang terdekat (misal: `Singapore`).
-6. Klik **Create Database**.
-7. Setelah database selesai dibuat, salin nilai **Internal Database URL** (misal: `postgresql://postgres:...@.../db_tixora`).
+1. Login ke Docker Hub melalui terminal:
+   ```bash
+   docker login
+   ```
+   *(Masukkan username dan personal access token / password Docker Hub Anda)*
 
-### 2. Buat Web Service Docker di Render
-1. Di Dashboard Render, klik **New +** > pilih **Web Service**.
-2. Hubungkan repositori Git Tixora kamu.
-3. Konfigurasi:
-   - **Name:** `tixora-app`
-   - **Region:** Samakan dengan region database kamu (misal: `Singapore`)
-   - **Runtime:** `Docker`
-   - **Instance Type:** `Free`
-4. Di bagian **Environment Variables**, tambahkan:
-   - `DATABASE_URL` = tempelkan *Internal Database URL* dari langkah 1
-   - `AUTO_MIGRATE` = `true`
-   - `TIXORA_QR_SECRET` = klik tombol *Generate* atau isi string acak rahasia
-5. Di bagian **Health Check Path**, isi: `/`
-6. Klik **Deploy Web Service**.
+2. Build dan Push image:
+   Ganti `USERNAME_DOCKERHUB` dengan username Docker Hub Anda:
+   ```bash
+   docker buildx build --platform linux/amd64 -t USERNAME_DOCKERHUB/tixora:latest --push .
+   ```
+   *(Contoh: `docker buildx build --platform linux/amd64 -t pandhuarya/tixora:latest --push .`)*
+
+3. Setelah proses selesai, pastikan repository image Anda sudah muncul di dashboard [hub.docker.com](https://hub.docker.com).
 
 ---
 
-## 💻 Pengujian Lokal dengan Docker Compose
+## ☁️ Langkah 4: Deploy di Back4App Containers
 
-Kamu bisa menguji container secara lokal sebelum push ke cloud:
+1. Masuk ke [Back4App Dashboard](https://www.back4app.com/) dan login.
+2. Klik tombol **Build new app** (atau **Create new app**).
+3. Pilih opsi **Containers as a Service** (Back4App Web App).
+4. Di bagian sumber deployment, pilih **Docker Hub** (atau pilih public image jika image publik):
+   - Masukkan nama image: `USERNAME_DOCKERHUB/tixora:latest`
+   - Jika image bersifat private, hubungkan Docker Hub credentials Anda.
+5. Konfigurasi App:
+   - **App Name**: `tixora`
+   - **Port**: `80` (container Tixora mengekspos port 80 secara internal)
+6. Di bagian **Environment Variables**, tambahkan 3 variabel penting berikut:
 
-```bash
-# Jalankan container web app dan PostgreSQL
-docker compose up -d
+   | Key | Value | Keterangan |
+   |---|---|---|
+   | `DATABASE_URL` | `postgresql://neondb_owner:npg_xxxx@ep-....neon.tech/neondb?sslmode=require` | Connection string Neon Anda |
+   | `AUTO_MIGRATE` | `true` | Menjalankan migrasi database otomatis saat pertama start |
+   | `TIXORA_QR_SECRET` | `string-acak-rahasia-minimal-32-karakter` | Kunci enkripsi token QR tiket |
 
-# Cek logs migrasi & web server
-docker compose logs -f app
-
-# Akses aplikasi di browser
-http://localhost:8080
-```
-
-Untuk mematikan:
-```bash
-docker compose down
-```
+7. Klik **Create App** (Deploy).
+8. Tunggu Back4App menarik (*pull*) image dan memulai container.
+9. Di tab **Logs**, Anda akan melihat output:
+   ```text
+   [TIXORA] Menyiapkan Apache untuk mendengarkan port 80...
+   [TIXORA] Menjalankan migrasi database...
+   === TIXORA Database Migration ===
+   [OK] Terhubung ke basis data PostgreSQL.
+   ...
+   === Semua migrasi berhasil diaplikasikan! ===
+   [TIXORA] Menjalankan web server pada port 80...
+   ```
+10. Setelah status menjadi **Ready / Running**, klik URL domain yang disediakan Back4App (misal `https://tixora-xxxx.b4a.run`)! 🎉
 
 ---
 
-## 👥 Akun Demo Bawaan (Hasil Migrasi Awal)
-
-Setelah migrasi selesai, kamu bisa login dengan akun contoh:
+## 👥 Akun Demo Bawaan
 
 | Peran | Email | Kata Sandi |
 |---|---|---|
