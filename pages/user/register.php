@@ -10,11 +10,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nama = trim($_POST['nama'] ?? '');
     $email = filter_var($_POST['email'] ?? '', FILTER_VALIDATE_EMAIL);
     $password = $_POST['password'] ?? '';
-    $roleKode = strtoupper(trim($_POST['role_kode'] ?? 'USER'));
+    $roleId = strtolower(trim((string)($_POST['role_id'] ?? AuthHelper::ROLE_USER)));
 
     // Hanya peran publik yang boleh dipilih sendiri; ADMIN tidak pernah bisa didaftarkan dari form ini.
-    if (!in_array($roleKode, ['USER', 'EVENT_OWNER'], true)) {
-        $roleKode = 'USER';
+    if (!in_array($roleId, AuthHelper::PUBLIC_ROLES, true)) {
+        $roleId = AuthHelper::ROLE_USER;
     }
 
     if (!ViewHelper::checkCsrf()) {
@@ -23,8 +23,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errorMessage = 'Nama, surel yang valid, dan kata sandi minimal 8 karakter wajib diisi.';
     } else {
         // Cek keberadaan role
-        $stmtRole = $db->prepare("SELECT id FROM roles WHERE kode = :kode");
-        $stmtRole->execute(['kode' => $roleKode]);
+        $stmtRole = $db->prepare("SELECT id FROM roles WHERE id = :id");
+        $stmtRole->execute(['id' => $roleId]);
         $role = $stmtRole->fetch();
 
         if (!$role) {
@@ -95,6 +95,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <label class="field-label tx-style-113f846dc6">Kata sandi</label>
                         <input type="password" name="password" class="input" placeholder="Minimal 8 karakter" required minlength="8">
                         <p class="help tx-style-0a3b2a9f9b">Minimal 8 karakter.</p>
+                    </div>
+
+                    <div>
+                        <label class="field-label tx-style-113f846dc6">Daftar sebagai</label>
+                        <select name="role_id" class="input tx-style-0893029504">
+                            <option value="<?= AuthHelper::ROLE_USER ?>" <?= (($_POST['role_id'] ?? '') === AuthHelper::ROLE_USER) ? 'selected' : '' ?>>Peserta / Mahasiswa</option>
+                            <option value="<?= AuthHelper::ROLE_EVENT_OWNER ?>" <?= (($_POST['role_id'] ?? '') === AuthHelper::ROLE_EVENT_OWNER) ? 'selected' : '' ?>>Penyelenggara Acara (Event Owner)</option>
+                        </select>
                     </div>
 
                     <div class="check-row tx-style-1dcd6d3af3">

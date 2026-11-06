@@ -15,8 +15,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!ViewHelper::checkCsrf()) {
         $errorMsg = 'Sesi formulir kedaluwarsa. Muat ulang halaman lalu coba lagi.';
-    } elseif ($action === 'update_profile') {
+        $action = '';
+    }
 
+    if ($action === 'update_profile') {
         $nama = trim($_POST['nama'] ?? '');
         $noWhatsapp = trim($_POST['no_whatsapp'] ?? '');
         $institusi = trim($_POST['institusi'] ?? '');
@@ -71,10 +73,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (ini_get('session.use_cookies')) {
                     $p = session_get_cookie_params();
                     setcookie(session_name(), '', [
-                        'expires'  => time() - 42000,
-                        'path'     => $p['path'],
-                        'domain'   => $p['domain'],
-                        'secure'   => $p['secure'],
+                        'expires' => time() - 42000,
+                        'path' => $p['path'],
+                        'domain' => $p['domain'],
+                        'secure' => $p['secure'],
                         'httponly' => $p['httponly'],
                         'samesite' => $p['samesite'] ?? 'Lax',
                     ]);
@@ -115,7 +117,7 @@ $initials = strtoupper(mb_substr($user['nama'] ?? 'User', 0, 2));
             <div class="two-col">
                 <nav class="side-nav stack tx-style-d767683936">
                     <span class="side-link side-link-active">Profil &amp; Keamanan</span>
-                    <?php if ($user['role'] === 'USER'): ?>
+                    <?php if ($user['role'] === AuthHelper::ROLE_USER): ?>
                         <a href="<?= BASE_URL ?>/tiket-saya" class="side-link" style="text-decoration:none">Tiket Saya</a>
                     <?php endif; ?>
                     <a href="<?= BASE_URL ?>/logout" class="side-link"
@@ -207,9 +209,10 @@ $initials = strtoupper(mb_substr($user['nama'] ?? 'User', 0, 2));
                             style="cursor:pointer">Perbarui Kata Sandi</button>
                     </form>
 
-                    <form method="POST" action="" class="card delete-account-card" onsubmit="return confirm('Yakin ingin menghapus akun? Tiket dan riwayat akan hilang permanen.')">
+                    <form method="POST" action="" class="card delete-account-card"
+                        onsubmit="return confirm('Yakin ingin menghapus akun? Tiket dan riwayat akan hilang permanen.')">
                         <?= ViewHelper::csrfField() ?>
-                        <input type ="hidden" name="action" value="delete_account">
+                        <input type="hidden" name="action" value="delete_account">
                         <div>
                             <h2 class="delete-account-title">Hapus akun</h2>
                             <p class="help">Tiket dan riwayat pendaftaran akan hilang permanen</p>

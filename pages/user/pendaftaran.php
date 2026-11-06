@@ -7,7 +7,7 @@ PaymentHelper::ensureSchema($db);
 PaymentHelper::expireOverdue($db);
 
 // Wajib login untuk mendaftar tiket (setelah login kembali ke halaman ini)
-$currentUser = ViewHelper::requireLogin('USER');
+$currentUser = ViewHelper::requireLogin(AuthHelper::ROLE_USER);
 
 const EVENT_OPEN_STATUSES = ['TERBIT', 'PUBLISHED', 'DISETUJUI'];
 

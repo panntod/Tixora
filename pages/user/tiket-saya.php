@@ -8,7 +8,7 @@ $db = ViewHelper::getDb();
 PaymentHelper::ensureSchema($db);
 PaymentHelper::expireOverdue($db);
 
-$currentUser = ViewHelper::requireLogin('USER');
+$currentUser = ViewHelper::requireLogin(AuthHelper::ROLE_USER);
 
 $successMsg = '';
 $errorMsg = '';
@@ -138,25 +138,25 @@ foreach ($allTickets as $t) {
                                 <h3 class="ticket-row-title"><?= htmlspecialchars($t['judul_event']) ?></h3>
                                 <p class="ticket-row-meta"><?= date('d M Y', strtotime($t['tanggal_mulai'])) ?> ·
                                     <?= htmlspecialchars($t['kode_tiket']) ?> · Kategori:
-                                    <?= htmlspecialchars($t['jenis_tiket']) ?></p>
+                                    <?= htmlspecialchars($t['jenis_tiket']) ?>
+                                </p>
                             </div>
                             <div style="display:flex;gap:12px;align-items:center">
-                            <form method="POST" action="" style="margin:0"
-                                onsubmit="return confirm('Batalkan tiket ini?')">
-                                <?= ViewHelper::csrfField() ?>
-                                <input type="hidden" name="action" value="cancel_ticket">
-                                <input type="hidden" name="ticket_id" value="<?= htmlspecialchars($t['id']) ?>">
-                                <button type="submit" class="button danger-button" style="cursor:pointer">Batal</button>
-                            </form>
+                                <form method="POST" action="" style="margin:0" onsubmit="return confirm('Batalkan tiket ini?')">
+                                    <?= ViewHelper::csrfField() ?>
+                                    <input type="hidden" name="action" value="cancel_ticket">
+                                    <input type="hidden" name="ticket_id" value="<?= htmlspecialchars($t['id']) ?>">
+                                    <button type="submit" class="button danger-button" style="cursor:pointer">Batal</button>
+                                </form>
 
-                            <?php if ($t['status_tiket'] === 'MENUNGGU_PEMBAYARAN' && !empty($t['order_menunggu'])): ?>
-                                <a href="<?= BASE_URL ?>/pembayaran?order=<?= urlencode($t['order_menunggu']) ?>"
-                                    class="button primary-button" style="text-decoration:none">Bayar</a>
-                            <?php else: ?>
-                                <a href="<?= BASE_URL ?>/tiket-digital?id=<?= $t['id'] ?>" class="button primary-button"
-                                    style="text-decoration:none">Buka Tiket</a>
-                            <?php endif; ?>
-                        </div>
+                                <?php if ($t['status_tiket'] === 'MENUNGGU_PEMBAYARAN' && !empty($t['order_menunggu'])): ?>
+                                    <a href="<?= BASE_URL ?>/pembayaran?order=<?= urlencode($t['order_menunggu']) ?>"
+                                        class="button primary-button" style="text-decoration:none">Bayar</a>
+                                <?php else: ?>
+                                    <a href="<?= BASE_URL ?>/tiket-digital?id=<?= $t['id'] ?>" class="button primary-button"
+                                        style="text-decoration:none">Buka Tiket</a>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     <?php endforeach; ?>
                 <?php else: ?>
@@ -182,7 +182,8 @@ foreach ($allTickets as $t) {
                                         class="badge-dot"></span><?= $t['status_kehadiran'] ? 'Sudah Digunakan' : 'Selesai' ?></span>
                                 <h3 class="ticket-row-title"><?= htmlspecialchars($t['judul_event']) ?></h3>
                                 <p class="ticket-row-meta"><?= date('d M Y', strtotime($t['tanggal_mulai'])) ?> ·
-                                    <?= htmlspecialchars($t['kode_tiket']) ?></p>
+                                    <?= htmlspecialchars($t['kode_tiket']) ?>
+                                </p>
                             </div>
                             <a href="<?= BASE_URL ?>/tiket-digital?id=<?= $t['id'] ?>" class="button ghost-button"
                                 style="text-decoration:none">Detail</a>

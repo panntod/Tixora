@@ -6,7 +6,7 @@ $db = ViewHelper::getDb();
 PaymentHelper::ensureSchema($db);
 PaymentHelper::expireOverdue($db);
 
-$currentUser = ViewHelper::requireLogin('USER');
+$currentUser = ViewHelper::requireLogin(AuthHelper::ROLE_USER);
 
 $orderId = trim($_GET['order'] ?? $_POST['order'] ?? '');
 if (!preg_match('/^ORD-\d{8}-[0-9A-F]{6}$/', $orderId)) {

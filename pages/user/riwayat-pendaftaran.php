@@ -6,7 +6,7 @@ $db = ViewHelper::getDb();
 PaymentHelper::ensureSchema($db);
 PaymentHelper::expireOverdue($db);
 
-$currentUser = ViewHelper::requireLogin('USER');
+$currentUser = ViewHelper::requireLogin(AuthHelper::ROLE_USER);
 
 $stmt = $db->prepare("
     SELECT t.id, t.kode_tiket, t.status_tiket, t.status_kehadiran, t.created_at,

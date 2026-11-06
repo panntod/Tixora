@@ -4,7 +4,7 @@ declare(strict_types=1);
 require_once defined('ROOT_DIR') ? ROOT_DIR . '/api/helpers/ViewHelper.php' : __DIR__ . '/../../api/helpers/ViewHelper.php';
 $db = ViewHelper::getDb();
 
-$admin = ViewHelper::requireLogin('ADMIN');
+$admin = ViewHelper::requireLogin(AuthHelper::ROLE_ADMIN);
 
 // Real metrics
 $totalPengguna = (int)$db->query("SELECT COUNT(*) FROM users")->fetchColumn();

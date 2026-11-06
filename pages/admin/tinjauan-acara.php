@@ -5,7 +5,7 @@ require_once __DIR__ . '/../../api/helpers/ViewHelper.php';
 require_once __DIR__ . '/../../api/helpers/BannerHelper.php';
 $db = ViewHelper::getDb();
 
-$admin = ViewHelper::requireLogin('ADMIN');
+$admin = ViewHelper::requireLogin(AuthHelper::ROLE_ADMIN);
 
 $eventId = trim($_GET['id'] ?? '');
 

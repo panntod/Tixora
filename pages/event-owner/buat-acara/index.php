@@ -4,7 +4,7 @@ declare(strict_types=1);
 require_once defined('ROOT_DIR') ? ROOT_DIR . '/api/helpers/ViewHelper.php' : __DIR__ . '/../../../api/helpers/ViewHelper.php';
 $db = ViewHelper::getDb();
 
-$owner = ViewHelper::requireLogin('EVENT_OWNER');
+$owner = ViewHelper::requireLogin(AuthHelper::ROLE_EVENT_OWNER);
 
 $errorMsg = '';
 $successMsg = '';

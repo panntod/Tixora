@@ -4,7 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../api/helpers/ViewHelper.php';
 $db = ViewHelper::getDb();
 
-$admin = ViewHelper::requireLogin('ADMIN');
+$admin = ViewHelper::requireLogin(AuthHelper::ROLE_ADMIN);
 
 $status = trim($_GET['status'] ?? 'MENUNGGU_TINJAUAN');
 $search = trim($_GET['search'] ?? '');

@@ -4,7 +4,7 @@ declare(strict_types=1);
 require_once defined('ROOT_DIR') ? ROOT_DIR . '/api/helpers/ViewHelper.php' : __DIR__ . '/../../api/helpers/ViewHelper.php';
 $db = ViewHelper::getDb();
 
-$owner = ViewHelper::requireLogin('EVENT_OWNER');
+$owner = ViewHelper::requireLogin(AuthHelper::ROLE_EVENT_OWNER);
 
 // Statistik Real
 $stmtTotal = $db->prepare("SELECT COUNT(*) FROM events WHERE owner_id = :id");
@@ -151,7 +151,8 @@ $logs = $stmtLogs->fetchAll();
                                         <div class="tbl-cell col-acara" style="width:360px">
                                             <b><?= htmlspecialchars($ev['judul_event']) ?></b>
                                             <div class="cell-sub"><?= date('d M Y', strtotime($ev['tanggal_mulai'])) ?> ·
-                                                <?= htmlspecialchars($ev['nama_tempat']) ?></div>
+                                                <?= htmlspecialchars($ev['nama_tempat']) ?>
+                                            </div>
                                         </div>
                                         <div class="tbl-cell col-status" style="width:150px">
                                             <span
@@ -165,7 +166,8 @@ $logs = $stmtLogs->fetchAll();
                                             </div>
                                             <div class="cell-sub" style="font-size:12px;margin-top:4px">
                                                 <?= (int) $ev['total_pendaftar'] ?> / <?= (int) $ev['kuota'] ?> pendaftar
-                                                (<?= $pct ?>%)</div>
+                                                (<?= $pct ?>%)
+                                            </div>
                                         </div>
                                     </div>
                                 <?php endforeach; ?>
