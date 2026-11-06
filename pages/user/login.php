@@ -30,7 +30,7 @@ if (isset($_GET['registered'])) {
 // Pembatasan percobaan masuk per sesi: 5 kali gagal -> kunci 60 detik.
 const LOGIN_MAX_ATTEMPTS = 5;
 const LOGIN_LOCK_SECONDS = 60;
-$lockedUntil = (int)($_SESSION['login_locked_until'] ?? 0);
+$lockedUntil = (int) ($_SESSION['login_locked_until'] ?? 0);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = filter_var($_POST['email'] ?? '', FILTER_VALIDATE_EMAIL);
@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errorMessage = 'Surel dan kata sandi wajib diisi.';
     } else {
         $stmt = $db->prepare("
-            SELECT u.*, r.kode as role_kode 
+            SELECT u.*, r.id as role_kode 
             FROM users u 
             JOIN roles r ON u.role_id = r.id 
             WHERE u.email = :email
@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $user = $stmt->fetch();
 
         if (!$user || !password_verify($password, $user['password'])) {
-            $_SESSION['login_failed'] = (int)($_SESSION['login_failed'] ?? 0) + 1;
+            $_SESSION['login_failed'] = (int) ($_SESSION['login_failed'] ?? 0) + 1;
             if ($_SESSION['login_failed'] >= LOGIN_MAX_ATTEMPTS) {
                 $_SESSION['login_locked_until'] = time() + LOGIN_LOCK_SECONDS;
                 $_SESSION['login_failed'] = 0;
@@ -72,9 +72,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'role' => $user['role_kode']
             ];
 
-            if ($user['role_kode'] === 'ADMIN') {
+            if ($user['role_kode'] === 'b0000000-0000-4000-8000-000000000001') {
                 header('Location: ' . BASE_URL . '/admin');
-            } elseif ($user['role_kode'] === 'EVENT_OWNER') {
+            } elseif ($user['role_kode'] === 'b0000000-0000-4000-8000-000000000002') {
                 header('Location: ' . BASE_URL . '/event-owner');
             } else {
                 // Peserta kembali ke halaman yang tadi dituju (mis. pendaftaran), jika aman.
@@ -119,7 +119,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <?= ViewHelper::csrfField() ?>
                     <div>
                         <label class="field-label tx-style-113f846dc6">Surel</label>
-                        <input type="email" name="email" class="input" placeholder="nama@email.com" required value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
+                        <input type="email" name="email" class="input" placeholder="nama@email.com" required
+                            value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
                     </div>
 
                     <div>
@@ -128,23 +129,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
 
                     <div class="tx-style-b5c9733a73">
-                        <a href="<?= BASE_URL ?>/lupa-kata-sandi" class="link-text" style="font-size:13px;color:#4B34DB">Lupa kata sandi?</a>
+                        <a href="<?= BASE_URL ?>/lupa-kata-sandi" class="link-text"
+                            style="font-size:13px;color:#4B34DB">Lupa kata sandi?</a>
                     </div>
 
-                    <button type="submit" class="button button-large primary-button full-width tx-style-e6b96676ce">Masuk</button>
+                    <button type="submit"
+                        class="button button-large primary-button full-width tx-style-e6b96676ce">Masuk</button>
                 </form>
 
                 <p class="slate tx-style-94cf2aa250">
-                    Belum punya akun? <a href="<?= BASE_URL ?>/register" class="link-text" style="color:#4B34DB;font-weight:700">Daftar</a>
+                    Belum punya akun? <a href="<?= BASE_URL ?>/register" class="link-text"
+                        style="color:#4B34DB;font-weight:700">Daftar</a>
                 </p>
 
                 <!-- Quick Login Demo for testing -->
                 <div class="tx-style-7acd776f1c">
                     <p class="tx-style-e6c80ed621">AKUN DEMO (Password: password123):</p>
                     <div class="tx-style-6157e89086">
-                        <button type="button" onclick="setLogin('alyarahma@gmail.com', 'password123')" class="button secondary-button tx-style-28f46b903f">Peserta (Alya)</button>
-                        <button type="button" onclick="setLogin('hmti@polinema.ac.id', 'password123')" class="button secondary-button tx-style-28f46b903f">Event Owner (HMTI)</button>
-                        <button type="button" onclick="setLogin('admin@tixora.ac.id', 'password123')" class="button secondary-button tx-style-28f46b903f">Admin (Budi)</button>
+                        <button type="button" onclick="setLogin('alyarahma@gmail.com', 'password123')"
+                            class="button secondary-button tx-style-28f46b903f">Peserta (Alya)</button>
+                        <button type="button" onclick="setLogin('hmti@polinema.ac.id', 'password123')"
+                            class="button secondary-button tx-style-28f46b903f">Event Owner (HMTI)</button>
+                        <button type="button" onclick="setLogin('admin@tixora.ac.id', 'password123')"
+                            class="button secondary-button tx-style-28f46b903f">Admin (Budi)</button>
                     </div>
                 </div>
             </div>
@@ -168,10 +175,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <script>
-    function setLogin(email, pass) {
-        document.querySelector('input[name="email"]').value = email;
-        document.querySelector('input[name="password"]').value = pass;
-    }
+        function setLogin(email, pass) {
+            document.querySelector('input[name="email"]').value = email;
+            document.querySelector('input[name="password"]').value = pass;
+        }
     </script>
 </body>
 
