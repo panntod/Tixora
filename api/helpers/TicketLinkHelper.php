@@ -9,17 +9,19 @@ declare(strict_types=1);
  * Parameter "s" adalah tanda tangan HMAC dari kode tiket. Kode tiket saja pendek
  * (mudah ditebak), jadi tanpa tanda tangan yang benar halaman tidak akan menampilkan data peserta.
  */
-class TicketLinkHelper {
+class TicketLinkHelper
+{
     private const SIG_LENGTH = 24;
 
-    private static function secret(): string {
+    private static function secret(): string
+    {
         $env = getenv('TIXORA_QR_SECRET');
         if ($env) {
             return $env;
         }
         $file = __DIR__ . '/../config/qr_secret.key';
         if (is_file($file)) {
-            $val = trim((string)file_get_contents($file));
+            $val = trim((string) file_get_contents($file));
             if ($val !== '') {
                 return $val;
             }
@@ -32,11 +34,13 @@ class TicketLinkHelper {
         return $val;
     }
 
-    public static function sign(string $kodeTiket): string {
+    public static function sign(string $kodeTiket): string
+    {
         return substr(hash_hmac('sha256', $kodeTiket, self::secret()), 0, self::SIG_LENGTH);
     }
 
-    public static function verify(string $kodeTiket, string $sig): bool {
+    public static function verify(string $kodeTiket, string $sig): bool
+    {
         return $kodeTiket !== '' && $sig !== '' && hash_equals(self::sign($kodeTiket), $sig);
     }
 
@@ -44,7 +48,8 @@ class TicketLinkHelper {
      * Alamat dasar aplikasi yang bisa dibuka dari HP.
      * Bisa dipaksa lewat env TIXORA_PUBLIC_URL (mis. https://tixora.polinema.ac.id/Tixora).
      */
-    public static function publicBaseUrl(): string {
+    public static function publicBaseUrl(): string
+    {
         $env = getenv('TIXORA_PUBLIC_URL');
         if ($env) {
             return rtrim($env, '/');
@@ -55,13 +60,8 @@ class TicketLinkHelper {
         return ($https ? 'https' : 'http') . '://' . $host . BASE_URL;
     }
 
-    public static function url(string $kodeTiket): string {
+    public static function url(string $kodeTiket): string
+    {
         return self::publicBaseUrl() . '/e-ticket?code=' . rawurlencode($kodeTiket) . '&s=' . self::sign($kodeTiket);
-    }
-
-    /** True jika URL QR memakai host yang tidak bisa dijangkau HP (localhost). */
-    public static function isLocalhostUrl(): bool {
-        $host = parse_url(self::publicBaseUrl(), PHP_URL_HOST) ?: '';
-        return in_array($host, ['localhost', '127.0.0.1', '::1', '[::1]'], true);
     }
 }

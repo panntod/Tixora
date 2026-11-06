@@ -144,11 +144,6 @@ $kickerDate = strtoupper(date('D · d M Y', strtotime($ticket['tanggal_mulai']))
                 </div>
             </div>
 
-            <?php if (TicketLinkHelper::isLocalhostUrl()): ?>
-                <p class="help no-print" style="text-align:center;margin-top:8px;color:#B45309">Mode lokal: QR mengarah ke
-                    <b>localhost</b> sehingga tidak bisa dibuka dari HP. Buka halaman ini lewat IP jaringan (mis.
-                    192.168.x.x) atau atur TIXORA_PUBLIC_URL.</p>
-            <?php endif; ?>
             <div class="stack gap-10 tx-style-1b0f4999d2" style="margin-top:20px">
                 <button onclick="window.print()" class="button button-large primary-button full-width"
                     style="cursor:pointer">
