@@ -11,7 +11,7 @@ Repositori ini telah disiapkan dengan konfigurasi Docker lengkap sehingga siap d
 - **Web Server:** Apache dengan `mod_rewrite` & `headers` aktif, serta `AllowOverride All`
 - **Dynamic Port:** Mendukung port dinamis Render (`$PORT`, default 10000)
 - **Database:** PostgreSQL (mendukung `DATABASE_URL` otomatis dari Render PostgreSQL)
-- **Auto Migration:** Script `bin/migrate.php` otomatis dijalankan saat container pertama kali start untuk menginisialisasi skema tabel & data seed demo.
+- **Auto Migration:** Script `bin/migrate.php` otomatis dijalankan saat container pertama kali start untuk menginisialisasi skema tabel & data seed demo (berurutan: `001`, `002`, `003`, dan migrasi peran `004`).
 
 ---
 

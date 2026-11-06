@@ -1,7 +1,8 @@
 FROM php:8.2-apache
 
-# Install dependencies sistem dan ekstensi PostgreSQL
+# Install dependencies sistem, sertifikat CA untuk SSL (Neon DB), dan ekstensi PostgreSQL
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
     libpq-dev \
     libzip-dev \
     zip \

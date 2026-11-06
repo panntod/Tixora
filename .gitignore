@@ -1,7 +1,6 @@
 # Database & Environment Secrets
 api/config/database.local.php
 .env
-.env.*
 
 # Uploads
 api/public/uploads/*

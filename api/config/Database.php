@@ -53,6 +53,11 @@ class Database {
             }
         }
 
+        // Neon PostgreSQL selalu mewajibkan koneksi terenkripsi (SSL)
+        if (empty($sslMode) && str_contains($host, 'neon.tech')) {
+            $sslMode = 'require';
+        }
+
         try {
             $dsn = "pgsql:host={$host};port={$port};dbname={$dbName}";
             if (!empty($sslMode)) {

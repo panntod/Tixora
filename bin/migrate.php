@@ -7,6 +7,7 @@ declare(strict_types=1);
  * 1. api/migrations/001_database.sql
  * 2. api/migrations/002_payment.sql
  * 3. api/migrations/003_constraints.sql
+ * 4. api/migrations/004_hapus_roles_kode.sql
  */
 
 echo "=== TIXORA Database Migration ===\n";
@@ -39,6 +40,7 @@ $migrations = [
     '001_database.sql',
     '002_payment.sql',
     '003_constraints.sql',
+    '004_hapus_roles_kode.sql',
 ];
 
 $migrationDir = __DIR__ . '/../api/migrations';
