@@ -26,14 +26,8 @@ WORKDIR /var/www/html
 # Salin source code project
 COPY . /var/www/html
 
-# Setup entrypoint script
-COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-
 # Berikan hak akses www-data
 RUN chown -R www-data:www-data /var/www/html
 
 # Port default (dapat diubah dinamis oleh Render melalui variabel $PORT)
 EXPOSE 80
-
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
