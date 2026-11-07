@@ -503,7 +503,7 @@ body {
 
 .event-card {
   width: 270px;
-  height: 392px;
+  min-height: 392px;
   background: #ffffff;
   border-radius: 12px;
   box-shadow:

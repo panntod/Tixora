@@ -4,14 +4,27 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../api/helpers/ViewHelper.php';
 $db = ViewHelper::getDb();
 
+// Tombol "Ajukan acara Anda" di landing page membuka /login?tujuan=acara.
+// Tujuan disimpan di sesi supaya tetap berlaku setelah form login dikirim (POST).
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    if (($_GET['tujuan'] ?? '') === 'acara') {
+        $_SESSION['tujuan_login'] = 'acara';
+    } else {
+        unset($_SESSION['tujuan_login']);
+    }
+}
+$tujuanAcara = ($_SESSION['tujuan_login'] ?? '') === 'acara';
+
 $currentUser = ViewHelper::getCurrentUser();
 if ($currentUser) {
+    unset($_SESSION['tujuan_login']);
     if ($currentUser['role'] === AuthHelper::ROLE_ADMIN) {
         header('Location: ' . BASE_URL . '/admin');
     } elseif ($currentUser['role'] === AuthHelper::ROLE_EVENT_OWNER) {
-        header('Location: ' . BASE_URL . '/event-owner');
+        header('Location: ' . BASE_URL . ($tujuanAcara ? '/event-owner/buat-acara' : '/event-owner'));
     } else {
-        header('Location: ' . BASE_URL . '/jelajah-acara');
+        // Peserta belum boleh membuat acara: arahkan ke pengajuan akun penyelenggara.
+        header('Location: ' . BASE_URL . ($tujuanAcara ? '/ajukan-akun' : '/jelajah-acara'));
     }
     exit;
 }
@@ -61,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $afterLogin = $_SESSION['after_login'] ?? null;
             session_regenerate_id(true);
-            unset($_SESSION['login_failed'], $_SESSION['login_locked_until'], $_SESSION['after_login']);
+            unset($_SESSION['login_failed'], $_SESSION['login_locked_until'], $_SESSION['after_login'], $_SESSION['tujuan_login']);
             $_SESSION['user'] = [
                 'id' => $user['id'],
                 'nama' => $user['nama'],
@@ -72,7 +85,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($user['role_id'] === AuthHelper::ROLE_ADMIN) {
                 header('Location: ' . BASE_URL . '/admin');
             } elseif ($user['role_id'] === AuthHelper::ROLE_EVENT_OWNER) {
-                header('Location: ' . BASE_URL . '/event-owner');
+                // Datang dari "Ajukan acara Anda": langsung ke wizard pembuatan acara.
+                header('Location: ' . BASE_URL . ($tujuanAcara ? '/event-owner/buat-acara' : '/event-owner'));
+            } elseif ($tujuanAcara) {
+                // Peserta biasa belum punya akun penyelenggara: arahkan ke form pengajuan akun.
+                header('Location: ' . BASE_URL . '/ajukan-akun');
             } else {
                 // Peserta kembali ke halaman yang tadi dituju (mis. pendaftaran), jika aman.
                 header('Location: ' . (ViewHelper::safeRedirectTarget($afterLogin) ?? BASE_URL . '/jelajah-acara'));
@@ -100,6 +117,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="card stack gap-16">
                 <h2 class="card-title tx-style-1169661891">Masuk</h2>
                 <p class="slate tx-style-5db37930f2">Akses tiket dan riwayat pendaftaran Anda.</p>
+
+                <?php if ($tujuanAcara): ?>
+                    <div class="alert alert-info tx-style-602d1a6aa5">
+                        Masuk dengan akun penyelenggara untuk membuat acara. Belum punya akun penyelenggara?
+                        <a href="<?= BASE_URL ?>/ajukan-akun" class="link-text" style="color:#4B34DB;font-weight:700">Ajukan akun</a>.
+                    </div>
+                <?php endif; ?>
 
                 <?php if ($successMessage): ?>
                     <div class="alert alert-success tx-style-602d1a6aa5">

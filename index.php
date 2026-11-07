@@ -370,6 +370,9 @@ $routes = [
     // Authentication
     'login' => 'user/login.php',
     'register' => 'user/register.php',
+
+    // Pengajuan akun Event Owner: akun langsung dibuat dan otomatis login
+    'ajukan-akun' => 'user/ajukan-akun.php',
     'masuk' => 'user/masuk.php',
     'pendaftaran' => 'user/pendaftaran.php',
 
