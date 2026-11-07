@@ -97,6 +97,7 @@ Panduan lengkap untuk mempublikasikan Docker Image TIXORA ke Docker Hub dan mend
    | `DATABASE_URL` | `postgresql://neondb_owner:npg_xxxx@ep-....neon.tech/neondb?sslmode=require` | Connection string Neon Anda |
    | `AUTO_MIGRATE` | `true` | Menjalankan migrasi database otomatis saat pertama start |
    | `TIXORA_QR_SECRET` | `string-acak-rahasia-minimal-32-karakter` | Kunci enkripsi token QR tiket |
+   | `TIXORA_PUBLIC_URL` | `https://tixora-xxxx.b4a.run` | (Opsional) URL publik untuk isi QR e-ticket, tanpa `/` di akhir |
 
 7. Klik **Create App** (Deploy).
 8. Tunggu Back4App menarik (*pull*) image dan memulai container.
@@ -121,3 +122,13 @@ Panduan lengkap untuk mempublikasikan Docker Image TIXORA ke Docker Hub dan mend
 | **Admin Kampus** | `admin@tixora.ac.id` | `password123` |
 | **Event Owner** | `hmti@polinema.ac.id` | `password123` |
 | **Peserta** | `alyarahma@gmail.com` | `password123` |
+
+
+---
+
+## 🔐 Catatan Keamanan Sebelum Go-Live
+
+- `api/config/database.local.php` dan `api/config/qr_secret.key` **tidak ikut** ke image/zip dan sudah di `.gitignore`. Di server semua konfigurasi dibaca dari environment variable.
+- Jika password database lokal pernah ikut ter-commit/terbagikan, **ganti password-nya**.
+- Akun demo (`password123`) berasal dari seed migrasi 001. Setelah demo/presentasi, ubah atau hapus akun tersebut.
+- Migrasi tercatat di tabel `schema_migrations`, jadi tidak diulang di setiap restart. `000_reset_dev.sql` tidak pernah dijalankan otomatis.

@@ -1,5 +1,6 @@
 # Database & Environment Secrets
 api/config/database.local.php
+api/config/qr_secret.key
 .env
 
 # Uploads

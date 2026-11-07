@@ -168,7 +168,7 @@ INSERT INTO users (id, nama, email, password, no_whatsapp, institusi, role_id, i
 
 -- 2. Seed Data Event Contoh (Diselenggarakan oleh HMTI Polinema dan Berstatus TERBIT)
 INSERT INTO events (id, owner_id, judul_event, deskripsi, kategori, kuota, tanggal_mulai, tanggal_selesai, nama_tempat, kota, banner_url, status_verifikasi) VALUES
-('e1234567-89ab-cdef-0123-456789abcdef', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', 'Seminar Nasional Teknologi Informasi 2026', 'Seminar nasional tahunan HMTI Polinema yang membahas perkembangan Artificial Intelligence dan Future Tech.', 'Seminar', 150, '2026-11-15 08:00:00', '2026-11-15 15:00:00', 'Auditorium Gedung AH Polinema', 'Malang', '/uploads/banner_20261019095836_d57de3d4.png', 'TERBIT') ON CONFLICT DO NOTHING;
+('e1234567-89ab-cdef-0123-456789abcdef', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', 'Seminar Nasional Teknologi Informasi 2026', 'Seminar nasional tahunan HMTI Polinema yang membahas perkembangan Artificial Intelligence dan Future Tech.', 'Seminar', 150, '2026-11-15 08:00:00', '2026-11-15 15:00:00', 'Auditorium Gedung AH Polinema', 'Malang', '/default-1', 'TERBIT') ON CONFLICT DO NOTHING;
 
 -- 3. Seed Data Kategori Tiket untuk Event Contoh
 INSERT INTO ticket_categories (id, event_id, nama_kategori, kuota, wajib_ktm) VALUES

@@ -4,6 +4,7 @@
 .dockerignore
 docker-compose*.yml
 api/config/database.local.php
+api/config/qr_secret.key
 api/public/uploads/*
 !api/public/uploads/.gitkeep
 *.md

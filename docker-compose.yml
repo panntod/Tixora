@@ -10,13 +10,10 @@ services:
       - path: .env
         required: false
     environment:
-      # Ambil dari file .env lokal (koneksi Neon PostgreSQL)
       - DATABASE_URL=${DATABASE_URL:-}
       - AUTO_MIGRATE=${AUTO_MIGRATE:-true}
       - TIXORA_QR_SECRET=${TIXORA_QR_SECRET:-tixora-local-dev-secret-key-32chars}
     volumes:
-      - .:/var/www/html
-      # Jangan timpa uploads
       - uploads_data:/var/www/html/api/public/uploads
 
 volumes:

@@ -80,7 +80,7 @@ class Database {
                 'success' => false,
                 'message' => 'Layanan basis data sedang tidak tersedia. Silakan coba lagi nanti.'
             ]);
-            exit;
+            exit(PHP_SAPI === 'cli' ? 1 : 0);
         }
     }
 
