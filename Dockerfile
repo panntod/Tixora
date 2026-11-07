@@ -1,6 +1,12 @@
 FROM php:8.2-apache
 
-# Install dependencies sistem, sertifikat CA untuk SSL (Neon DB), dan ekstensi PostgreSQL
+# Pastikan hanya satu MPM aktif: mpm_prefork
+RUN rm -f /etc/apache2/mods-enabled/mpm_event.* \
+    /etc/apache2/mods-enabled/mpm_worker.* \
+    && a2enmod mpm_prefork \
+    && apache2ctl -M | grep mpm_prefork
+
+# Install dependencies dan ekstensi PostgreSQL
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     libpq-dev \
@@ -11,23 +17,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     pdo \
     pdo_pgsql \
     pgsql \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Aktifkan modul Apache rewrite dan headers
+# Aktifkan modul Apache
 RUN a2enmod rewrite headers
 
-# Konfigurasi VirtualHost dan PHP
+# Konfigurasi Apache dan PHP
 COPY docker/apache.conf /etc/apache2/sites-available/000-default.conf
 COPY docker/php.ini /usr/local/etc/php/conf.d/tixora.ini
 
-# Set direktori kerja
 WORKDIR /var/www/html
 
-# Salin source code project
 COPY . /var/www/html
 
-# Berikan hak akses www-data
-RUN chown -R www-data:www-data /var/www/html
-
-# Port default (dapat diubah dinamis oleh Render melalui variabel $PORT)
 EXPOSE 80
