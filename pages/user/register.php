@@ -60,6 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>TIXORA — Buat Akun</title>
     <link rel="stylesheet" href="<?= BASE_URL ?>/user/styles.css">
 </head>
@@ -95,14 +96,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <label class="field-label tx-style-113f846dc6">Kata sandi</label>
                         <input type="password" name="password" class="input" placeholder="Minimal 8 karakter" required minlength="8">
                         <p class="help tx-style-0a3b2a9f9b">Minimal 8 karakter.</p>
-                    </div>
-
-                    <div>
-                        <label class="field-label tx-style-113f846dc6">Daftar sebagai</label>
-                        <select name="role_id" class="input tx-style-0893029504">
-                            <option value="<?= AuthHelper::ROLE_USER ?>" <?= (($_POST['role_id'] ?? '') === AuthHelper::ROLE_USER) ? 'selected' : '' ?>>Peserta / Mahasiswa</option>
-                            <option value="<?= AuthHelper::ROLE_EVENT_OWNER ?>" <?= (($_POST['role_id'] ?? '') === AuthHelper::ROLE_EVENT_OWNER) ? 'selected' : '' ?>>Penyelenggara Acara (Event Owner)</option>
-                        </select>
                     </div>
 
                     <div class="check-row tx-style-1dcd6d3af3">

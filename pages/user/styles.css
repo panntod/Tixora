@@ -2689,3 +2689,470 @@ textarea.input:focus {
     print-color-adjust: exact;
   }
 }
+
+
+/* =====================================================================
+   RESPONSIVE — role user
+   Breakpoint: 1200 (laptop kecil), 1024 (tablet), 768 (ponsel), 480 (ponsel kecil).
+   Blok ini harus tetap berada di paling bawah file agar menimpa lebar tetap di atasnya.
+   ===================================================================== */
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+img {
+  max-width: 100%;
+}
+
+/* ---------- Laptop kecil (≤ 1200px): kontainer mengikuti lebar layar ---------- */
+@media (max-width: 1200px) {
+  .container,
+  .page-body {
+    width: 100%;
+    max-width: 1152px;
+    box-sizing: border-box;
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  .hero,
+  .section,
+  .footer,
+  .tx-style-61ee32661d {
+    width: 100%;
+  }
+
+  /* Pengaman: tidak boleh ada geser ke samping di halaman */
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .footer {
+    height: auto;
+    padding: 48px 0 40px;
+  }
+}
+
+/* ---------- Tablet (≤ 1024px): susunan dua kolom menjadi satu ---------- */
+@media (max-width: 1024px) {
+  /* Beranda */
+  .hero {
+    height: auto;
+    padding: 48px 0 56px;
+  }
+
+  .hero .container {
+    flex-direction: column;
+    gap: 40px;
+  }
+
+  .hero-copy,
+  .hero-visual {
+    width: 100%;
+    min-width: 0;          /* anak flex boleh mengecil, tidak memaksa halaman melebar */
+  }
+
+  .popular-row {
+    flex-wrap: wrap;       /* chip Populer turun ke baris berikutnya */
+  }
+
+  .hero-badge-row .badge {
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .hero-badge-row {
+    height: auto;
+    margin-bottom: 24px;
+  }
+
+  .hero-visual {
+    justify-content: center;
+  }
+
+  .hero-title {
+    font-size: 48px;
+    line-height: 52px;
+  }
+
+  .search-bar {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .search-field {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
+
+  .ticket {
+    width: 100%;
+    max-width: 400px;
+  }
+
+  .ticket-info {
+    width: auto;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .steps {
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .step {
+    width: 100%;
+  }
+
+  .organizer-card {
+    width: 100%;
+    height: auto;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 32px;
+    padding: 32px;
+    box-sizing: border-box;
+  }
+
+  .organizer-copy,
+  .approval-panel {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Detail acara, pendaftaran, pembayaran, akun */
+  .two-col {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 24px;
+  }
+
+  .col-main,
+  .col-side,
+  .tx-style-88e7a5ed79 {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .side-nav {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .tx-style-251e645222 {
+    width: 100%;
+    max-width: 600px;
+  }
+
+  /* Halaman berlebar tetap */
+  .tx-style-7aca552fb6,
+  .tx-style-93911b41ab,
+  .tx-style-a9cba441f2,
+  .tx-style-bb37534c5f {
+    width: 100%;
+    box-sizing: border-box;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .tx-style-7aca552fb6 {
+    max-width: 880px;
+  }
+
+  .tx-style-93911b41ab {
+    max-width: 920px;
+  }
+
+  .tx-style-a9cba441f2 {
+    max-width: 640px;
+  }
+
+  .tx-style-bb37534c5f {
+    max-width: 460px;
+  }
+
+  .tx-style-5bd78839ec,
+  .tx-style-dcc936327e,
+  .tx-style-4bb61ee0a8 {
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .search-wide {
+    width: 100%;
+  }
+}
+
+/* ---------- Ponsel (≤ 768px) ---------- */
+@media (max-width: 768px) {
+  /* Navbar: logo + tombol akun di baris atas, menu di baris bawah */
+  .navbar {
+    height: auto;
+    min-height: 56px;
+  }
+
+  .navbar .container {
+    height: auto !important;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .navbar .container > div:first-child {
+    display: contents !important;
+  }
+
+  .navbar .logo {
+    order: 1;
+  }
+
+  .nav-actions {
+    order: 2;
+  }
+
+  .nav-links {
+    order: 3;
+    flex: 1 1 100%;
+    gap: 20px;
+    font-size: 14px;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+  }
+
+  .nav-links::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Judul */
+  .hero {
+    padding: 32px 0 40px;
+  }
+
+  .hero-title {
+    font-size: 36px;
+    line-height: 40px;
+    letter-spacing: -1px;
+  }
+
+  .hero-lead {
+    font-size: 16px;
+    line-height: 24px;
+  }
+
+  .hero-lead br {
+    display: none;
+  }
+
+  .search-bar {
+    height: auto;
+    min-height: 64px;
+  }
+
+  .section,
+  .tx-style-c1bf29204c,
+  .tx-style-8e4344d65e,
+  .tx-style-ba11ce87eb {
+    padding-top: 40px;
+    padding-bottom: 40px;
+  }
+
+  .section-title,
+  .organizer-title,
+  .page-title {
+    font-size: 26px;
+    line-height: 32px;
+  }
+
+  .section-header,
+  .tx-style-535c87a53e {
+    flex-wrap: wrap;
+    height: auto;
+    gap: 12px;
+  }
+
+  .page-head,
+  .tx-style-3e5bc306f6 {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .organizer-card {
+    padding: 24px;
+  }
+
+  .card {
+    padding: 20px;
+  }
+
+  /* Banner acara */
+  [style*="height:320px"] {
+    height: clamp(160px, 42vw, 320px) !important;
+  }
+
+  /* Navigasi tab bisa digeser ke samping */
+  .tabs {
+    height: auto;
+    gap: 20px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+  }
+
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab {
+    flex: none;
+    white-space: nowrap;
+  }
+
+  .meta-row {
+    flex-wrap: wrap;
+    gap: 8px 16px;
+  }
+
+  .stepper {
+    flex-wrap: wrap;
+    gap: 12px 20px;
+  }
+
+  /* Tabel lebar (riwayat) digeser ke samping, bukan memecah halaman */
+  .tbl-card {
+    overflow-x: auto;
+  }
+
+  .tbl-card .tbl-head,
+  .tbl-card .tbl-row {
+    min-width: 640px;
+  }
+
+  /* Footer */
+  .footer .container,
+  .tx-style-a3d12b9b83 {
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .footer-links {
+    flex-wrap: wrap;
+    gap: 12px 24px;
+  }
+
+  /* Kartu dialog dan menu */
+  .dialog,
+  .menu {
+    width: 100%;
+    max-width: 420px;
+  }
+}
+
+/* ---------- Ponsel (≤ 600px) ---------- */
+@media (max-width: 600px) {
+  .two-fields {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .two-fields > * {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+
+  .tx-style-2acaf3b57e {
+    width: 100%;
+  }
+
+  .delete-account-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .delete-account-card .danger-outline-button {
+    width: 100%;
+  }
+
+  /* Baris tiket: gambar + info di atas, tombol di bawah */
+  .ticket-row {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .ticket-row-body {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .ticket-row > .button,
+  .ticket-row > div[style*="gap:12px"] {
+    flex: 1 1 100%;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .ticket-row > div[style*="gap:12px"] > * {
+    flex: 1;
+  }
+
+  .ticket-row > div[style*="gap:12px"] > form .button {
+    width: 100%;
+  }
+
+  .option {
+    padding: 12px;
+  }
+
+  .total-row {
+    gap: 12px;
+  }
+}
+
+/* ---------- Ponsel kecil (≤ 480px) ---------- */
+@media (max-width: 480px) {
+  .container,
+  .page-body {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .hero-title {
+    font-size: 32px;
+    line-height: 36px;
+  }
+
+  .organizer-card {
+    padding: 20px;
+  }
+
+  .approval-panel {
+    padding: 16px;
+  }
+
+  .event-row {
+    flex-wrap: wrap;
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+  .button-large {
+    padding: 0 18px;
+  }
+
+  .section-title,
+  .organizer-title,
+  .page-title {
+    font-size: 24px;
+    line-height: 30px;
+  }
+}

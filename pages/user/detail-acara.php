@@ -81,6 +81,7 @@ $kickerDate = strtoupper(date('d M Y', strtotime($event['tanggal_mulai'])));
 
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>TIXORA — <?= htmlspecialchars($event['judul_event']) ?></title>
     <link rel="stylesheet" href="<?= BASE_URL ?>/user/styles.css">
     <script>

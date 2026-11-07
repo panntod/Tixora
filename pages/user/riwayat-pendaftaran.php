@@ -52,6 +52,7 @@ $chip = fn(string $key, string $label) => '<a href="' . BASE_URL . '/riwayat-pen
 
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>TIXORA — Riwayat Pendaftaran</title>
     <link rel="stylesheet" href="<?= BASE_URL ?>/user/styles.css">
 </head>

@@ -103,6 +103,7 @@ $initials = strtoupper(mb_substr($user['nama'] ?? 'User', 0, 2));
 
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>TIXORA — Akun Saya</title>
     <link rel="stylesheet" href="<?= BASE_URL ?>/user/styles.css">
 </head>

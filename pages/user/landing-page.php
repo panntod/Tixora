@@ -25,6 +25,7 @@ $events = $stmt->fetchAll();
 
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>TIXORA — Platform Acara &amp; Tiket Digital</title>
     <link rel="stylesheet" href="<?= BASE_URL ?>/user/styles.css?v=<?= @filemtime(__DIR__ . '/styles.css') ?: time() ?>">
 </head>

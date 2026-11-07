@@ -86,6 +86,7 @@ $sisaDetik = max(0, (int)$order['sisa_detik']);
 
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>TIXORA — Pembayaran <?= htmlspecialchars($order['order_id']) ?></title>
     <link rel="stylesheet" href="<?= BASE_URL ?>/user/styles.css">
 </head>
