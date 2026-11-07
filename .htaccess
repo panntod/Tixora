@@ -2,8 +2,7 @@
     RewriteEngine On
     # RewriteBase /tixora/ (Aktifkan baris ini hanya jika dijalankan di subfolder Laragon tanpa vhost)
 
-    # Rewrite asset CSS modul ke dalam folder pages
-    RewriteRule ^(user|admin|event-owner)/(styles\.css)$ pages/$1/$2 [L]
+    # CSS modul (/user|admin|event-owner/styles.css) dilayani oleh index.php (static file handler)
 
     # Jangan rewrite file atau direktori yang sudah ada
     RewriteCond %{REQUEST_FILENAME} -f [OR]
