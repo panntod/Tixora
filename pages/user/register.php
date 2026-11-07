@@ -10,12 +10,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nama = trim($_POST['nama'] ?? '');
     $email = filter_var($_POST['email'] ?? '', FILTER_VALIDATE_EMAIL);
     $password = $_POST['password'] ?? '';
-    $roleId = strtolower(trim((string)($_POST['role_id'] ?? AuthHelper::ROLE_USER)));
-
+    $roleId = AuthHelper::ROLE_USER;
     // Hanya peran publik yang boleh dipilih sendiri; ADMIN tidak pernah bisa didaftarkan dari form ini.
-    if (!in_array($roleId, AuthHelper::PUBLIC_ROLES, true)) {
-        $roleId = AuthHelper::ROLE_USER;
-    }
 
     if (!ViewHelper::checkCsrf()) {
         $errorMessage = 'Sesi formulir kedaluwarsa. Muat ulang halaman lalu coba lagi.';
@@ -72,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <main class="tx-style-29d2027ab1">
             <div class="card stack gap-16">
                 <h2 class="card-title tx-style-1169661891">Buat akun</h2>
-                <p class="slate tx-style-5db37930f2">Daftar sekarang untuk memesan tiket atau mengelola acara.</p>
+                <p class="slate tx-style-5db37930f2">Daftar sekarang untuk memesan tiket acara.</p>
 
                 <?php if ($errorMessage): ?>
                     <div class="alert alert-error tx-style-82cdadaa59">
