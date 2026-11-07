@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../api/helpers/ViewHelper.php';
+require_once __DIR__ . '/event-layout.php';
 $db = ViewHelper::getDb();
 
 $owner = ViewHelper::requireLogin(AuthHelper::ROLE_EVENT_OWNER);
@@ -55,31 +56,16 @@ $totalSemua = array_sum($rawCounts);
 </head>
 
 <body>
-    <div class="frame" style="width:1440px;min-height:881px;height:auto">
+    <div class="frame">
         <div class="app">
-            <aside class="sidebar">
-                <div class="logo">
-                    <img class="logo-img" src="<?= BASE_URL ?>/assets/logo.png" alt="Logo TIXORA">
-                </div>
-                <a href="<?= BASE_URL ?>/event-owner" class="side-item" style="text-decoration:none">Dasbor</a>
-                <a href="<?= BASE_URL ?>/event-owner/acara-saya" class="side-item side-item-active"
-                    style="text-decoration:none">Acara saya</a>
-                <a href="<?= BASE_URL ?>/event-owner/buat-acara" class="side-item" style="text-decoration:none">Buat
-                    acara</a>
-                <a href="<?= BASE_URL ?>/jelajah-acara" class="side-item" style="text-decoration:none">Jelajah Acara</a>
-                <a href="<?= BASE_URL ?>/logout" class="side-item" style="text-decoration:none;color:#B91C1C">Keluar</a>
-                <div class="side-user">
-                    <b><?= htmlspecialchars($owner['nama']) ?></b>
-                    <?= htmlspecialchars($owner['email']) ?>
-                </div>
-            </aside>
+            <?= EO::sidebar($db, $owner, 'acara-saya') ?>
 
             <main class="main">
                 <p class="crumb">Acara saya</p>
                 <div class="head">
                     <div>
-                        <h1 class="page-title">Acara Saya</h1>
-                        <p class="page-subtitle">Kelola semua acara dalam satu daftar</p>
+                        <h1 class="page-title">Acara saya</h1>
+                        <p class="page-subtitle">Pilih acara untuk mengelola tiket, rundown, peserta, RAB, panitia, dan analitik</p>
                     </div>
                     <div class="head-actions">
                         <a href="<?= BASE_URL ?>/event-owner/buat-acara" class="button primary-button button-large"
@@ -93,7 +79,7 @@ $totalSemua = array_sum($rawCounts);
                     <?php endif; ?>
                     <input type="text" name="search" class="input" style="flex:1;width:auto"
                         placeholder="Cari nama acara..." value="<?= htmlspecialchars($search) ?>">
-                    <button type="submit" class="button secondary-button">Cari</button>
+                    <button type="submit" class="button secondary-button" style="cursor:pointer">Cari</button>
                 </form>
 
                 <div class="chip-row">
@@ -122,62 +108,57 @@ $totalSemua = array_sum($rawCounts);
 
                 <div class="tbl-card">
                     <div class="tbl-head">
-                        <div class="tbl-cell" style="width:380px">ACARA</div>
-                        <div class="tbl-cell" style="width:140px">TANGGAL</div>
-                        <div class="tbl-cell" style="width:150px">PENDAFTAR</div>
-                        <div class="tbl-cell" style="width:160px">STATUS</div>
-                        <div class="tbl-cell tbl-right" style="width:220px">TINDAKAN</div>
+                        <div class="tbl-cell" style="flex:3">ACARA</div>
+                        <div class="tbl-cell" style="flex:1.2">TANGGAL</div>
+                        <div class="tbl-cell" style="flex:1.2">PENDAFTAR</div>
+                        <div class="tbl-cell" style="flex:1.5">STATUS</div>
+                        <div class="tbl-cell tbl-right" style="flex:1.6">TINDAKAN</div>
                     </div>
 
-                    <?php if (!empty($events)): ?>
-                        <?php foreach ($events as $ev): ?>
-                            <div class="tbl-row">
-                                <div class="tbl-cell" style="width:380px">
-                                    <b><?= htmlspecialchars($ev['judul_event']) ?></b>
-                                    <div class="cell-sub"><?= htmlspecialchars($ev['nama_tempat']) ?>,
-                                        <?= htmlspecialchars($ev['kota']) ?></div>
-                                </div>
-                                <div class="tbl-cell" style="width:140px">
-                                    <?= date('d M Y', strtotime($ev['tanggal_mulai'])) ?>
-                                </div>
-                                <div class="tbl-cell" style="width:150px">
-                                    <b><?= (int) $ev['total_pendaftar'] ?></b> / <?= (int) $ev['kuota'] ?>
-                                </div>
-                                <div class="tbl-cell" style="width:160px">
-                                    <span
-                                        class="badge <?= $ev['status_verifikasi'] === 'TERBIT' ? 'badge-success' : ($ev['status_verifikasi'] === 'MENUNGGU_TINJAUAN' ? 'badge-warning' : ($ev['status_verifikasi'] === 'DITOLAK' ? 'badge-error' : 'badge-neutral')) ?>">
-                                        <span class="badge-dot"></span><?= htmlspecialchars($ev['status_verifikasi']) ?>
-                                    </span>
-                                </div>
-                                <div class="tbl-cell tbl-right" style="width:220px">
-                                    <?php if ($ev['status_verifikasi'] === 'DRAF'): ?>
-                                        <form method="POST" action="<?= BASE_URL ?>/api/owner/submit-event/<?= $ev['id'] ?>"
-                                            style="display:inline">
-                                            <button type="submit" class="button primary-button small-button"
-                                                style="cursor:pointer">Ajukan</button>
-                                        </form>
-                                    <?php elseif ($ev['status_verifikasi'] === 'TERBIT'): ?>
-                                        <a href="<?= BASE_URL ?>/detail-acara?id=<?= $ev['id'] ?>"
-                                            class="button secondary-button small-button" style="text-decoration:none">Lihat
-                                            Publik</a>
-                                    <?php else: ?>
-                                        <span class="muted"
-                                            style="font-size:13px"><?= htmlspecialchars($ev['status_verifikasi']) ?></span>
-                                    <?php endif; ?>
-                                </div>
+                    <?php foreach ($events as $ev): ?>
+                        <div class="tbl-row">
+                            <div class="tbl-cell" style="flex:3;min-width:0">
+                                <a href="<?= EO::url('ringkasan', $ev['id']) ?>" style="color:inherit;text-decoration:none"><b><?= EO::e($ev['judul_event']) ?></b></a>
+                                <div class="cell-sub"><?= EO::e($ev['nama_tempat']) ?>, <?= EO::e($ev['kota']) ?></div>
                             </div>
-                        <?php endforeach; ?>
-                    <?php else: ?>
+                            <div class="tbl-cell" style="flex:1.2"><?= EO::e(EO::tanggal($ev['tanggal_mulai'])) ?></div>
+                            <div class="tbl-cell" style="flex:1.2"><b><?= (int) $ev['total_pendaftar'] ?></b> / <?= (int) $ev['kuota'] ?></div>
+                            <div class="tbl-cell" style="flex:1.5"><?= EO::badge(EO::eventBadge($ev['status_verifikasi'])) ?></div>
+                            <div class="tbl-cell tbl-right" style="flex:1.6">
+                                <?php if ($ev['status_verifikasi'] === 'DRAF'): ?>
+                                    <button type="button" class="button secondary-button small-button js-ajukan"
+                                        data-id="<?= EO::e($ev['id']) ?>" style="cursor:pointer">Ajukan</button>
+                                <?php endif; ?>
+                                <a href="<?= EO::url('ringkasan', $ev['id']) ?>" class="button primary-button small-button"
+                                    style="text-decoration:none;cursor:pointer">Kelola</a>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+
+                    <?php if (empty($events)): ?>
                         <div style="padding:48px 16px;text-align:center">
                             <p class="slate">Tidak ada acara yang sesuai filter saat ini.</p>
                             <a href="<?= BASE_URL ?>/event-owner/buat-acara" class="button primary-button small-button"
-                                style="margin-top:12px;display:inline-block;text-decoration:none">+ Buat Acara Baru</a>
+                                style="margin-top:12px;display:inline-flex;text-decoration:none">+ Buat acara baru</a>
                         </div>
                     <?php endif; ?>
                 </div>
             </main>
         </div>
     </div>
+    <script>
+        document.querySelectorAll('.js-ajukan').forEach((btn) => btn.addEventListener('click', async () => {
+            if (!confirm('Ajukan acara ini untuk ditinjau admin?')) return;
+            btn.disabled = true;
+            try {
+                const res = await fetch('<?= BASE_URL ?>/api/owner/submit-event/' + btn.dataset.id, { method: 'PATCH', credentials: 'same-origin' });
+                const json = await res.json().catch(() => ({}));
+                if (res.ok && json.success !== false) { location.reload(); return; }
+                alert(json.message || 'Gagal mengajukan acara.');
+            } catch (e) { alert('Tidak dapat terhubung ke server.'); }
+            btn.disabled = false;
+        }));
+    </script>
 </body>
 
 </html>

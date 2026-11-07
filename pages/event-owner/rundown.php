@@ -1,232 +1,139 @@
-<!DOCTYPE html>
-<html lang="id">
+<?php
+declare(strict_types=1);
 
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta charset="utf-8">
-    <title>TIXORA — Organizer — Rundown</title>
-    <link rel="stylesheet" href="<?= BASE_URL ?>/event-owner/styles.css">
-</head>
+require_once defined('ROOT_DIR') ? ROOT_DIR . '/api/helpers/ViewHelper.php' : __DIR__ . '/../../api/helpers/ViewHelper.php';
+require_once __DIR__ . '/event-layout.php';
 
-<body>
-    <div class="frame" style="width:1440px;height:872px">
-        <div class="app">
-            <aside class="sidebar">
-                <div class="logo"><img class="logo-img" src="<?= BASE_URL ?>/assets/logo.png" alt="Logo TIXORA"></div>
-                <span class="side-item">Dasbor</span><span class="side-item side-item-active">Acara saya</span><span
-                    class="side-item">Buat acara</span><span class="side-item">Pengaturan</span><span
-                    class="side-item">Keluar</span>
-                <div class="side-user"><b>Dimas Prakoso</b>HMTI Fakultas Ilmu Komputer</div>
-            </aside>
-            <main class="main">
-                <p class="crumb">Acara saya / SENTEK 2026 / Rundown</p>
-                <div class="head">
-                    <div>
-                        <h1 class="page-title">Rundown acara</h1>
-                        <p class="page-subtitle">Urutkan kegiatan dengan tombol panah atau seret</p>
-                    </div>
-                    <div class="head-actions"><span class="button primary-button">+ Tambah kegiatan</span></div>
-                </div>
-                <div class="tabs" style="margin-bottom:24px"><span class="tab">Ringkasan</span><span
-                        class="tab">Tiket</span><span class="tab tab-active">Rundown</span><span
-                        class="tab">Peserta</span><span class="tab">RAB</span><span class="tab">Panitia</span><span
-                        class="tab">Analitik</span><span class="tab">Pengajuan</span></div>
+$db = ViewHelper::getDb();
+$owner = ViewHelper::requireLogin(AuthHelper::ROLE_EVENT_OWNER);
+$event = EO::loadEvent($db, $owner);
+$id = $event['id'];
+
+$stmt = $db->prepare("
+    SELECT r.*, c.nama_panitia AS pic_nama
+    FROM rundowns r LEFT JOIN committees c ON c.id = r.committee_id
+    WHERE r.event_id = :id
+    ORDER BY r.waktu_mulai ASC, r.created_at ASC");
+$stmt->execute(['id' => $id]);
+$rundowns = $stmt->fetchAll();
+
+$stmt = $db->prepare('SELECT id, nama_panitia, posisi_jabatan FROM committees WHERE event_id = :id ORDER BY created_at ASC');
+$stmt->execute(['id' => $id]);
+$committees = $stmt->fetchAll();
+
+$actions = '<a href="#form-kegiatan" class="button primary-button" style="text-decoration:none;cursor:pointer" onclick="document.getElementById(\'f-judul\').focus()">+ Tambah kegiatan</a>';
+$subtitle = '<span class="slate" style="font-size:16px">Kegiatan diurutkan otomatis berdasarkan jam mulai · ' . count($rundowns) . ' kegiatan</span>';
+
+EO::open($db, $owner, $event, 'rundown', $subtitle, $actions, 'Rundown acara', 'Rundown');
+
+$jsRundown = array_map(static fn($r) => [
+    'judul' => $r['judul_sesi'], 'mulai' => $r['waktu_mulai'], 'selesai' => $r['waktu_selesai'],
+], $rundowns);
+?>
                 <div class="cols">
-                    <div class="col-wide">
-                        <div class="run-row"><svg width="14" height="18" viewBox="0 0 14 18" aria-hidden="true"
-                                fill="#8A90AB">
-                                <circle cx="4" cy="4" r="1.5" />
-                                <circle cx="10" cy="4" r="1.5" />
-                                <circle cx="4" cy="9" r="1.5" />
-                                <circle cx="10" cy="9" r="1.5" />
-                                <circle cx="4" cy="14" r="1.5" />
-                                <circle cx="10" cy="14" r="1.5" />
-                            </svg><span class="run-time">07.30</span>
-                            <div class="run-body"><b>Registrasi ulang</b>
-                                <p>Pemindaian kode QR peserta · PIC: Putri Ayuningtyas</p>
-                            </div><span class="button ghost-button small-button" style="padding:0 8px"><svg width="14"
-                                    height="14" viewBox="0 0 14 14" aria-hidden="true">
-                                    <path d="M7 11V3M3.5 6.5L7 3l3.5 3.5" stroke="#4B5170" stroke-width="1.6"
-                                        fill="none" stroke-linecap="round" stroke-linejoin="round" />
-                                </svg></span><span class="button ghost-button small-button" style="padding:0 8px"><svg
-                                    width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-                                    <path d="M7 3v8M3.5 7.5L7 11l3.5-3.5" stroke="#4B5170" stroke-width="1.6"
-                                        fill="none" stroke-linecap="round" stroke-linejoin="round" />
-                                </svg></span><span class="button ghost-button small-button">Edit</span><span
-                                class="button ghost-button small-button" style="color:#B91C1C">Hapus</span>
-                        </div>
-                        <div class="run-row"><svg width="14" height="18" viewBox="0 0 14 18" aria-hidden="true"
-                                fill="#8A90AB">
-                                <circle cx="4" cy="4" r="1.5" />
-                                <circle cx="10" cy="4" r="1.5" />
-                                <circle cx="4" cy="9" r="1.5" />
-                                <circle cx="10" cy="9" r="1.5" />
-                                <circle cx="4" cy="14" r="1.5" />
-                                <circle cx="10" cy="14" r="1.5" />
-                            </svg><span class="run-time">08.30</span>
-                            <div class="run-body"><b>Pembukaan</b>
-                                <p>Sambutan ketua pelaksana dan dekan · PIC: Dimas Prakoso</p>
-                            </div><span class="button ghost-button small-button" style="padding:0 8px"><svg width="14"
-                                    height="14" viewBox="0 0 14 14" aria-hidden="true">
-                                    <path d="M7 11V3M3.5 6.5L7 3l3.5 3.5" stroke="#4B5170" stroke-width="1.6"
-                                        fill="none" stroke-linecap="round" stroke-linejoin="round" />
-                                </svg></span><span class="button ghost-button small-button" style="padding:0 8px"><svg
-                                    width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-                                    <path d="M7 3v8M3.5 7.5L7 11l3.5-3.5" stroke="#4B5170" stroke-width="1.6"
-                                        fill="none" stroke-linecap="round" stroke-linejoin="round" />
-                                </svg></span><span class="button ghost-button small-button">Edit</span><span
-                                class="button ghost-button small-button" style="color:#B91C1C">Hapus</span>
-                        </div>
-                        <div class="run-row"><svg width="14" height="18" viewBox="0 0 14 18" aria-hidden="true"
-                                fill="#8A90AB">
-                                <circle cx="4" cy="4" r="1.5" />
-                                <circle cx="10" cy="4" r="1.5" />
-                                <circle cx="4" cy="9" r="1.5" />
-                                <circle cx="10" cy="9" r="1.5" />
-                                <circle cx="4" cy="14" r="1.5" />
-                                <circle cx="10" cy="14" r="1.5" />
-                            </svg><span class="run-time">09.00</span>
-                            <div class="run-body"><b>Keynote: Arah AI di Industri Nasional</b>
-                                <p>Dr. Rina Kusumawati, M.Kom. · PIC: Nabila Safitri</p>
-                            </div><span class="button ghost-button small-button" style="padding:0 8px"><svg width="14"
-                                    height="14" viewBox="0 0 14 14" aria-hidden="true">
-                                    <path d="M7 11V3M3.5 6.5L7 3l3.5 3.5" stroke="#4B5170" stroke-width="1.6"
-                                        fill="none" stroke-linecap="round" stroke-linejoin="round" />
-                                </svg></span><span class="button ghost-button small-button" style="padding:0 8px"><svg
-                                    width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-                                    <path d="M7 3v8M3.5 7.5L7 11l3.5-3.5" stroke="#4B5170" stroke-width="1.6"
-                                        fill="none" stroke-linecap="round" stroke-linejoin="round" />
-                                </svg></span><span class="button ghost-button small-button">Edit</span><span
-                                class="button ghost-button small-button" style="color:#B91C1C">Hapus</span>
-                        </div>
-                        <div class="run-row"><svg width="14" height="18" viewBox="0 0 14 18" aria-hidden="true"
-                                fill="#8A90AB">
-                                <circle cx="4" cy="4" r="1.5" />
-                                <circle cx="10" cy="4" r="1.5" />
-                                <circle cx="4" cy="9" r="1.5" />
-                                <circle cx="10" cy="9" r="1.5" />
-                                <circle cx="4" cy="14" r="1.5" />
-                                <circle cx="10" cy="14" r="1.5" />
-                            </svg><span class="run-time">11.00</span>
-                            <div class="run-body"><b>Diskusi panel: Karier di Era Otomasi</b>
-                                <p>Bagas Pratama dan Dewi Anggraeni · PIC: Fajar Nugroho</p>
-                            </div><span class="button ghost-button small-button" style="padding:0 8px"><svg width="14"
-                                    height="14" viewBox="0 0 14 14" aria-hidden="true">
-                                    <path d="M7 11V3M3.5 6.5L7 3l3.5 3.5" stroke="#4B5170" stroke-width="1.6"
-                                        fill="none" stroke-linecap="round" stroke-linejoin="round" />
-                                </svg></span><span class="button ghost-button small-button" style="padding:0 8px"><svg
-                                    width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-                                    <path d="M7 3v8M3.5 7.5L7 11l3.5-3.5" stroke="#4B5170" stroke-width="1.6"
-                                        fill="none" stroke-linecap="round" stroke-linejoin="round" />
-                                </svg></span><span class="button ghost-button small-button">Edit</span><span
-                                class="button ghost-button small-button" style="color:#B91C1C">Hapus</span>
-                        </div>
-                        <div class="run-row"><svg width="14" height="18" viewBox="0 0 14 18" aria-hidden="true"
-                                fill="#8A90AB">
-                                <circle cx="4" cy="4" r="1.5" />
-                                <circle cx="10" cy="4" r="1.5" />
-                                <circle cx="4" cy="9" r="1.5" />
-                                <circle cx="10" cy="9" r="1.5" />
-                                <circle cx="4" cy="14" r="1.5" />
-                                <circle cx="10" cy="14" r="1.5" />
-                            </svg><span class="run-time">12.00</span>
-                            <div class="run-body"><b>Ishoma</b>
-                                <p>Makan siang di selasar · PIC: Salsabila Rahma</p>
-                            </div><span class="button ghost-button small-button" style="padding:0 8px"><svg width="14"
-                                    height="14" viewBox="0 0 14 14" aria-hidden="true">
-                                    <path d="M7 11V3M3.5 6.5L7 3l3.5 3.5" stroke="#4B5170" stroke-width="1.6"
-                                        fill="none" stroke-linecap="round" stroke-linejoin="round" />
-                                </svg></span><span class="button ghost-button small-button" style="padding:0 8px"><svg
-                                    width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-                                    <path d="M7 3v8M3.5 7.5L7 11l3.5-3.5" stroke="#4B5170" stroke-width="1.6"
-                                        fill="none" stroke-linecap="round" stroke-linejoin="round" />
-                                </svg></span><span class="button ghost-button small-button">Edit</span><span
-                                class="button ghost-button small-button" style="color:#B91C1C">Hapus</span>
-                        </div>
-                        <div class="run-row"><svg width="14" height="18" viewBox="0 0 14 18" aria-hidden="true"
-                                fill="#8A90AB">
-                                <circle cx="4" cy="4" r="1.5" />
-                                <circle cx="10" cy="4" r="1.5" />
-                                <circle cx="4" cy="9" r="1.5" />
-                                <circle cx="10" cy="9" r="1.5" />
-                                <circle cx="4" cy="14" r="1.5" />
-                                <circle cx="10" cy="14" r="1.5" />
-                            </svg><span class="run-time">13.00</span>
-                            <div class="run-body"><b>Workshop terpandu</b>
-                                <p>Ruang kelas 2.1 dan 2.2 · PIC: Yoga Pratama</p>
-                            </div><span class="button ghost-button small-button" style="padding:0 8px"><svg width="14"
-                                    height="14" viewBox="0 0 14 14" aria-hidden="true">
-                                    <path d="M7 11V3M3.5 6.5L7 3l3.5 3.5" stroke="#4B5170" stroke-width="1.6"
-                                        fill="none" stroke-linecap="round" stroke-linejoin="round" />
-                                </svg></span><span class="button ghost-button small-button" style="padding:0 8px"><svg
-                                    width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-                                    <path d="M7 3v8M3.5 7.5L7 11l3.5-3.5" stroke="#4B5170" stroke-width="1.6"
-                                        fill="none" stroke-linecap="round" stroke-linejoin="round" />
-                                </svg></span><span class="button ghost-button small-button">Edit</span><span
-                                class="button ghost-button small-button" style="color:#B91C1C">Hapus</span>
-                        </div>
-                        <div class="run-row"><svg width="14" height="18" viewBox="0 0 14 18" aria-hidden="true"
-                                fill="#8A90AB">
-                                <circle cx="4" cy="4" r="1.5" />
-                                <circle cx="10" cy="4" r="1.5" />
-                                <circle cx="4" cy="9" r="1.5" />
-                                <circle cx="10" cy="9" r="1.5" />
-                                <circle cx="4" cy="14" r="1.5" />
-                                <circle cx="10" cy="14" r="1.5" />
-                            </svg><span class="run-time">15.00</span>
-                            <div class="run-body"><b>Penutup</b>
-                                <p>Pengundian doorprize · PIC: Dimas Prakoso</p>
-                            </div><span class="button ghost-button small-button" style="padding:0 8px"><svg width="14"
-                                    height="14" viewBox="0 0 14 14" aria-hidden="true">
-                                    <path d="M7 11V3M3.5 6.5L7 3l3.5 3.5" stroke="#4B5170" stroke-width="1.6"
-                                        fill="none" stroke-linecap="round" stroke-linejoin="round" />
-                                </svg></span><span class="button ghost-button small-button" style="padding:0 8px"><svg
-                                    width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-                                    <path d="M7 3v8M3.5 7.5L7 11l3.5-3.5" stroke="#4B5170" stroke-width="1.6"
-                                        fill="none" stroke-linecap="round" stroke-linejoin="round" />
-                                </svg></span><span class="button ghost-button small-button">Edit</span><span
-                                class="button ghost-button small-button" style="color:#B91C1C">Hapus</span>
-                        </div>
-                    </div>
-                    <div class="col-narrow stack gap-16">
-                        <div class="card">
-                            <h2 class="card-title">Kegiatan baru</h2>
-                            <div class="stack gap-16">
-                                <div class="two-fields">
-                                    <div><label class="field-label">Mulai</label>
-                                        <div class="input input-error"><span class="">10.30</span></div>
-                                    </div>
-                                    <div><label class="field-label">Selesai</label>
-                                        <div class="input"><span class="">11.30</span></div>
-                                    </div>
+                    <div class="stack gap-12" style="flex:1;min-width:0">
+                        <?php foreach ($rundowns as $r):
+                            $sub = [];
+                            if (trim((string) $r['pembicara']) !== '') {
+                                $sub[] = $r['pembicara'];
+                            }
+                            if (trim((string) $r['keterangan']) !== '') {
+                                $sub[] = $r['keterangan'];
+                            }
+                            if (!empty($r['pic_nama'])) {
+                                $sub[] = 'PIC: ' . $r['pic_nama'];
+                            }
+                            ?>
+                            <div class="card" style="padding:16px 20px;display:flex;gap:20px;align-items:center">
+                                <div style="width:72px;flex:none;font-size:15px;font-weight:700;color:#3c29b8"><?= EO::e($r['waktu_mulai']) ?><div class="slate" style="font-size:12px;font-weight:400">s.d. <?= EO::e($r['waktu_selesai']) ?></div></div>
+                                <div style="min-width:0">
+                                    <b style="font-size:15px"><?= EO::e($r['judul_sesi']) ?></b>
+                                    <?php if ($sub): ?><div class="slate" style="font-size:14px;margin-top:2px"><?= EO::e(implode(' · ', $sub)) ?></div><?php endif; ?>
                                 </div>
-                                <p class="help help-error" style="margin-top:-8px">Bentrok dengan Keynote (09.00–11.00).
-                                </p>
-                                <div><label class="field-label">Kegiatan</label>
-                                    <div class="input"><span class="input-placeholder">Nama kegiatan</span></div>
-                                </div>
-                                <div><label class="field-label">Penanggung jawab</label>
-                                    <div class="input"><span class="input-placeholder">Pilih anggota panitia</span><svg
-                                            width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-                                            <path d="M4 6l4 4 4-4" stroke="#5F6483" stroke-width="1.5" fill="none"
-                                                stroke-linecap="round" stroke-linejoin="round" />
-                                        </svg></div>
-                                </div><span class="button disabled-button">Simpan kegiatan</span>
                             </div>
-                        </div>
-                        <div class="dialog" style="width:424px;box-sizing:border-box">
-                            <h3 class="dialog-title">Hapus kegiatan ini?</h3>
-                            <p class="dialog-text">“Ishoma” akan dihapus dari rundown. Tindakan ini tidak dapat
-                                dibatalkan.</p>
-                            <div class="row" style="justify-content:flex-end"><span
-                                    class="button secondary-button">Batal</span><span
-                                    class="button danger-button">Hapus</span></div>
-                        </div>
+                        <?php endforeach; ?>
+                        <?php if (!$rundowns): ?>
+                            <div class="card empty-note">Belum ada kegiatan. Tambahkan lewat formulir di kanan.</div>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="card" id="form-kegiatan" style="width:424px;flex:none;box-sizing:border-box">
+                        <h2 class="card-title">Kegiatan baru</h2>
+                        <form id="form-rundown" class="stack gap-16" novalidate>
+                            <div class="two-fields">
+                                <div>
+                                    <label class="field-label" for="f-mulai">Mulai</label>
+                                    <input class="input" id="f-mulai" type="text" placeholder="08.00" maxlength="5" style="width:100%">
+                                </div>
+                                <div>
+                                    <label class="field-label" for="f-selesai">Selesai</label>
+                                    <input class="input" id="f-selesai" type="text" placeholder="09.00" maxlength="5" style="width:100%">
+                                </div>
+                            </div>
+                            <div class="help help-error" id="e-waktu" style="display:none;margin-top:-8px"></div>
+                            <div>
+                                <label class="field-label" for="f-judul">Kegiatan</label>
+                                <input class="input" id="f-judul" type="text" maxlength="255" placeholder="Nama kegiatan" style="width:100%">
+                                <div class="help help-error" id="e-judul" style="display:none"></div>
+                            </div>
+                            <div>
+                                <label class="field-label" for="f-pic">Penanggung jawab</label>
+                                <select class="input" id="f-pic" style="width:100%">
+                                    <option value="">Pilih anggota panitia</option>
+                                    <?php foreach ($committees as $c): ?>
+                                        <option value="<?= EO::e($c['id']) ?>"><?= EO::e($c['nama_panitia']) ?> — <?= EO::e($c['posisi_jabatan']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <?php if (!$committees): ?><div class="help">Belum ada panitia. <a href="<?= EO::url('panitia', $id) ?>" style="color:#4b34db">Tambah panitia</a> lebih dulu untuk memilih PIC.</div><?php endif; ?>
+                            </div>
+                            <div class="help help-error" id="e-form" style="display:none"></div>
+                            <button type="submit" id="btn-simpan" class="button primary-button full-width" style="cursor:pointer">Simpan kegiatan</button>
+                        </form>
                     </div>
                 </div>
-            </main>
-        </div>
-    </div>
-</body>
-
-</html>
+<?php
+EO::close('<script>
+(function () {
+    const eventId = ' . json_encode($id) . ';
+    const existing = ' . json_encode($jsRundown, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) . ';
+    const g = (i) => document.getElementById(i);
+    // "8.5" / "08:30" / "0830" -> "08.30"; null bila tidak valid.
+    function norm(v) {
+        const m = String(v).trim().match(/^(\d{1,2})[.:]?(\d{2})$/);
+        if (!m) return null;
+        const h = +m[1], mi = +m[2];
+        return h > 23 || mi > 59 ? null : String(h).padStart(2, "0") + "." + m[2];
+    }
+    const mins = (t) => +t.slice(0, 2) * 60 + +t.slice(3);
+    g("form-rundown").addEventListener("submit", async (ev) => {
+        ev.preventDefault();
+        ["waktu", "judul", "form"].forEach((k) => eoShowError(g("e-" + k), ""));
+        ["f-mulai", "f-selesai", "f-judul"].forEach((i) => g(i).classList.remove("input-error"));
+        const mulai = norm(g("f-mulai").value), selesai = norm(g("f-selesai").value);
+        const judul = g("f-judul").value.trim();
+        let ok = true;
+        if (!mulai || !selesai) {
+            eoShowError(g("e-waktu"), "Isi jam dengan format JJ.MM, mis. 08.30.");
+            if (!mulai) g("f-mulai").classList.add("input-error");
+            if (!selesai) g("f-selesai").classList.add("input-error");
+            ok = false;
+        } else if (mins(selesai) <= mins(mulai)) {
+            eoShowError(g("e-waktu"), "Jam selesai harus setelah jam mulai.");
+            g("f-selesai").classList.add("input-error"); ok = false;
+        } else {
+            const bentrok = existing.find((r) => norm(r.mulai) && norm(r.selesai) && mins(mulai) < mins(norm(r.selesai)) && mins(selesai) > mins(norm(r.mulai)));
+            if (bentrok) {
+                eoShowError(g("e-waktu"), "Bentrok dengan " + bentrok.judul + " (" + bentrok.mulai + "–" + bentrok.selesai + ").");
+                g("f-mulai").classList.add("input-error"); ok = false;
+            }
+        }
+        if (!judul) { eoShowError(g("e-judul"), "Nama kegiatan wajib diisi."); g("f-judul").classList.add("input-error"); ok = false; }
+        if (!ok) return;
+        g("btn-simpan").disabled = true;
+        const r = await eoApi("rundown/" + eventId, "POST", { waktu_mulai: mulai, waktu_selesai: selesai, judul_sesi: judul, committee_id: g("f-pic").value || null });
+        if (r.ok) { location.reload(); return; }
+        g("btn-simpan").disabled = false;
+        eoShowError(g("e-form"), r.message);
+    });
+})();
+</script>');

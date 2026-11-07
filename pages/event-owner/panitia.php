@@ -1,155 +1,97 @@
-<!DOCTYPE html>
-<html lang="id">
+<?php
+declare(strict_types=1);
 
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta charset="utf-8">
-    <title>TIXORA — Organizer — Panitia</title>
-    <link rel="stylesheet" href="<?= BASE_URL ?>/event-owner/styles.css">
-</head>
+require_once defined('ROOT_DIR') ? ROOT_DIR . '/api/helpers/ViewHelper.php' : __DIR__ . '/../../api/helpers/ViewHelper.php';
+require_once __DIR__ . '/event-layout.php';
 
-<body>
-    <div class="frame" style="width:1440px;height:811px">
-        <div class="app">
-            <aside class="sidebar">
-                <div class="logo"><img class="logo-img" src="<?= BASE_URL ?>/assets/logo.png" alt="Logo TIXORA"></div>
-                <span class="side-item">Dasbor</span><span class="side-item side-item-active">Acara saya</span><span
-                    class="side-item">Buat acara</span><span class="side-item">Pengaturan</span><span
-                    class="side-item">Keluar</span>
-                <div class="side-user"><b>Dimas Prakoso</b>HMTI Fakultas Ilmu Komputer</div>
-            </aside>
-            <main class="main">
-                <p class="crumb">Acara saya / SENTEK 2026 / Panitia</p>
-                <div class="head">
-                    <div>
-                        <h1 class="page-title">Kepanitiaan</h1>
-                        <p class="page-subtitle">7 anggota</p>
-                    </div>
-                    <div class="head-actions"><span class="button primary-button">+ Tambah anggota</span></div>
-                </div>
-                <div class="tabs" style="margin-bottom:24px"><span class="tab">Ringkasan</span><span
-                        class="tab">Tiket</span><span class="tab">Rundown</span><span class="tab">Peserta</span><span
-                        class="tab">RAB</span><span class="tab tab-active">Panitia</span><span
-                        class="tab">Analitik</span><span class="tab">Pengajuan</span></div>
+$db = ViewHelper::getDb();
+$owner = ViewHelper::requireLogin(AuthHelper::ROLE_EVENT_OWNER);
+$event = EO::loadEvent($db, $owner);
+$id = $event['id'];
+
+$stmt = $db->prepare('SELECT nama_panitia, posisi_jabatan, divisi, kontak, surel FROM committees WHERE event_id = :id ORDER BY created_at ASC');
+$stmt->execute(['id' => $id]);
+$members = $stmt->fetchAll();
+
+$subtitle = '<span class="slate" style="font-size:16px">' . count($members) . ' anggota</span>';
+EO::open($db, $owner, $event, 'panitia', $subtitle, '', 'Kepanitiaan', 'Panitia');
+?>
                 <div class="cols">
-                    <div class="col-wide">
-                        <div class="tbl-card" style="width:680px;box-sizing:border-box">
-                            <div class="tbl-head">
-                                <div class="tbl-cell" style="width:128px">NAMA</div>
-                                <div class="tbl-cell" style="width:150px">PERAN</div>
-                                <div class="tbl-cell" style="width:96px">DIVISI</div>
-                                <div class="tbl-cell" style="width:170px">KONTAK</div>
-                                <div class="tbl-cell" style="width:104px"></div>
-                            </div>
-                            <div class="tbl-row">
-                                <div class="tbl-cell" style="width:128px"><b>Dimas Prakoso</b></div>
-                                <div class="tbl-cell" style="width:150px">Ketua Pelaksana</div>
-                                <div class="tbl-cell" style="width:96px">Inti</div>
-                                <div class="tbl-cell" style="width:170px">0812-5550-0101<div class="cell-sub">
-                                        dimas.p@email.com</div>
-                                </div>
-                                <div class="tbl-cell tbl-right" style="width:104px"><span
-                                        class="button ghost-button small-button">Edit</span><span
-                                        class="button ghost-button small-button" style="color:#B91C1C">Hapus</span>
-                                </div>
-                            </div>
-                            <div class="tbl-row">
-                                <div class="tbl-cell" style="width:128px"><b>Nabila Safitri</b></div>
-                                <div class="tbl-cell" style="width:150px">Sekretaris</div>
-                                <div class="tbl-cell" style="width:96px">Inti</div>
-                                <div class="tbl-cell" style="width:170px">0813-5550-0102<div class="cell-sub">
-                                        nabila.s@email.com</div>
-                                </div>
-                                <div class="tbl-cell tbl-right" style="width:104px"><span
-                                        class="button ghost-button small-button">Edit</span><span
-                                        class="button ghost-button small-button" style="color:#B91C1C">Hapus</span>
-                                </div>
-                            </div>
-                            <div class="tbl-row">
-                                <div class="tbl-cell" style="width:128px"><b>Rizky Maulana</b></div>
-                                <div class="tbl-cell" style="width:150px">Bendahara</div>
-                                <div class="tbl-cell" style="width:96px">Inti</div>
-                                <div class="tbl-cell" style="width:170px">0857-5550-0103<div class="cell-sub">
-                                        rizky.m@email.com</div>
-                                </div>
-                                <div class="tbl-cell tbl-right" style="width:104px"><span
-                                        class="button ghost-button small-button">Edit</span><span
-                                        class="button ghost-button small-button" style="color:#B91C1C">Hapus</span>
-                                </div>
-                            </div>
-                            <div class="tbl-row">
-                                <div class="tbl-cell" style="width:128px"><b>Putri Ayuningtyas</b></div>
-                                <div class="tbl-cell" style="width:150px">Koordinator Acara</div>
-                                <div class="tbl-cell" style="width:96px">Acara</div>
-                                <div class="tbl-cell" style="width:170px">0812-5550-0104<div class="cell-sub">
-                                        putri.a@email.com</div>
-                                </div>
-                                <div class="tbl-cell tbl-right" style="width:104px"><span
-                                        class="button ghost-button small-button">Edit</span><span
-                                        class="button ghost-button small-button" style="color:#B91C1C">Hapus</span>
-                                </div>
-                            </div>
-                            <div class="tbl-row">
-                                <div class="tbl-cell" style="width:128px"><b>Fajar Nugroho</b></div>
-                                <div class="tbl-cell" style="width:150px">Koordinator Humas</div>
-                                <div class="tbl-cell" style="width:96px">Humas</div>
-                                <div class="tbl-cell" style="width:170px">0821-5550-0105<div class="cell-sub">
-                                        fajar.n@email.com</div>
-                                </div>
-                                <div class="tbl-cell tbl-right" style="width:104px"><span
-                                        class="button ghost-button small-button">Edit</span><span
-                                        class="button ghost-button small-button" style="color:#B91C1C">Hapus</span>
-                                </div>
-                            </div>
-                            <div class="tbl-row">
-                                <div class="tbl-cell" style="width:128px"><b>Salsabila Rahma</b></div>
-                                <div class="tbl-cell" style="width:150px">Koordinator Konsumsi</div>
-                                <div class="tbl-cell" style="width:96px">Konsumsi</div>
-                                <div class="tbl-cell" style="width:170px">0813-5550-0106<div class="cell-sub">
-                                        salsa.r@email.com</div>
-                                </div>
-                                <div class="tbl-cell tbl-right" style="width:104px"><span
-                                        class="button ghost-button small-button">Edit</span><span
-                                        class="button ghost-button small-button" style="color:#B91C1C">Hapus</span>
-                                </div>
-                            </div>
-                            <div class="tbl-row">
-                                <div class="tbl-cell" style="width:128px"><b>Yoga Pratama</b></div>
-                                <div class="tbl-cell" style="width:150px">Koordinator Perlengkapan</div>
-                                <div class="tbl-cell" style="width:96px">Perlengkapan</div>
-                                <div class="tbl-cell" style="width:170px">0857-5550-0107<div class="cell-sub">
-                                        yoga.p@email.com</div>
-                                </div>
-                                <div class="tbl-cell tbl-right" style="width:104px"><span
-                                        class="button ghost-button small-button">Edit</span><span
-                                        class="button ghost-button small-button" style="color:#B91C1C">Hapus</span>
-                                </div>
-                            </div>
+                    <div class="tbl-card" style="flex:1;min-width:0;padding:8px 16px 16px">
+                        <div class="tbl-head">
+                            <div class="tbl-cell" style="flex:1.4">NAMA</div>
+                            <div class="tbl-cell" style="flex:1.6">PERAN</div>
+                            <div class="tbl-cell" style="flex:1">DIVISI</div>
+                            <div class="tbl-cell" style="flex:1.6">KONTAK</div>
                         </div>
+                        <?php foreach ($members as $m): ?>
+                            <div class="tbl-row">
+                                <div class="tbl-cell" style="flex:1.4"><b><?= EO::e($m['nama_panitia']) ?></b></div>
+                                <div class="tbl-cell" style="flex:1.6"><?= EO::e($m['posisi_jabatan']) ?></div>
+                                <div class="tbl-cell" style="flex:1"><?= EO::e($m['divisi'] ?: '-') ?></div>
+                                <div class="tbl-cell" style="flex:1.6;min-width:0;overflow-wrap:anywhere">
+                                    <?= EO::e($m['kontak'] ?: '-') ?>
+                                    <?php if (!empty($m['surel'])): ?><div class="cell-sub"><?= EO::e($m['surel']) ?></div><?php endif; ?>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                        <?php if (!$members): ?><div class="empty-note">Belum ada anggota panitia.</div><?php endif; ?>
                     </div>
-                    <div class="card col-narrow" style="box-sizing:border-box">
+
+                    <div class="card" style="width:424px;flex:none;box-sizing:border-box">
                         <h2 class="card-title">Tambah anggota</h2>
-                        <div class="stack gap-16">
-                            <div><label class="field-label">Nama lengkap</label>
-                                <div class="input"><span class=""></span></div>
+                        <form id="form-panitia" class="stack gap-16" novalidate>
+                            <div>
+                                <label class="field-label" for="f-nama">Nama lengkap</label>
+                                <input class="input" id="f-nama" type="text" maxlength="255" style="width:100%">
+                                <div class="help help-error" id="e-nama" style="display:none"></div>
                             </div>
-                            <div><label class="field-label">Peran</label>
-                                <div class="input"><span class="input-placeholder">Contoh: Koordinator
-                                        Dokumentasi</span></div>
+                            <div>
+                                <label class="field-label" for="f-peran">Peran</label>
+                                <input class="input" id="f-peran" type="text" maxlength="100" placeholder="Contoh: Koordinator Dokumentasi" style="width:100%">
+                                <div class="help help-error" id="e-peran" style="display:none"></div>
                             </div>
-                            <div><label class="field-label">Nomor WhatsApp</label>
-                                <div class="input input-error"><span class="">0812</span></div>
-                                <p class="help help-error">Nomor WhatsApp tidak lengkap.</p>
+                            <div>
+                                <label class="field-label" for="f-divisi">Divisi</label>
+                                <input class="input" id="f-divisi" type="text" maxlength="100" placeholder="Contoh: Humas" style="width:100%">
                             </div>
-                            <div><label class="field-label">Surel</label>
-                                <div class="input"><span class=""></span></div>
-                            </div><span class="button disabled-button">Simpan anggota</span>
-                        </div>
+                            <div>
+                                <label class="field-label" for="f-wa">Nomor WhatsApp</label>
+                                <input class="input" id="f-wa" type="tel" maxlength="20" placeholder="0812-3456-7890" style="width:100%">
+                                <div class="help help-error" id="e-wa" style="display:none"></div>
+                            </div>
+                            <div>
+                                <label class="field-label" for="f-surel">Surel</label>
+                                <input class="input" id="f-surel" type="email" maxlength="255" style="width:100%">
+                                <div class="help help-error" id="e-surel" style="display:none"></div>
+                            </div>
+                            <div class="help help-error" id="e-form" style="display:none"></div>
+                            <button type="submit" id="btn-simpan" class="button primary-button full-width" style="cursor:pointer">Simpan anggota</button>
+                        </form>
                     </div>
                 </div>
-            </main>
-        </div>
-    </div>
-</body>
-
-</html>
+<?php
+EO::close('<script>
+(function () {
+    const eventId = ' . json_encode($id) . ';
+    const g = (i) => document.getElementById(i);
+    g("form-panitia").addEventListener("submit", async (ev) => {
+        ev.preventDefault();
+        ["nama", "peran", "wa", "surel", "form"].forEach((k) => { eoShowError(g("e-" + k), ""); if (g("f-" + k)) g("f-" + k).classList.remove("input-error"); });
+        const v = (k) => g("f-" + k).value.trim();
+        let ok = true;
+        const fail = (k, msg) => { eoShowError(g("e-" + k), msg); g("f-" + k).classList.add("input-error"); ok = false; };
+        if (!v("nama")) fail("nama", "Nama lengkap wajib diisi.");
+        if (!v("peran")) fail("peran", "Peran wajib diisi.");
+        const digits = v("wa").replace(/\D/g, "");
+        if (v("wa") && (digits.length < 10 || digits.length > 14)) fail("wa", "Nomor WhatsApp tidak lengkap.");
+        if (v("surel") && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v("surel"))) fail("surel", "Format surel tidak valid.");
+        if (!ok) return;
+        g("btn-simpan").disabled = true;
+        const r = await eoApi("committee/" + eventId, "POST", { nama_panitia: v("nama"), posisi_jabatan: v("peran"), divisi: v("divisi") || "Inti", kontak: v("wa"), surel: v("surel") });
+        if (r.ok) { location.reload(); return; }
+        g("btn-simpan").disabled = false;
+        eoShowError(g("e-form"), r.message);
+    });
+})();
+</script>');
