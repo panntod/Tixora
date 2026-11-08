@@ -89,17 +89,3 @@ BEGIN
         EXECUTE format('CREATE TRIGGER trg_%1$s_updated_at BEFORE UPDATE ON %1$I FOR EACH ROW EXECUTE FUNCTION set_updated_at()', t);
     END LOOP;
 END $$;
-
--- OPSIONAL (disarankan untuk demo/produksi): user PostgreSQL khusus aplikasi dengan hak seperlunya,
--- menggantikan pemakaian superuser "postgres" oleh aplikasi.
--- 1) Ganti GANTI_PASSWORD_KUAT. 2) Jalankan sebagai superuser pada database db_tixora.
--- 3) Isi api/config/database.local.php (username 'tixora_app' + password baru).
--- Catatan: ensureSchema() menjalankan migrasi 002 otomatis jika kolom harga belum ada; bila memakai user
--- ini, jalankan 001-003 secara manual lebih dulu sebagai superuser.
-
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'tixora_app') THEN
-        CREATE ROLE tixora_app LOGIN PASSWORD 'GANTI_PASSWORD_KUAT' NOSUPERUSER NOCREATEDB NOCREATEROLE;
-    END IF;
-END $$;
