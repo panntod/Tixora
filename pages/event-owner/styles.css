@@ -2063,3 +2063,236 @@ select.input {
   min-width: 0;
   width: auto;
 }
+
+/* ===== Responsive (tablet & ponsel) — semua halaman Event Owner ===== */
+
+/* Tablet: kolom samping turun ke bawah */
+@media (max-width: 1100px) {
+  .cols,
+  .two-col {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 20px;
+  }
+  .col-wide,
+  .col-narrow,
+  .cols > *,
+  .two-col > * {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: none;
+  }
+  /* lebar tetap bawaan mockup -> ikut lebar layar */
+  [style*="width:1440px"],
+  [style*="width:1128px"],
+  [style*="width:880px"],
+  [style*="width:680px"],
+  [style*="width:620px"],
+  [style*="width:560px"],
+  [style*="width:424px"],
+  [style*="width:420px"] {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .metrics {
+    flex-wrap: wrap;
+  }
+  .metric {
+    flex: 1 1 calc(50% - 8px);
+    min-width: 0;
+  }
+}
+
+/* Ponsel & tablet kecil: sidebar menjadi bilah atas */
+@media (max-width: 900px) {
+  .app {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  /* sidebar -> laci (hamburger) */
+  .mobile-bar {
+    display: flex !important;
+  }
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 40;
+    width: 272px;
+    max-width: 84vw;
+    height: 100vh;
+    height: 100dvh;
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition: transform 0.22s ease, visibility 0.22s;
+    box-shadow: none;
+  }
+  body.sidebar-open .sidebar {
+    transform: none;
+    visibility: visible;
+    box-shadow: 0 0 32px rgba(14, 17, 40, 0.25);
+  }
+  .sidebar-backdrop {
+    display: block !important;
+  }
+  body.sidebar-open .sidebar-backdrop {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  body.sidebar-open {
+    overflow: hidden;
+  }
+  .main {
+    width: 100% !important;
+    max-width: 100%;
+    padding: 16px 16px 40px;
+  }
+  .head {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .head-actions {
+    flex-wrap: wrap;
+  }
+  .page-title {
+    font-size: 24px;
+    line-height: 30px;
+    overflow-wrap: anywhere;
+  }
+  /* tab bisa digeser ke samping */
+  .tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    gap: 20px;
+    height: auto;
+    padding-bottom: 0;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .tab {
+    flex: none;
+    white-space: nowrap;
+    padding-bottom: 10px;
+  }
+  /* tabel: geser horizontal di dalam kartu */
+  .tbl-card,
+  .card {
+    overflow-x: auto;
+  }
+  .tbl-head,
+  .tbl-row {
+    min-width: 640px;
+  }
+  .filter-bar {
+    flex-wrap: wrap;
+  }
+  .filter-bar .input,
+  .filter-bar select.input {
+    flex: 1 1 140px;
+    width: auto !important;
+  }
+  .chip-row {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+  }
+  .chip-row > * {
+    flex: none;
+  }
+  .stepper {
+    overflow-x: auto;
+    gap: 16px;
+    white-space: nowrap;
+    scrollbar-width: none;
+  }
+  .wizard-footer {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .card,
+  .tbl-card {
+    max-width: 100%;
+  }
+}
+
+/* Ponsel */
+@media (max-width: 560px) {
+  .metric {
+    flex-basis: 100%;
+  }
+  .metric-value {
+    font-size: 24px;
+    line-height: 30px;
+    overflow-wrap: anywhere;
+  }
+  .two-fields {
+    flex-direction: column;
+  }
+  .head-actions,
+  .head-actions .button {
+    width: 100%;
+  }
+  .head-actions .button {
+    justify-content: center;
+  }
+  .wizard-footer .button {
+    flex: 1;
+  }
+  .card {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+
+/* Bilah atas + backdrop untuk hamburger (hanya tampil di layar kecil) */
+.mobile-bar {
+  display: none;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: #ffffff;
+  border-bottom: 1px solid #e4e4ee;
+}
+.mobile-bar .logo-img {
+  height: 28px;
+}
+.hamburger {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+}
+.hamburger:hover,
+.hamburger:focus-visible {
+  background: #f1f0ff;
+}
+.hamburger span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  border-radius: 2px;
+  background: #0e1128;
+}
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  background: rgba(14, 17, 40, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease;
+}

@@ -244,6 +244,7 @@ final class EO
             el.style.display = message ? 'block' : 'none';
         }
     </script>
+    <script src="<?= BASE_URL ?>/event-owner/sidebar.js"></script>
     <?= $script ?>
 </body>
 

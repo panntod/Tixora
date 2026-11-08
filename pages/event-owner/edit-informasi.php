@@ -102,6 +102,7 @@
             </main>
         </div>
     </div>
+    <script src="<?= BASE_URL ?>/event-owner/sidebar.js"></script>
 </body>
 
 </html>

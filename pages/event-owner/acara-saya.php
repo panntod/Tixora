@@ -159,6 +159,7 @@ $totalSemua = array_sum($rawCounts);
             btn.disabled = false;
         }));
     </script>
+    <script src="<?= BASE_URL ?>/event-owner/sidebar.js"></script>
 </body>
 
 </html>
