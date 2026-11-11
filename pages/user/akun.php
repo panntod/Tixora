@@ -62,8 +62,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $successMsg = 'Kata sandi berhasil diperbarui.';
         }
     } elseif ($action === 'delete_account') {
-        if (($currentUser['role'] ?? '') === 'ADMIN') {
+        $role = $currentUser['role'] ?? '';
+        if ($role === AuthHelper::ROLE_ADMIN) {
             $errorMsg = 'Akun admin tidak dapat dihapus dari halaman ini.';
+        } elseif ($role === AuthHelper::ROLE_EVENT_OWNER) {
+            // Cek event aktif sebelum delete
+            $stmtCheck = $db->prepare("
+            SELECT COUNT(*) FROM events
+            WHERE owner_id = :id AND status_verifikasi IN ('DRAF','MENUNGGU_TINJAUAN','DISETUJUI','TERBIT')
+        ");
+            $stmtCheck->execute(['id' => $currentUser['id']]);
+            $activeCount = (int) $stmtCheck->fetchColumn();
+            if ($activeCount > 0) {
+                $errorMsg = "Akun tidak dapat dihapus karena masih memiliki {$activeCount} acara aktif. "
+                    . "Batalkan acara terlebih dahulu (Pengaturan → Batalkan acara).";
+            } else {
+                // Lanjut delete di bawah
+                try {
+                    $stmt = $db->prepare("DELETE FROM users WHERE id = :id");
+                    $stmt->execute(['id' => $currentUser['id']]);
+
+                    $_SESSION = [];
+                    if (ini_get('session.use_cookies')) {
+                        $p = session_get_cookie_params();
+                        setcookie(session_name(), '', [
+                            'expires' => time() - 42000,
+                            'path' => $p['path'],
+                            'domain' => $p['domain'],
+                            'secure' => $p['secure'],
+                            'httponly' => $p['httponly'],
+                            'samesite' => $p['samesite'] ?? 'Lax',
+                        ]);
+                    }
+                    session_destroy();
+                    header('Location: ' . BASE_URL . '/login');
+                    exit;
+                } catch (PDOException $e) {
+                    $errorMsg = 'Akun tidak dapat dihapus saat ini. Coba lagi nanti.';
+                }
+            }
         } else {
             try {
                 $stmt = $db->prepare("DELETE FROM users WHERE id = :id");
@@ -210,16 +247,18 @@ $initials = strtoupper(mb_substr($user['nama'] ?? 'User', 0, 2));
                             style="cursor:pointer">Perbarui Kata Sandi</button>
                     </form>
 
-                    <form method="POST" action="" class="card delete-account-card"
-                        onsubmit="return confirm('Yakin ingin menghapus akun? Tiket dan riwayat akan hilang permanen.')">
-                        <?= ViewHelper::csrfField() ?>
-                        <input type="hidden" name="action" value="delete_account">
-                        <div>
-                            <h2 class="delete-account-title">Hapus akun</h2>
-                            <p class="help">Tiket dan riwayat pendaftaran akan hilang permanen</p>
-                        </div>
-                        <button type="submit" class="button secondary-button danger-outline-button">Hapus akun</button>
-                    </form>
+                    <?php if ($user['role'] === AuthHelper::ROLE_USER): ?>
+                        <form method="POST" action="" class="card delete-account-card"
+                            onsubmit="return confirm('Yakin ingin menghapus akun? Tiket dan riwayat akan hilang permanen.')">
+                            <?= ViewHelper::csrfField() ?>
+                            <input type="hidden" name="action" value="delete_account">
+                            <div>
+                                <h2 class="delete-account-title">Hapus akun</h2>
+                                <p class="help">Tiket dan riwayat pendaftaran akan hilang permanen</p>
+                            </div>
+                            <button type="submit" class="button secondary-button danger-outline-button">Hapus akun</button>
+                        </form>
+                    <?php endif; ?>
                 </div>
             </div>
         </main>
