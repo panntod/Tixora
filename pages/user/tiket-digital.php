@@ -49,9 +49,22 @@ if (!$ticket) {
     exit;
 }
 
-// Tiket yang belum dibayar belum punya QR aktif: arahkan ke halaman menunggu pembayaran
+// Tiket yang belum dibayar: redirect ke halaman pembayaran
 if ($ticket['status_tiket'] === 'MENUNGGU_PEMBAYARAN') {
-    header('Location: ' . BASE_URL . '/tiket-digital/menunggu-pembayaran?id=' . urlencode($ticket['id']));
+    $stmtOrder = $db->prepare("
+        SELECT order_id FROM payments
+        WHERE ticket_id = :tid AND user_id = :uid AND status = 'MENUNGGU'
+        ORDER BY created_at DESC LIMIT 1
+    ");
+    $stmtOrder->execute(['tid' => $ticket['id'], 'uid' => $currentUser['id']]);
+    $orderId = $stmtOrder->fetchColumn();
+
+    if ($orderId) {
+        header('Location: ' . BASE_URL . '/pembayaran?order=' . urlencode($orderId));
+        exit;
+    }
+    // Data inconsistency: tiket MENUNGGU_PEMBAYARAN tanpa payment aktif
+    header('Location: ' . BASE_URL . '/tiket-saya');
     exit;
 }
 
