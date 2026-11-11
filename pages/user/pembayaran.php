@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
     } elseif ($action === 'simulasi_bayar') {
-        if (!PaymentHelper::SANDBOX) {
+        if (!PaymentHelper::isSandbox()) {
             $errorMessage = 'Simulasi pembayaran dinonaktifkan.';
         } else {
             $result = PaymentHelper::markPaid($db, $orderId, $currentUser['id']);
@@ -102,7 +102,7 @@ $sisaDetik = max(0, (int)$order['sisa_detik']);
                 <div class="alert alert-error" style="margin-bottom:20px"><?= htmlspecialchars($errorMessage) ?></div>
             <?php endif; ?>
 
-            <?php if (PaymentHelper::SANDBOX && $order['status'] === 'MENUNGGU'): ?>
+            <?php if (PaymentHelper::IsSandbox() && $order['status'] === 'MENUNGGU'): ?>
                 <div class="alert alert-warning" style="margin-bottom:20px">
                     <b>Mode sandbox.</b> Pembayaran pada halaman ini disimulasikan; tidak ada uang sungguhan yang berpindah.
                 </div>
@@ -177,7 +177,7 @@ $sisaDetik = max(0, (int)$order['sisa_detik']);
                             </div>
 
                             <div class="row">
-                                <?php if (PaymentHelper::SANDBOX): ?>
+                                <?php if (PaymentHelper::IsSandbox()): ?>
                                     <form method="POST" action="<?= htmlspecialchars($self) ?>" style="display:inline">
                                         <?= ViewHelper::csrfField() ?>
                                         <input type="hidden" name="action" value="simulasi_bayar">

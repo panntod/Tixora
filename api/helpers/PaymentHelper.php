@@ -17,7 +17,16 @@ declare(strict_types=1);
  */
 class PaymentHelper
 {
-    public const SANDBOX = true;
+    /**
+     * * Mode sandbox: aktif hanya jika env TIXORA_PAYMENT_SANDBOX=true.
+     * * Di production WAJIB tidak diset (atau diset false) supaya tombol
+     * * "Simulasikan pembayaran berhasil" tidak muncul.
+     * */
+    public static function isSandbox(): bool
+    {
+        return getenv('TIXORA_PAYMENT_SANDBOX') === 'true';
+        }
+        
     public const PAYMENT_WINDOW_HOURS = 24;
 
     /** kode => [label, prefix nomor, jenis] */
