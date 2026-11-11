@@ -25,11 +25,14 @@ $logLabel = static fn(string $s): string => match ($s) {
 
 $canSubmit = in_array($status, ['DRAF', 'DITOLAK'], true);
 $canWithdraw = $status === 'MENUNGGU_TINJAUAN';
+$canPublish = $status === 'DISETUJUI';
 
 $actions = '';
 if ($canSubmit) {
     $actions = '<button type="button" id="btn-ajukan" class="button primary-button" style="cursor:pointer">'
         . ($status === 'DITOLAK' ? 'Ajukan ulang' : 'Ajukan acara') . '</button>';
+} elseif ($canPublish) {
+    $actions = '<button type="button" id="btn-terbitkan" class="button primary-button" style="cursor:pointer">Terbitkan acara</button>';
 }
 $subtitle = EO::badge(EO::eventBadge($status)) . ' &nbsp;<span class="slate" style="font-size:14px">Diperbarui ' . EO::e(EO::tanggal($event['updated_at'])) . '</span>';
 
@@ -64,12 +67,19 @@ EO::open($db, $owner, $event, 'pengajuan', $subtitle, $actions, null, 'Pengajuan
                     <div class="card col-narrow" style="box-sizing:border-box">
                         <h2 class="card-title">Status pengajuan</h2>
                         <div style="margin:0 0 12px"><?= EO::badge(EO::eventBadge($status)) ?></div>
+                        <?php if ($canPublish): ?>
+                            <div class="alert alert-success" style="margin-bottom:12px;font-size:14px">
+                                Acara sudah <b>disetujui admin</b>. Klik <b>Terbitkan acara</b> untuk menampilkannya di portal publik.
+                            </div>
+                        <?php endif; ?>
                         <p class="slate" style="font-size:14px;line-height:21px">
                             <?= match (true) {
                                 $status === 'MENUNGGU_TINJAUAN' => 'Acara tidak dapat diedit selama ditinjau. Anda akan menerima pemberitahuan setelah ada keputusan.',
                                 $status === 'DRAF' => 'Acara masih berupa draf dan belum terlihat oleh admin. Lengkapi tiket, rundown, dan RAB, lalu ajukan.',
                                 $status === 'DITOLAK' => 'Acara perlu direvisi sebelum diajukan ulang.',
-                                in_array($status, ['TERBIT', 'PUBLISHED', 'DISETUJUI'], true) => 'Acara sudah disetujui admin.',
+                                $status === 'DISETUJUI' => 'Acara sudah disetujui admin. Terbitkan untuk membuka pendaftaran peserta.',
+                                in_array($status, ['TERBIT', 'PUBLISHED'], true) => 'Acara sudah terbit dan tampil di portal publik.',
+                                $status === 'BATAL' => 'Acara dibatalkan.',
                                 default => 'Tidak ada tindakan pengajuan untuk status ini.',
                             } ?>
                         </p>
@@ -91,8 +101,9 @@ EO::close('<script>
         btn.disabled = false;
         eoShowError(document.getElementById("e-form"), r.message);
     }
-    const a = document.getElementById("btn-ajukan"), t = document.getElementById("btn-tarik");
+    const a = document.getElementById("btn-ajukan"), t = document.getElementById("btn-tarik"), p = document.getElementById("btn-terbitkan");
     if (a) a.addEventListener("click", () => run(a, "submit-event", "Ajukan acara ini untuk ditinjau admin?"));
     if (t) t.addEventListener("click", () => run(t, "withdraw-event", "Tarik pengajuan dan kembalikan acara ke draf?"));
+    if (p) p.addEventListener("click", () => run(p, "publish-event", "Terbitkan acara ini ke portal publik? Setelah terbit, acara akan tampil di Jelajah Acara."));
 })();
 </script>');
