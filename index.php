@@ -373,7 +373,6 @@ $routes = [
 
     // Pengajuan akun Event Owner: akun langsung dibuat dan otomatis login
     'ajukan-akun' => 'user/ajukan-akun.php',
-    'masuk' => 'user/masuk.php',
     'pendaftaran' => 'user/pendaftaran.php',
 
     // Password Recovery
@@ -419,10 +418,6 @@ $routes = [
     'riwayat-pendaftaran' =>
         'user/riwayat-pendaftaran.php',
 
-    // UI States
-    'kondisi-antarmuka' =>
-        'user/kondisi-antarmuka.php',
-
 
     /*
     |--------------------------------------------------------------------------
@@ -441,21 +436,9 @@ $routes = [
     'event-owner/edit-informasi' =>
         'event-owner/edit-informasi.php',
 
-    'event-owner/pengaturan-acara' =>
-        'event-owner/pengaturan-acara.php',
-
     // Create Event
     'event-owner/buat-acara' =>
         'event-owner/buat-acara/index.php',
-
-    'event-owner/buat-acara/rundown' =>
-        'event-owner/buat-acara/buat-acara-rundown.php',
-
-    'event-owner/buat-acara/tiket' =>
-        'event-owner/buat-acara/buat-acara-tiket.php',
-
-    'event-owner/buat-acara/tinjau' =>
-        'event-owner/buat-acara/buat-acara-tinjau.php',
 
     // Event Operations
     'event-owner/rundown' =>
@@ -476,12 +459,6 @@ $routes = [
     // Submission & Publication
     'event-owner/pengajuan' =>
         'event-owner/pengajuan.php',
-
-    'event-owner/dialog-publikasi' =>
-        'event-owner/dialog-publikasi.php',
-
-    'event-owner/dialog-dan-kondisi' =>
-        'event-owner/dialog-dan-kondisi.php',
 
     // Analytics
     'event-owner/analitik' =>
@@ -508,18 +485,8 @@ $routes = [
     'admin/tinjauan-acara' =>
         'admin/tinjauan-acara.php',
 
-    'admin/tinjauan-revisi' =>
-        'admin/tinjauan-revisi.php',
-
-    'admin/riwayat-moderasi' =>
-        'admin/riwayat-moderasi.php',
-
     // Moderation Results
-    'admin/setelah-disetujui' =>
-        'admin/setelah-disetujui.php',
-
-    'admin/setelah-ditolak' =>
-        'admin/setelah-ditolak.php',
+    // -
 
     // User Management
     'admin/pengguna' =>
@@ -532,11 +499,7 @@ $routes = [
         'admin/penyelenggara.php',
 
     // Communication
-    'admin/notifikasi' =>
-        'admin/notifikasi.php',
-
-    'admin/dialog-dan-umpan-balik' =>
-        'admin/dialog-dan-umpan-balik.php',
+    // -
 
     // Reports
     'admin/laporan' =>
@@ -550,6 +513,12 @@ $routes = [
 | 404 NOT FOUND HANDLER
 |--------------------------------------------------------------------------
 */
+
+// Redirect legacy /masuk → /login
+if ($path === 'masuk') {
+    header('Location: ' . BASE_URL . '/login', true, 301);
+    exit;
+}
 
 if (!array_key_exists($path, $routes)) {
 
