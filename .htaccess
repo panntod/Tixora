@@ -9,6 +9,9 @@
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
 
+    # Blokir akses langsung ke folder pages/
+    RewriteRule ^pages(?:/|$) - [F,L]
+
     # Routing API ditangani oleh /api/.htaccess
     RewriteRule ^api(?:/|$) - [L]
 
