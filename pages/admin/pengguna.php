@@ -1,123 +1,142 @@
+<?php
+declare(strict_types=1);
+
+require_once __DIR__ . '/../../api/helpers/ViewHelper.php';
+$db = ViewHelper::getDb();
+$admin = ViewHelper::requireLogin(AuthHelper::ROLE_ADMIN);
+
+$activePage = 'pengguna';
+
+$search     = trim($_GET['search'] ?? '');
+$roleFilter = trim($_GET['role'] ?? '');
+
+$sql = "
+    SELECT u.*, r.nama AS role_nama
+    FROM users u
+    JOIN roles r ON u.role_id = r.id
+    WHERE 1=1
+";
+$params = [];
+
+if ($search !== '') {
+    $sql .= " AND (u.nama ILIKE :s OR u.email ILIKE :s)";
+    $params['s'] = "%{$search}%";
+}
+if ($roleFilter !== '') {
+    $sql .= " AND u.role_id = :role";
+    $params['role'] = $roleFilter;
+}
+$sql .= " ORDER BY u.created_at DESC LIMIT 100";
+
+$stmt = $db->prepare($sql);
+$stmt->execute($params);
+$users = $stmt->fetchAll();
+
+$totalCount    = (int)$db->query("SELECT COUNT(*) FROM users")->fetchColumn();
+$menungguCount = (int)$db->query("SELECT COUNT(*) FROM events WHERE status_verifikasi = 'MENUNGGU_TINJAUAN'")->fetchColumn();
+
+$roleCounts = $db->query("
+    SELECT r.id, r.nama, COUNT(u.id) AS cnt
+    FROM roles r
+    LEFT JOIN users u ON u.role_id = r.id
+    GROUP BY r.id, r.nama
+    ORDER BY r.nama
+")->fetchAll();
+
+function roleBadge(string $roleId): array
+{
+    return match ($roleId) {
+        AuthHelper::ROLE_ADMIN        => ['badge-neutral', 'Admin'],
+        AuthHelper::ROLE_EVENT_OWNER  => ['badge-info', 'Penyelenggara'],
+        default                       => ['badge-purple', 'Peserta'],
+    };
+}
+?>
 <!DOCTYPE html>
 <html lang="id">
 
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>TIXORA — Admin — Pengguna</title>
     <link rel="stylesheet" href="<?= BASE_URL ?>/admin/styles.css">
 </head>
 
 <body>
-    <div class="frame" style="width:1440px;height:680px">
+    <div class="frame" style="width:1440px;min-height:900px;height:auto">
         <div class="app">
-            <aside class="sidebar">
-                <div class="logo"><img class="logo-img" src="<?= BASE_URL ?>/assets/logo.png" alt="Logo TIXORA"></div><span class="side-label">ADMIN</span><a
-                    class="side-item" href="<?= BASE_URL ?>/admin">Dasbor</a><a class="side-item" href="<?= BASE_URL ?>/admin/antrean-acara">Antrean
-                    acara<span class="count-pill">4</span></a><a class="side-item side-item-active"
-                    href="<?= BASE_URL ?>/admin/pengguna">Pengguna</a><a class="side-item"
-                    href="<?= BASE_URL ?>/admin/penyelenggara">Penyelenggara</a><a class="side-item"
-                    href="<?= BASE_URL ?>/admin/laporan">Laporan</a><a class="side-item" href="<?= BASE_URL ?>/admin/notifikasi">Notifikasi</a><span
-                    class="side-item">Keluar</span>
-                <div class="side-user"><b>Rahmat Hidayat</b>Administrator</div>
-            </aside>
+            <?php include __DIR__ . '/_sidebar.php'; ?>
+
             <main class="main">
                 <p class="crumb">Pengguna</p>
                 <div class="head">
                     <div>
                         <h1 class="page-title">Pengguna</h1>
-                        <p class="page-subtitle">1.284 akun terdaftar</p>
+                        <p class="page-subtitle"><?= number_format($totalCount) ?> akun terdaftar</p>
                     </div>
-                    <div class="head-actions"><span class="button secondary-button">Ekspor daftar</span></div>
                 </div>
-                <div class="filter-bar">
-                    <div class="input" style="flex:1;width:auto"><span class="input-placeholder">Cari nama atau
-                            surel</span></div>
-                    <div class="input" style="width:170px"><span>Semua peran</span><svg width="16" height="16"
-                            viewBox="0 0 16 16" aria-hidden="true">
-                            <path d="M4 6l4 4 4-4" stroke="#5F6483" stroke-width="1.5" fill="none"
-                                stroke-linecap="round" stroke-linejoin="round" />
-                        </svg></div>
-                    <div class="input" style="width:180px"><span>Semua status</span><svg width="16" height="16"
-                            viewBox="0 0 16 16" aria-hidden="true">
-                            <path d="M4 6l4 4 4-4" stroke="#5F6483" stroke-width="1.5" fill="none"
-                                stroke-linecap="round" stroke-linejoin="round" />
-                        </svg></div>
+
+                <form method="GET" action="" class="filter-bar">
+                    <input type="text" name="search" class="input" style="flex:1;width:auto"
+                        placeholder="Cari nama atau surel..." value="<?= htmlspecialchars($search) ?>">
+                    <?php if ($roleFilter !== ''): ?>
+                        <input type="hidden" name="role" value="<?= htmlspecialchars($roleFilter) ?>">
+                    <?php endif; ?>
+                    <button type="submit" class="button secondary-button" style="cursor:pointer">Cari</button>
+                </form>
+
+                <div class="chip-row" style="margin-bottom:16px">
+                    <?php
+                    $urlSemua = BASE_URL . '/admin/pengguna' . ($search !== '' ? '?search=' . urlencode($search) : '');
+                    ?>
+                    <a href="<?= $urlSemua ?>" class="chip <?= $roleFilter === '' ? 'chip-active' : '' ?>" style="text-decoration:none">
+                        Semua <?= $totalCount ?>
+                    </a>
+                    <?php foreach ($roleCounts as $rc):
+                        $urlRole = BASE_URL . '/admin/pengguna?role=' . urlencode($rc['id']);
+                        if ($search !== '') $urlRole .= '&search=' . urlencode($search);
+                    ?>
+                        <a href="<?= $urlRole ?>" class="chip <?= $roleFilter === $rc['id'] ? 'chip-active' : '' ?>" style="text-decoration:none">
+                            <?= htmlspecialchars($rc['nama']) ?> <?= (int)$rc['cnt'] ?>
+                        </a>
+                    <?php endforeach; ?>
                 </div>
+
                 <div class="tbl-card">
                     <div class="tbl-head">
                         <div class="tbl-cell" style="width:220px">NAMA</div>
-                        <div class="tbl-cell" style="width:250px">SUREL</div>
+                        <div class="tbl-cell" style="width:280px">SUREL</div>
                         <div class="tbl-cell" style="width:160px">PERAN</div>
                         <div class="tbl-cell" style="width:130px">TERDAFTAR</div>
-                        <div class="tbl-cell" style="width:150px">STATUS AKUN</div>
-                        <div class="tbl-cell" style="width:186px"></div>
+                        <div class="tbl-cell" style="width:150px">STATUS</div>
+                        <div class="tbl-cell tbl-right" style="width:120px"></div>
                     </div>
-                    <div class="tbl-row">
-                        <div class="tbl-cell" style="width:220px"><b>Alya Rahmawati</b></div>
-                        <div class="tbl-cell" style="width:250px">alya.rahmawati@email.com</div>
-                        <div class="tbl-cell" style="width:160px"><span class="badge badge-purple"><span
-                                    class="badge-dot"></span>Peserta</span></div>
-                        <div class="tbl-cell" style="width:130px">1 Sep 2026</div>
-                        <div class="tbl-cell" style="width:150px"><span class="badge badge-success"><span
-                                    class="badge-dot"></span>Aktif</span></div>
-                        <div class="tbl-cell tbl-right" style="width:186px"><span
-                                class="button secondary-button small-button">Detail</span></div>
-                    </div>
-                    <div class="tbl-row">
-                        <div class="tbl-cell" style="width:220px"><b>Citra Lestari</b></div>
-                        <div class="tbl-cell" style="width:250px">citra.l@email.com</div>
-                        <div class="tbl-cell" style="width:160px"><span class="badge badge-purple"><span
-                                    class="badge-dot"></span>Peserta</span></div>
-                        <div class="tbl-cell" style="width:130px">3 Sep 2026</div>
-                        <div class="tbl-cell" style="width:150px"><span class="badge badge-success"><span
-                                    class="badge-dot"></span>Aktif</span></div>
-                        <div class="tbl-cell tbl-right" style="width:186px"><span
-                                class="button secondary-button small-button">Detail</span></div>
-                    </div>
-                    <div class="tbl-row">
-                        <div class="tbl-cell" style="width:220px"><b>Dimas Prakoso</b></div>
-                        <div class="tbl-cell" style="width:250px">dimas.p@email.com</div>
-                        <div class="tbl-cell" style="width:160px"><span class="badge badge-info"><span
-                                    class="badge-dot"></span>Penyelenggara</span></div>
-                        <div class="tbl-cell" style="width:130px">12 Jan 2026</div>
-                        <div class="tbl-cell" style="width:150px"><span class="badge badge-success"><span
-                                    class="badge-dot"></span>Aktif</span></div>
-                        <div class="tbl-cell tbl-right" style="width:186px"><span
-                                class="button secondary-button small-button">Detail</span></div>
-                    </div>
-                    <div class="tbl-row">
-                        <div class="tbl-cell" style="width:220px"><b>Eka Wulandari</b></div>
-                        <div class="tbl-cell" style="width:250px">eka.w@email.com</div>
-                        <div class="tbl-cell" style="width:160px"><span class="badge badge-purple"><span
-                                    class="badge-dot"></span>Peserta</span></div>
-                        <div class="tbl-cell" style="width:130px">14 Sep 2026</div>
-                        <div class="tbl-cell" style="width:150px"><span class="badge badge-error"><span
-                                    class="badge-dot"></span>Ditangguhkan</span></div>
-                        <div class="tbl-cell tbl-right" style="width:186px"><span
-                                class="button secondary-button small-button">Detail</span></div>
-                    </div>
-                    <div class="tbl-row">
-                        <div class="tbl-cell" style="width:220px"><b>Rahmat Hidayat</b></div>
-                        <div class="tbl-cell" style="width:250px">rahmat.h@tixora.id</div>
-                        <div class="tbl-cell" style="width:160px"><span class="badge badge-neutral"><span
-                                    class="badge-dot"></span>Admin</span></div>
-                        <div class="tbl-cell" style="width:130px">2 Jan 2026</div>
-                        <div class="tbl-cell" style="width:150px"><span class="badge badge-success"><span
-                                    class="badge-dot"></span>Aktif</span></div>
-                        <div class="tbl-cell tbl-right" style="width:186px"><span
-                                class="button secondary-button small-button">Detail</span></div>
-                    </div>
-                    <div class="tbl-row">
-                        <div class="tbl-cell" style="width:220px"><b>Gilang Saputra</b></div>
-                        <div class="tbl-cell" style="width:250px">gilang.s@email.com</div>
-                        <div class="tbl-cell" style="width:160px"><span class="badge badge-info"><span
-                                    class="badge-dot"></span>Penyelenggara</span></div>
-                        <div class="tbl-cell" style="width:130px">20 Mar 2026</div>
-                        <div class="tbl-cell" style="width:150px"><span class="badge badge-success"><span
-                                    class="badge-dot"></span>Aktif</span></div>
-                        <div class="tbl-cell tbl-right" style="width:186px"><span
-                                class="button secondary-button small-button">Detail</span></div>
-                    </div>
+
+                    <?php if (!empty($users)): ?>
+                        <?php foreach ($users as $u): $badge = roleBadge($u['role_id']); ?>
+                            <div class="tbl-row">
+                                <div class="tbl-cell" style="width:220px"><b><?= htmlspecialchars($u['nama']) ?></b></div>
+                                <div class="tbl-cell" style="width:280px"><?= htmlspecialchars($u['email']) ?></div>
+                                <div class="tbl-cell" style="width:160px">
+                                    <span class="badge <?= $badge[0] ?>"><span class="badge-dot"></span><?= $badge[1] ?></span>
+                                </div>
+                                <div class="tbl-cell" style="width:130px"><?= date('d M Y', strtotime($u['created_at'])) ?></div>
+                                <div class="tbl-cell" style="width:150px">
+                                    <span class="badge <?= $u['is_active'] ? 'badge-success' : 'badge-error' ?>">
+                                        <span class="badge-dot"></span><?= $u['is_active'] ? 'Aktif' : 'Ditangguhkan' ?>
+                                    </span>
+                                </div>
+                                <div class="tbl-cell tbl-right" style="width:120px">
+                                    <a href="<?= BASE_URL ?>/admin/detail-pengguna?id=<?= urlencode($u['id']) ?>"
+                                       class="button secondary-button small-button" style="text-decoration:none">Detail</a>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div style="padding:32px 16px;text-align:center">
+                            <p class="slate">Tidak ada pengguna yang cocok dengan filter.</p>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </main>
         </div>

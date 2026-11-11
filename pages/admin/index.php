@@ -5,6 +5,7 @@ require_once defined('ROOT_DIR') ? ROOT_DIR . '/api/helpers/ViewHelper.php' : __
 $db = ViewHelper::getDb();
 
 $admin = ViewHelper::requireLogin(AuthHelper::ROLE_ADMIN);
+$activePage = 'dashboard';
 
 // Real metrics
 $totalPengguna = (int)$db->query("SELECT COUNT(*) FROM users")->fetchColumn();
@@ -44,22 +45,7 @@ $aktivitas = $stmtLogs->fetchAll();
 <body>
     <div class="frame" style="width:1440px;min-height:900px;height:auto">
         <div class="app">
-            <aside class="sidebar">
-                <div class="logo">
-                    <img class="logo-img" src="<?= BASE_URL ?>/assets/logo.png" alt="Logo TIXORA">
-                </div>
-                <span class="side-label">ADMIN PANEL</span>
-                <a class="side-item side-item-active" href="<?= BASE_URL ?>/admin">Dasbor</a>
-                <a class="side-item" href="<?= BASE_URL ?>/admin/antrean-acara">
-                    Antrean acara<span class="count-pill"><?= $menungguCount ?></span>
-                </a>
-                <a class="side-item" href="<?= BASE_URL ?>/jelajah-acara">Jelajah Acara</a>
-                <a class="side-item" href="<?= BASE_URL ?>/logout" style="color:#B91C1C">Keluar</a>
-                <div class="side-user">
-                    <b><?= htmlspecialchars($admin['nama']) ?></b>
-                    <?= htmlspecialchars($admin['email']) ?>
-                </div>
-            </aside>
+            <?php include __DIR__ . '/_sidebar.php'; ?>
 
             <main class="main">
                 <p class="crumb">Dasbor</p>

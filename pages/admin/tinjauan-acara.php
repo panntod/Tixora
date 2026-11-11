@@ -6,6 +6,8 @@ require_once __DIR__ . '/../../api/helpers/BannerHelper.php';
 $db = ViewHelper::getDb();
 
 $admin = ViewHelper::requireLogin(AuthHelper::ROLE_ADMIN);
+$activePage = 'antrean';
+$menungguCount = (int)$db->query("SELECT COUNT(*) FROM events WHERE status_verifikasi = 'MENUNGGU_TINJAUAN'")->fetchColumn();
 
 $eventId = trim($_GET['id'] ?? '');
 
@@ -148,20 +150,7 @@ $kickerDate = strtoupper(date('d M Y', strtotime($event['tanggal_mulai'])));
 <body>
     <div class="frame" style="width:1440px;min-height:950px;height:auto">
         <div class="app">
-            <aside class="sidebar">
-                <div class="logo">
-                    <img class="logo-img" src="<?= BASE_URL ?>/assets/logo.png" alt="Logo TIXORA">
-                </div>
-                <span class="side-label">ADMIN PANEL</span>
-                <a class="side-item" href="<?= BASE_URL ?>/admin">Dasbor</a>
-                <a class="side-item side-item-active" href="<?= BASE_URL ?>/admin/antrean-acara">Antrean acara</a>
-                <a class="side-item" href="<?= BASE_URL ?>/jelajah-acara">Jelajah Acara</a>
-                <a class="side-item" href="<?= BASE_URL ?>/logout" style="color:#B91C1C">Keluar</a>
-                <div class="side-user">
-                    <b><?= htmlspecialchars($admin['nama']) ?></b>
-                    <?= htmlspecialchars($admin['email']) ?>
-                </div>
-            </aside>
+            <?php include __DIR__ . '/_sidebar.php'; ?>
 
             <main class="main">
                 <p class="crumb"><a href="<?= BASE_URL ?>/admin/antrean-acara"
