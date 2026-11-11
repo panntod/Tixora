@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $db->beginTransaction();
 
-            $statusVerifikasi = ($keputusan === 'APPROVE') ? 'TERBIT' : 'DITOLAK';
+            $statusVerifikasi = ($keputusan === 'APPROVE') ? 'DISETUJUI' : 'DITOLAK';
             $alasanPenolakan = ($keputusan === 'REJECT') ? $catatan : null;
 
             $stmtUpdate = $db->prepare("
@@ -102,8 +102,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Refresh data event
             $event['status_verifikasi'] = $statusVerifikasi;
-            $successMsg = ($statusVerifikasi === 'TERBIT')
-                ? 'Acara berhasil DISETUJUI & DITERBITKAN ke portal publik.'
+            $successMsg = ($statusVerifikasi === 'DISETUJUI')
+                ? 'Acara berhasil DISETUJUI. Penyelenggara dapat menerbitkannya dari dashboard.'
                 : 'Acara berhasil DITOLAK. Penyelenggara akan menerima catatan revisi.';
         } catch (Throwable $e) {
             if ($db->inTransaction()) {
@@ -285,7 +285,7 @@ $kickerDate = strtoupper(date('d M Y', strtotime($event['tanggal_mulai'])));
                                 <div class="stack gap-8">
                                     <button type="submit" name="keputusan" value="APPROVE"
                                         class="button button-large primary-button full-width" style="cursor:pointer">
-                                        ✓ Setujui &amp; Terbitkan Acara
+                                        ✓ Setujui Acara
                                     </button>
                                     <button type="submit" name="keputusan" value="REJECT"
                                         class="button button-large danger-outline-button full-width"

@@ -193,13 +193,14 @@ class AdminController {
         $status = strtoupper(trim($input['status'] ?? '')); 
         $catatan = trim($input['catatan'] ?? $input['alasan_penolakan'] ?? '');
 
-        if (!in_array($status, ['APPROVED', 'TERBIT', 'DISETUJUI', 'REJECTED', 'DITOLAK'])) {
+        if (!in_array($status, ['APPROVED', 'DISETUJUI', 'REJECTED', 'DITOLAK'], true)) {
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Status moderasi tidak valid.']);
             return;
         }
 
-        $statusVerifikasi = in_array($status, ['APPROVED', 'TERBIT', 'DISETUJUI']) ? 'TERBIT' : 'DITOLAK';
+        // Admin approve = DISETUJUI (belum terbit). Owner yang klik "Terbitkan".
+        $statusVerifikasi = in_array($status, ['APPROVED', 'DISETUJUI'], true) ? 'DISETUJUI' : 'DITOLAK';
 
         // Validasi sesuai spesifikasi visual: Alasan penolakan wajib diisi, minimal 20 karakter[cite: 13]
         if ($statusVerifikasi === 'DITOLAK' && strlen($catatan) < 20) {
@@ -258,7 +259,9 @@ class AdminController {
 
             echo json_encode([
                 'success' => true,
-                'message' => $statusVerifikasi === 'TERBIT' ? 'Acara berhasil disetujui dan diterbitkan.' : 'Acara berhasil ditolak dengan catatan.'
+                'message' => $statusVerifikasi === 'DISETUJUI'
+                    ? 'Acara disetujui. Owner dapat menerbitkannya dari dashboard mereka.'
+                    : 'Acara ditolak dengan catatan.'
             ]);
         } catch (Exception $e) {
             $this->db->rollBack();
