@@ -8,7 +8,23 @@ sed -ri -e "s/^Listen [0-9]+/Listen ${PORT}/" /etc/apache2/ports.conf
 sed -ri -e "s/<VirtualHost \*:[0-9]+>/<VirtualHost *:${PORT}>/" /etc/apache2/sites-available/*.conf
 
 # Kunci QR harus tetap sama antar-restart, kalau tidak QR tiket lama jadi tidak valid.
-if [ -z "${TIXORA_QR_SECRET}" ]; then
+# Production: wajib set QR secret & public URL, refuse start jika kosong
+if [ "${APP_ENV}" = "production" ]; then
+    if [ -z "${TIXORA_QR_SECRET}" ]; then
+        echo "[FATAL] APP_ENV=production tapi TIXORA_QR_SECRET belum diset."
+        echo "[FATAL] Set Environment Variable TIXORA_QR_SECRET (min 32 karakter acak)."
+        exit 1
+    fi
+    if [ "${#TIXORA_QR_SECRET}" -lt 32 ]; then
+        echo "[FATAL] TIXORA_QR_SECRET terlalu pendek (${#TIXORA_QR_SECRET} karakter, butuh >= 32)."
+        exit 1
+    fi
+    if [ -z "${TIXORA_PUBLIC_URL}" ]; then
+        echo "[FATAL] APP_ENV=production tapi TIXORA_PUBLIC_URL belum diset."
+        echo "[FATAL] Set Environment Variable TIXORA_PUBLIC_URL (mis. https://tixora.example.id)."
+        exit 1
+    fi
+elif [ -z "${TIXORA_QR_SECRET}" ]; then
     echo "[WARN] TIXORA_QR_SECRET belum diisi. Isi dengan string acak >= 32 karakter di Environment Variables."
 fi
 
