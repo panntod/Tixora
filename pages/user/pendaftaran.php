@@ -88,12 +88,14 @@ function generateUniqueTicketCode(PDO $db): string
 {
     $stmt = $db->prepare("SELECT 1 FROM tickets WHERE kode_tiket = :kode");
     for ($i = 0; $i < 10; $i++) {
-        $kode = 'TXR-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(2)));
+        // 3 byte = 16.777.216 kombinasi (sebelumnya 2 byte = 65.536 → collision 15%+ untuk 150 tiket/hari)
+        $kode = 'TXR-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(3)));
         $stmt->execute(['kode' => $kode]);
         if (!$stmt->fetchColumn()) {
             return $kode;
         }
     }
+    // Fallback 4 byte setelah 10 retry (probabilitas: 1/16M^10, praktis mustahil)
     return 'TXR-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(4)));
 }
 
