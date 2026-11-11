@@ -252,11 +252,14 @@ class OwnerController
                 return;
             }
 
-            if ($event['status_verifikasi'] !== 'DRAF') {
+            if (!in_array($event['status_verifikasi'], ['DRAF', 'DITOLAK'], true)) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Acara hanya dapat disunting jika berstatus DRAF. Tarik pengajuan terlebih dahulu.']);
-                return;
-            }
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Acara hanya dapat disunting saat berstatus DRAF atau DITOLAK. Tarik pengajuan terlebih dahulu.'
+                    ]);
+                    return;
+                    }
 
             $stmt = $this->db->prepare("
                 UPDATE events SET 
@@ -595,7 +598,11 @@ class OwnerController
             }
 
             $stmtUpdate = $this->db->prepare("
-                UPDATE events SET status_verifikasi = 'MENUNGGU_TINJAUAN', updated_at = CURRENT_TIMESTAMP WHERE id = :id
+                UPDATE events 
+                SET status_verifikasi = 'MENUNGGU_TINJAUAN',
+                    alasan_penolakan = NULL,
+                    updated_at = CURRENT_TIMESTAMP 
+                WHERE id = :id
             ");
             $stmtUpdate->execute(['id' => $eventId]);
 
