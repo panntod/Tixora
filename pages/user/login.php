@@ -62,7 +62,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute(['email' => $email]);
         $user = $stmt->fetch();
 
-        if (!$user || !password_verify($password, $user['password'])) {
+        $dummyHash = '$2y$10$abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789012';
+        $hashToCheck = $user ? $user['password'] : $dummyHash;
+        $passwordOk = password_verify($password, $hashToCheck);
+
+        if (!$user || !$passwordOk) {
             $_SESSION['login_failed'] = (int) ($_SESSION['login_failed'] ?? 0) + 1;
             if ($_SESSION['login_failed'] >= LOGIN_MAX_ATTEMPTS) {
                 $_SESSION['login_locked_until'] = time() + LOGIN_LOCK_SECONDS;
@@ -121,7 +125,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php if ($tujuanAcara): ?>
                     <div class="alert alert-info tx-style-602d1a6aa5">
                         Masuk dengan akun penyelenggara untuk membuat acara. Belum punya akun penyelenggara?
-                        <a href="<?= BASE_URL ?>/ajukan-akun" class="link-text" style="color:#4B34DB;font-weight:700">Ajukan akun</a>.
+                        <a href="<?= BASE_URL ?>/ajukan-akun" class="link-text" style="color:#4B34DB;font-weight:700">Ajukan
+                            akun</a>.
                     </div>
                 <?php endif; ?>
 

@@ -8,17 +8,20 @@ require_once __DIR__ . '/../helpers/AuthHelper.php';
  * Controller Autentikasi untuk Manajemen Registrasi, Login, dan Logout
  * Menggunakan PHP Native OOP, PDO, dan Keamanan Sesi Ketat
  */
-class AuthController {
+class AuthController
+{
     private PDO $db;
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->db = Database::getInstance()->getConnection();
     }
 
     /**
      * Fitur Registrasi Pengguna Baru (Default Role: USER)
      */
-    public function register(): void {
+    public function register(): void
+    {
         AuthHelper::initSession();
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -29,12 +32,12 @@ class AuthController {
 
         // Ambil input dari JSON payload atau form POST
         $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
-        
+
         $nama = trim($input['nama'] ?? '');
         $email = filter_var($input['email'] ?? '', FILTER_VALIDATE_EMAIL);
         $password = $input['password'] ?? '';
-        $roleId = strtolower(trim((string)($input['role_id'] ?? AuthHelper::ROLE_USER))); // Default role USER
-        
+        $roleId = strtolower(trim((string) ($input['role_id'] ?? AuthHelper::ROLE_USER))); // Default role USER
+
         // Registrasi publik tidak boleh membuat akun ADMIN.
         if (!in_array($roleId, AuthHelper::PUBLIC_ROLES, true)) {
             $roleId = AuthHelper::ROLE_USER;
@@ -43,7 +46,7 @@ class AuthController {
         if (!$nama || !$email || strlen($password) < 8) {
             http_response_code(400);
             echo json_encode([
-                'success' => false, 
+                'success' => false,
                 'message' => 'Data tidak valid. Nama, format email yang benar, dan password minimal 8 karakter wajib diisi.'
             ]);
             return;
@@ -86,7 +89,7 @@ class AuthController {
 
             http_response_code(201);
             echo json_encode([
-                'success' => true, 
+                'success' => true,
                 'message' => 'Registrasi berhasil! Silakan masuk menggunakan akun Anda.'
             ]);
         } catch (PDOException $e) {
@@ -107,7 +110,8 @@ class AuthController {
     /**
      * Fitur Login Pengguna & Pencegahan Session Fixation
      */
-    public function login(): void {
+    public function login(): void
+    {
         AuthHelper::initSession();
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -136,7 +140,14 @@ class AuthController {
         $user = $stmt->fetch();
 
         // Verifikasi password
-        if (!$user || !password_verify($password, $user['password'])) {
+        // Verifikasi password dengan timing-safe comparison.
+        // password_verify() SELALU dipanggil, baik user ditemukan maupun tidak,
+        // supaya waktu respons identik (mencegah user enumeration via timing).
+        $dummyHash = '$2y$10$abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789012';
+        $hashToCheck = $user ? $user['password'] : $dummyHash;
+        $passwordOk = password_verify($password, $hashToCheck);
+
+        if (!$user || !$passwordOk) {
             http_response_code(401);
             echo json_encode(['success' => false, 'message' => 'Email atau password salah.']);
             return;
@@ -146,7 +157,7 @@ class AuthController {
         if (isset($user['is_active']) && !$user['is_active']) {
             http_response_code(403);
             echo json_encode([
-                'success' => false, 
+                'success' => false,
                 'message' => 'Akun Anda ditangguhkan. Alasan: ' . ($user['alasan_suspensi'] ?? 'Kebijakan Admin.')
             ]);
             return;
@@ -177,18 +188,24 @@ class AuthController {
     /**
      * Fitur Logout & Pembersihan Session
      */
-    public function logout(): void {
+    public function logout(): void
+    {
         AuthHelper::initSession();
         $_SESSION = [];
-        
+
         if (ini_get("session.use_cookies")) {
             $params = session_get_cookie_params();
-            setcookie(session_name(), '', time() - 42000,
-                $params["path"], $params["domain"],
-                $params["secure"], $params["httponly"]
+            setcookie(
+                session_name(),
+                '',
+                time() - 42000,
+                $params["path"],
+                $params["domain"],
+                $params["secure"],
+                $params["httponly"]
             );
         }
-        
+
         session_destroy();
         echo json_encode(['success' => true, 'message' => 'Logout berhasil.']);
     }
