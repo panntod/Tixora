@@ -5,33 +5,65 @@ declare(strict_types=1);
  * TicketLinkHelper — membuat & memverifikasi tautan e-ticket yang dimuat di dalam QR.
  *
  * Isi QR = URL lengkap, mis.:
- *   http://192.168.1.10/Tixora/e-ticket?code=TXR-20261026-7E4E&s=3f9a...
- * Parameter "s" adalah tanda tangan HMAC dari kode tiket. Kode tiket saja pendek
- * (mudah ditebak), jadi tanpa tanda tangan yang benar halaman tidak akan menampilkan data peserta.
+ *   https://tixora.example.id/e-ticket?code=TXR-20261026-7E4E&s=3f9a...
+ * Parameter "s" adalah tanda tangan HMAC dari kode tiket.
+ *
+ * Di production (APP_ENV=production ATAU di belakang proxy HTTPS):
+ *   - TIXORA_QR_SECRET WAJIB diset (min 32 karakter). Tidak ada fallback.
+ *   - TIXORA_PUBLIC_URL WAJIB diset. Tidak ada fallback ke HTTP_HOST.
+ * Di development lokal, secret boleh dari file, public URL boleh dari HTTP_HOST.
  */
 class TicketLinkHelper
 {
     private const SIG_LENGTH = 24;
+    private static ?string $cachedSecret = null;
+
+    private static function isProduction(): bool
+    {
+        if (getenv('APP_ENV') === 'production') {
+            return true;
+        }
+        if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
+            return true;
+        }
+        return !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+    }
 
     private static function secret(): string
     {
-        $env = getenv('TIXORA_QR_SECRET');
-        if ($env) {
-            return $env;
+        if (self::$cachedSecret !== null) {
+            return self::$cachedSecret;
         }
+
+        // 1. Environment (wajib untuk production)
+        $env = getenv('TIXORA_QR_SECRET');
+        if ($env !== false && strlen($env) >= 32) {
+            return self::$cachedSecret = $env;
+        }
+
+        // 2. File lokal (dev only)
         $file = __DIR__ . '/../config/qr_secret.key';
         if (is_file($file)) {
             $val = trim((string) file_get_contents($file));
-            if ($val !== '') {
-                return $val;
+            if ($val !== '' && strlen($val) >= 32) {
+                return self::$cachedSecret = $val;
             }
         }
-        $val = bin2hex(random_bytes(32));
-        if (@file_put_contents($file, $val, LOCK_EX) === false) {
-            // Folder tidak bisa ditulis: pakai turunan tetap supaya QR tetap valid antar-request.
-            return hash('sha256', 'tixora-qr|' . (getenv('DB_PASSWORD') ?: __DIR__));
+
+        // 3. Production: FAIL HARD, tidak ada fallback
+        if (self::isProduction()) {
+            error_log('[TIXORA] FATAL: TIXORA_QR_SECRET wajib diset di production (min 32 karakter).');
+            http_response_code(500);
+            throw new RuntimeException('Konfigurasi keamanan QR belum siap. Hubungi administrator.');
         }
-        return $val;
+
+        // 4. Dev lokal: generate + simpan file
+        $val = bin2hex(random_bytes(32));
+        if (@file_put_contents($file, $val, LOCK_EX) !== false) {
+            return self::$cachedSecret = $val;
+        }
+        // Folder tidak writable — pakai ephemeral per-process (dev only)
+        return self::$cachedSecret = $val;
     }
 
     public static function sign(string $kodeTiket): string
@@ -44,20 +76,25 @@ class TicketLinkHelper
         return $kodeTiket !== '' && $sig !== '' && hash_equals(self::sign($kodeTiket), $sig);
     }
 
-    /**
-     * Alamat dasar aplikasi yang bisa dibuka dari HP.
-     * Bisa dipaksa lewat env TIXORA_PUBLIC_URL (mis. https://tixora.polinema.ac.id/Tixora).
-     */
     public static function publicBaseUrl(): string
     {
+        // 1. Environment (wajib untuk production)
         $env = getenv('TIXORA_PUBLIC_URL');
-        if ($env) {
+        if ($env !== false && $env !== '') {
             return rtrim($env, '/');
         }
-        $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-            || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+
+        // 2. Production: FAIL HARD
+        if (self::isProduction()) {
+            error_log('[TIXORA] FATAL: TIXORA_PUBLIC_URL wajib diset di production untuk QR e-ticket.');
+            http_response_code(500);
+            throw new RuntimeException('Konfigurasi URL publik belum siap.');
+        }
+
+        // 3. Dev lokal
+        $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
         $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-        return ($https ? 'https' : 'http') . '://' . $host . BASE_URL;
+        return ($https ? 'https' : 'http') . '://' . $host . (defined('BASE_URL') ? BASE_URL : '');
     }
 
     public static function url(string $kodeTiket): string
