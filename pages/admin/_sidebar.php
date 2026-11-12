@@ -16,7 +16,7 @@ $menungguCount = (int)($menungguCount ?? 0);
     <div class="logo">
         <img class="logo-img" src="<?= BASE_URL ?>/assets/logo.png" alt="Logo TIXORA">
     </div>
-    <span class="side-label">ADMIN PANEL</span>
+    <span class="side-label">ADMIN</span>
 
     <a class="side-item <?= $activePage === 'dashboard' ? 'side-item-active' : '' ?>"
        href="<?= BASE_URL ?>/admin">Dasbor</a>
@@ -41,6 +41,6 @@ $menungguCount = (int)($menungguCount ?? 0);
 
     <div class="side-user">
         <b><?= htmlspecialchars($admin['nama'] ?? '') ?></b>
-        <?= htmlspecialchars($admin['email'] ?? '') ?>
+        Administrator
     </div>
 </aside>

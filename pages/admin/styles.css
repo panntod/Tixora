@@ -2013,3 +2013,131 @@ textarea.input:focus {
 .user-menu:hover .dropdown-menu {
   display: block;
 }
+
+/* ===== Tambahan: dasbor & tinjauan acara admin ===== */
+.badge-sm {
+  font-size: 11px;
+  line-height: 11px;
+  padding: 4px 8px;
+}
+
+.metric-warning {
+  box-shadow: inset 0 0 0 2px #f3d9a4;
+}
+.metric-value-warning {
+  color: #b45309;
+}
+
+.card-flush {
+  padding: 20px 16px 8px;
+}
+.card-flush .card-title {
+  padding: 0 8px;
+}
+
+.col-wide-card {
+  width: 680px;
+  box-sizing: border-box;
+}
+
+.bar-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  height: 140px;
+  padding: 0 8px;
+  border-bottom: 1px solid #e4e4ee;
+}
+.bar {
+  flex: 1;
+  min-height: 4px;
+  border-radius: 4px 4px 0 0;
+  background: #c9c4fb;
+}
+.bar-last {
+  background: #4b34db;
+}
+.chart-note {
+  margin-top: 14px;
+  font-size: 12px;
+  line-height: 18px;
+  color: #5f6483;
+}
+
+.seg {
+  min-width: 6px;
+}
+
+.feed-text {
+  color: #4b5170;
+}
+
+.card-sub-line {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 21px;
+  color: #4b5170;
+}
+
+.check-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 14px;
+  line-height: 21px;
+}
+
+.mini-table {
+  border-top: 1px solid #e4e4ee;
+}
+.mini-table .tbl-head {
+  border-bottom: 0;
+}
+
+dialog.dialog {
+  border: 0;
+  margin: auto;
+  max-width: calc(100vw - 32px);
+}
+dialog.dialog::backdrop {
+  background: rgba(14, 17, 40, 0.45);
+}
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+textarea.input {
+  width: 100%;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 21px;
+}
+
+.tl-time {
+  font-weight: 700;
+}
+
+/* Baris dua kolom yang tingginya mengikuti card kiri */
+.cols-stretch {
+  align-items: stretch;
+  min-height: 340px;          /* tinggi minimum saat card kiri kosong/pendek */
+}
+
+/* Card dengan isi yang bisa discroll */
+.card-scroll {
+  display: flex;
+  flex-direction: column;
+}
+.card-scroll .card-title { flex: none; }
+
+.scroll-body {
+  flex: 1 1 0;                /* basis 0: isi TIDAK ikut menambah tinggi baris */
+  min-height: 0;              /* wajib, agar flex item boleh mengecil dan overflow bekerja */
+  overflow-y: auto;
+  margin-right: -8px;
+  padding-right: 8px;         /* jarak antara teks dan scrollbar */
+  scrollbar-width: thin;
+}
