@@ -73,6 +73,12 @@ $totalSemua = array_sum($rawCounts);
                     </div>
                 </div>
 
+                <?php if (isset($_GET['draf'])): ?>
+                    <div class="alert alert-success" style="margin-bottom:16px">Draf acara tersimpan. Lanjutkan kapan saja lewat tombol "Lanjutkan".</div>
+                <?php elseif (isset($_GET['diajukan'])): ?>
+                    <div class="alert alert-info" style="margin-bottom:16px">Acara berhasil diajukan dan kini berstatus <b>Menunggu tinjauan</b>. Admin akan memberi keputusan.</div>
+                <?php endif; ?>
+
                 <form method="GET" action="" class="filter-bar">
                     <?php if ($status !== 'SEMUA'): ?>
                         <input type="hidden" name="status" value="<?= htmlspecialchars($status) ?>">
@@ -125,9 +131,10 @@ $totalSemua = array_sum($rawCounts);
                             <div class="tbl-cell" style="flex:1.2"><b><?= (int) $ev['total_pendaftar'] ?></b> / <?= (int) $ev['kuota'] ?></div>
                             <div class="tbl-cell" style="flex:1.5"><?= EO::badge(EO::eventBadge($ev['status_verifikasi'])) ?></div>
                             <div class="tbl-cell tbl-right" style="flex:1.6">
-                                <?php if ($ev['status_verifikasi'] === 'DRAF'): ?>
-                                    <button type="button" class="button secondary-button small-button js-ajukan"
-                                        data-id="<?= EO::e($ev['id']) ?>" style="cursor:pointer">Ajukan</button>
+                                <?php if (in_array($ev['status_verifikasi'], ['DRAF', 'DITOLAK'], true)): ?>
+                                    <a href="<?= BASE_URL ?>/event-owner/buat-acara?id=<?= EO::e($ev['id']) ?>"
+                                        class="button secondary-button small-button"
+                                        style="text-decoration:none;cursor:pointer"><?= $ev['status_verifikasi'] === 'DRAF' ? 'Lanjutkan' : 'Perbaiki' ?></a>
                                 <?php endif; ?>
                                 <a href="<?= EO::url('ringkasan', $ev['id']) ?>" class="button primary-button small-button"
                                     style="text-decoration:none;cursor:pointer">Kelola</a>

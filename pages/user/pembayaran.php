@@ -127,6 +127,9 @@ $sisaDetik = max(0, (int)$order['sisa_detik']);
                             <input type="hidden" name="action" value="pilih_metode">
                             <input type="hidden" name="order" value="<?= htmlspecialchars($orderId) ?>">
                             <h2 class="card-title">Pilih metode pembayaran</h2>
+                            <?php if (PaymentHelper::isSandbox()): ?>
+                                <p class="help" style="margin:0">Mode simulasi: metode di bawah hanya contoh, tidak ada uang sungguhan yang berpindah.</p>
+                            <?php endif; ?>
                             <div class="stack gap-10">
                                 <?php foreach (PaymentHelper::METHODS as $kode => $m): ?>
                                     <label class="option <?= ($order['metode'] ?? '') === $kode ? 'option-selected' : '' ?>" style="cursor:pointer;display:flex;align-items:center;gap:10px">
@@ -174,6 +177,9 @@ $sisaDetik = max(0, (int)$order['sisa_detik']);
                                     <li>Pastikan nominal sesuai, lalu konfirmasi pembayaran.</li>
                                     <li>Tiket QR aktif otomatis setelah pembayaran diterima.</li>
                                 </ol>
+                                <?php if (PaymentHelper::isSandbox()): ?>
+                                    <p class="help" style="margin-top:10px"><b>Mode simulasi:</b> tidak perlu transfer. Klik <b>Simulasikan pembayaran berhasil</b> di bawah untuk mengaktifkan tiket.</p>
+                                <?php endif; ?>
                             </div>
 
                             <div class="row">

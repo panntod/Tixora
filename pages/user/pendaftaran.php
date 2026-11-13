@@ -4,6 +4,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../api/helpers/ViewHelper.php';
 $db = ViewHelper::getDb();
 PaymentHelper::ensureSchema($db);
+require_once __DIR__ . '/../../api/helpers/EventHelper.php';
+EventHelper::ensureSchema($db); // kolom mulai_dijual / berakhir_dijual
 PaymentHelper::expireOverdue($db);
 
 // Wajib login untuk mendaftar tiket (setelah login kembali ke halaman ini)
@@ -150,9 +152,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $hargaFinal = 0.0;
                 $jenisTiket = 'Umum';
                 $ticketCatId = null;
+                $penjualanError = null;
 
                 if ($selectedCategory) {
-                    $stmtCat = $db->prepare("SELECT id, nama_kategori, kuota, harga FROM ticket_categories WHERE id = :id AND event_id = :event_id FOR UPDATE");
+                    $stmtCat = $db->prepare("SELECT id, nama_kategori, kuota, harga, mulai_dijual, berakhir_dijual FROM ticket_categories WHERE id = :id AND event_id = :event_id FOR UPDATE");
                     $stmtCat->execute(['id' => $categoryId, 'event_id' => $eventId]);
                     $lockedCat = $stmtCat->fetch();
                     if (!$lockedCat) {
@@ -165,11 +168,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $hargaFinal = (float) $lockedCat['harga'];
                     $jenisTiket = $lockedCat['nama_kategori'];
                     $ticketCatId = $lockedCat['id'];
+
+                    // Masa penjualan kategori (diatur owner di wizard Buat acara; kosong = tidak dibatasi).
+                    $hariIni = date('Y-m-d');
+                    if (!empty($lockedCat['mulai_dijual']) && $hariIni < $lockedCat['mulai_dijual']) {
+                        $penjualanError = 'Penjualan tiket kategori ini baru dibuka pada ' . EventHelper::tgl((string) $lockedCat['mulai_dijual']) . '.';
+                    } elseif (!empty($lockedCat['berakhir_dijual']) && $hariIni > $lockedCat['berakhir_dijual']) {
+                        $penjualanError = 'Penjualan tiket kategori ini sudah ditutup.';
+                    }
                 }
 
                 if ($terpakaiEvent >= (int) $lockedEvent['kuota']) {
                     $db->rollBack();
                     $errorMessage = 'Maaf, kuota tiket untuk acara ini sudah penuh.';
+                } elseif ($penjualanError) {
+                    $db->rollBack();
+                    $errorMessage = $penjualanError;
                 } elseif ($kategoriPenuh) {
                     $db->rollBack();
                     $errorMessage = 'Maaf, kuota untuk kategori tiket ini sudah penuh. Pilih kategori lain.';

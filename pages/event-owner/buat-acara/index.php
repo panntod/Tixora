@@ -2,231 +2,245 @@
 declare(strict_types=1);
 
 require_once defined('ROOT_DIR') ? ROOT_DIR . '/api/helpers/ViewHelper.php' : __DIR__ . '/../../../api/helpers/ViewHelper.php';
-$db = ViewHelper::getDb();
+require_once defined('ROOT_DIR') ? ROOT_DIR . '/api/helpers/EventHelper.php' : __DIR__ . '/../../../api/helpers/EventHelper.php';
 
+$db = ViewHelper::getDb();
 $owner = ViewHelper::requireLogin(AuthHelper::ROLE_EVENT_OWNER);
 
-$errorMsg = '';
-$successMsg = '';
+// Langkah 1: tanpa ?id = acara baru; dengan ?id = lanjutkan draf (juga acara DITOLAK yang diperbaiki).
+$event = (($_GET['id'] ?? $_POST['id'] ?? '') !== '') ? EventHelper::requireDraft($db, $owner) : null;
+
+$fields = ['judul_event', 'kategori', 'deskripsi', 'tanggal_mulai', 'tanggal_selesai', 'nama_tempat', 'kota'];
+$val = array_fill_keys($fields, '');
+$val['kategori'] = 'Seminar';
+$val['kota'] = 'Malang';
+if ($event) {
+    foreach ($fields as $f) {
+        $val[$f] = (string) $event[$f];
+    }
+    // Draf yang hanya berisi nama acara menyimpan waktu sementara (mulai = selesai): tampilkan kosong.
+    if ($event['tanggal_mulai'] === $event['tanggal_selesai']) {
+        $val['tanggal_mulai'] = $val['tanggal_selesai'] = '';
+    } else {
+        $val['tanggal_mulai'] = EventHelper::toLocalInput($event['tanggal_mulai']);
+        $val['tanggal_selesai'] = EventHelper::toLocalInput($event['tanggal_selesai']);
+    }
+}
+
+$errors = [];
+$topError = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $judulEvent = trim($_POST['judul_event'] ?? '');
-    $kategori = trim($_POST['kategori'] ?? 'Seminar');
-    $deskripsi = trim($_POST['deskripsi'] ?? '');
-    $kuota = (int) ($_POST['kuota'] ?? 100);
-    $tanggalMulai = $_POST['tanggal_mulai'] ?? '';
-    $tanggalSelesai = $_POST['tanggal_selesai'] ?? '';
-    $namaTempat = trim($_POST['nama_tempat'] ?? '');
-    $kota = trim($_POST['kota'] ?? 'Malang');
-    $statusAksi = trim($_POST['status_aksi'] ?? 'DRAF'); // DRAF atau MENUNGGU_TINJAUAN
+    $aksi = ($_POST['aksi'] ?? '') === 'draf' ? 'draf' : 'lanjut';
 
-    if (!$judulEvent || !$deskripsi || !$tanggalMulai || !$tanggalSelesai || !$namaTempat || !$kota) {
-        $errorMsg = 'Seluruh kolom bertanda bintang (*) wajib diisi.';
-    } elseif (strtotime($tanggalSelesai) <= strtotime($tanggalMulai)) {
-        $errorMsg = 'Waktu selesai harus setelah waktu mulai kegiatan.';
-    } elseif ($kuota <= 0) {
-        $errorMsg = 'Kuota peserta minimal harus 1 orang.';
+    if (!ViewHelper::checkCsrf()) {
+        $topError = 'Sesi formulir kedaluwarsa. Muat ulang halaman lalu coba lagi.';
     } else {
-        try {
-            $db->beginTransaction();
+        foreach ($fields as $f) {
+            $val[$f] = trim((string) ($_POST[$f] ?? ''));
+        }
+        $errors = EventHelper::validateInfo($val);
+        if ($aksi === 'draf') {
+            // Simpan draf boleh belum lengkap: hanya nama acara (dan kategori) yang wajib.
+            $errors = array_intersect_key($errors, ['judul_event' => 1, 'kategori' => 1]);
+        }
+        $posterError = EventHelper::checkPoster($_FILES['poster'] ?? []);
+        if ($posterError) {
+            $errors['poster'] = $posterError;
+        }
 
-            $statusVerifikasi = ($statusAksi === 'MENUNGGU_TINJAUAN') ? 'MENUNGGU_TINJAUAN' : 'DRAF';
+        if (!$errors) {
+            [$posterPath, $uploadError] = EventHelper::storePoster($_FILES['poster'] ?? []);
+            if ($uploadError) {
+                $errors['poster'] = $uploadError;
+            } else {
+                $mulai = strtotime($val['tanggal_mulai']);
+                $selesai = strtotime($val['tanggal_selesai']);
+                // Hanya terjadi pada "Simpan draf" yang belum lengkap: isi waktu sementara agar kolom wajib terpenuhi.
+                if ($mulai === false) {
+                    $mulai = time();
+                }
+                if ($selesai === false || $selesai < $mulai) {
+                    $selesai = $mulai;
+                }
+                $params = [
+                    'judul' => $val['judul_event'],
+                    'kategori' => $val['kategori'],
+                    'deskripsi' => $val['deskripsi'],
+                    'mulai' => date('Y-m-d H:i:s', $mulai),
+                    'selesai' => date('Y-m-d H:i:s', $selesai),
+                    'tempat' => $val['nama_tempat'],
+                    'kota' => $val['kota'],
+                ];
+                try {
+                    $db->beginTransaction();
+                    if ($event) {
+                        $sql = "UPDATE events SET judul_event = :judul, kategori = :kategori, deskripsi = :deskripsi,
+                                    tanggal_mulai = :mulai, tanggal_selesai = :selesai, nama_tempat = :tempat, kota = :kota"
+                            . ($posterPath ? ", banner_url = :banner" : "")
+                            . ", updated_at = CURRENT_TIMESTAMP
+                                WHERE id = :id AND owner_id = :owner";
+                        $params['id'] = $event['id'];
+                        $params['owner'] = $owner['id'];
+                        if ($posterPath) {
+                            $params['banner'] = $posterPath;
+                        }
+                        $db->prepare($sql)->execute($params);
+                        $eventId = (string) $event['id'];
+                    } else {
+                        $stmt = $db->prepare("
+                            INSERT INTO events (owner_id, judul_event, deskripsi, kategori, kuota, tanggal_mulai, tanggal_selesai,
+                                                nama_tempat, kota, banner_url, status_verifikasi)
+                            VALUES (:owner, :judul, :deskripsi, :kategori, 0, :mulai, :selesai, :tempat, :kota, :banner, 'DRAF')
+                            RETURNING id");
+                        $params['owner'] = $owner['id'];
+                        $params['banner'] = $posterPath;
+                        $stmt->execute($params);
+                        $eventId = (string) $stmt->fetchColumn();
+                        $db->prepare("INSERT INTO event_submission_logs (event_id, status, catatan) VALUES (:id, 'DRAF', 'Draf acara dibuat.')")
+                            ->execute(['id' => $eventId]);
+                    }
+                    $db->commit();
 
-            $stmt = $db->prepare("
-                INSERT INTO events (
-                    owner_id, judul_event, deskripsi, kategori, kuota, 
-                    tanggal_mulai, tanggal_selesai, nama_tempat, kota, status_verifikasi
-                ) VALUES (
-                    :owner_id, :judul_event, :deskripsi, :kategori, :kuota,
-                    :tanggal_mulai, :tanggal_selesai, :nama_tempat, :kota, :status_verifikasi
-                ) RETURNING id
-            ");
-            $stmt->execute([
-                'owner_id' => $owner['id'],
-                'judul_event' => $judulEvent,
-                'deskripsi' => $deskripsi,
-                'kategori' => $kategori,
-                'kuota' => $kuota,
-                'tanggal_mulai' => $tanggalMulai,
-                'tanggal_selesai' => $tanggalSelesai,
-                'nama_tempat' => $namaTempat,
-                'kota' => $kota,
-                'status_verifikasi' => $statusVerifikasi
-            ]);
-            $newEventId = $stmt->fetchColumn();
+                    if ($posterPath && $event) {
+                        EventHelper::deletePoster($event['banner_url']);
+                    }
+                    EventHelper::redirect($aksi === 'draf'
+                        ? BASE_URL . '/event-owner/acara-saya?draf=1'
+                        : EventHelper::stepUrl(2, $eventId));
+                } catch (PDOException $e) {
+                    if ($db->inTransaction()) {
+                        $db->rollBack();
+                    }
+                    error_log('[TIXORA] buat-acara langkah 1: ' . $e->getMessage());
+                    $topError = 'Draf gagal disimpan karena kesalahan server. Silakan coba lagi.';
+                }
+            }
+        }
 
-            // Buat kategori tiket default: Umum
-            $stmtCat = $db->prepare("
-                INSERT INTO ticket_categories (event_id, nama_kategori, kuota, wajib_ktm)
-                VALUES (:event_id, 'Umum', :kuota, FALSE)
-            ");
-            $stmtCat->execute([
-                'event_id' => $newEventId,
-                'kuota' => $kuota
-            ]);
-
-            // Catat ke log pengajuan
-            $logCatatan = ($statusVerifikasi === 'MENUNGGU_TINJAUAN')
-                ? 'Acara dibuat dan langsung diajukan ke admin kampus.'
-                : 'Draf acara berhasil disimpan.';
-            $stmtLog = $db->prepare("
-                INSERT INTO event_submission_logs (event_id, status, catatan)
-                VALUES (:event_id, :status, :catatan)
-            ");
-            $stmtLog->execute([
-                'event_id' => $newEventId,
-                'status' => $statusVerifikasi,
-                'catatan' => $logCatatan
-            ]);
-
-            $db->commit();
-
-            header('Location: ' . BASE_URL . '/event-owner/acara-saya?created=1');
-            exit;
-        } catch (Exception $e) {
-            $db->rollBack();
-            $errorMsg = 'Gagal menyimpan acara: ' . $e->getMessage();
+        if (!$topError && $errors) {
+            $topError = $aksi === 'draf'
+                ? 'Isi nama acara terlebih dahulu untuk menyimpan draf.'
+                : 'Lengkapi ' . count($errors) . ' kolom wajib sebelum melanjutkan.';
         }
     }
 }
+
+$h = [EventHelper::class, 'h'];
+$err = static fn(string $k): string => $errors[$k] ?? '';
+$cls = static fn(string $k): string => isset($errors[$k]) ? ' input-error' : '';
+$poster = $event ? EventHelper::posterUrl($event['banner_url']) : null;
+
+EventHelper::renderTop($db, $owner, 1, $event);
 ?>
-<!DOCTYPE html>
-<html lang="id">
-
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta charset="utf-8">
-    <title>TIXORA — Organizer — Buat Acara</title>
-    <link rel="stylesheet" href="<?= BASE_URL ?>/event-owner/styles.css">
-</head>
-
-<body>
-    <div class="frame" style="width:1440px;min-height:1100px;height:auto">
-        <div class="app">
-            <aside class="sidebar">
-                <div class="logo">
-                    <img class="logo-img" src="<?= BASE_URL ?>/assets/logo.png" alt="Logo TIXORA">
-                </div>
-                <a href="<?= BASE_URL ?>/event-owner" class="side-item" style="text-decoration:none">Dasbor</a>
-                <a href="<?= BASE_URL ?>/event-owner/acara-saya" class="side-item" style="text-decoration:none">Acara
-                    saya</a>
-                <a href="<?= BASE_URL ?>/event-owner/buat-acara" class="side-item side-item-active"
-                    style="text-decoration:none">Buat acara</a>
-                <a href="<?= BASE_URL ?>/jelajah-acara" class="side-item" style="text-decoration:none">Jelajah Acara</a>
-                <a href="<?= BASE_URL ?>/logout" class="side-item" style="text-decoration:none;color:#B91C1C">Keluar</a>
-                <div class="side-user">
-                    <b><?= htmlspecialchars($owner['nama']) ?></b>
-                    <?= htmlspecialchars($owner['email']) ?>
-                </div>
-            </aside>
-
-            <main class="main">
-                <p class="crumb">Acara saya / Buat acara</p>
-                <div class="head">
-                    <div>
-                        <h1 class="page-title">Buat Acara Baru</h1>
-                        <p class="page-subtitle">Isi rincian kegiatan untuk dipublikasikan di Tixora</p>
-                    </div>
-                </div>
-
-                <?php if ($errorMsg): ?>
-                    <div class="alert alert-error" style="width:880px;margin-bottom:20px">
-                        <?= htmlspecialchars($errorMsg) ?>
+                <?php if ($event && $event['status_verifikasi'] === 'DITOLAK' && trim((string) $event['alasan_penolakan']) !== ''): ?>
+                    <div class="alert alert-error" style="width:880px;margin-bottom:16px">
+                        Ditolak admin: <?= $h($event['alasan_penolakan']) ?> — perbaiki lalu ajukan kembali di langkah 4.
                     </div>
                 <?php endif; ?>
+                <?php if ($topError): ?>
+                    <div class="alert alert-error" style="width:880px;margin-bottom:16px"><?= $h($topError) ?></div>
+                <?php endif; ?>
 
-                <form method="POST" action="" style="width:880px" class="stack gap-24">
+                <form method="POST" action="" enctype="multipart/form-data" class="stack gap-24" style="width:880px" novalidate>
+                    <?= ViewHelper::csrfField() ?>
+                    <?php if ($event): ?><input type="hidden" name="id" value="<?= $h($event['id']) ?>"><?php endif; ?>
+                    <button type="submit" name="aksi" value="lanjut" style="display:none" tabindex="-1" aria-hidden="true"></button>
+
                     <div class="card">
-                        <h2 class="card-title">Informasi Dasar Acara</h2>
+                        <h2 class="card-title">Informasi dasar</h2>
                         <div class="stack gap-16">
                             <div>
-                                <label class="field-label">Nama Acara *</label>
-                                <input type="text" name="judul_event" class="input"
-                                    placeholder="Contoh: Workshop Cloud Computing 2026" required
-                                    value="<?= htmlspecialchars($_POST['judul_event'] ?? '') ?>">
+                                <label class="field-label" for="judul_event">Nama acara</label>
+                                <input type="text" id="judul_event" name="judul_event" class="input<?= $cls('judul_event') ?>"
+                                    maxlength="255" value="<?= $h($val['judul_event']) ?>">
+                                <?php if ($err('judul_event')): ?><p class="help help-error"><?= $h($err('judul_event')) ?></p><?php endif; ?>
                             </div>
                             <div class="two-fields">
                                 <div>
-                                    <label class="field-label">Kategori Kegiatan *</label>
-                                    <select name="kategori" class="input">
-                                        <option value="Seminar" <?= ($_POST['kategori'] ?? '') === 'Seminar' ? 'selected' : '' ?>>Seminar</option>
-                                        <option value="Workshop" <?= ($_POST['kategori'] ?? '') === 'Workshop' ? 'selected' : '' ?>>Workshop</option>
-                                        <option value="Konferensi" <?= ($_POST['kategori'] ?? '') === 'Konferensi' ? 'selected' : '' ?>>Konferensi</option>
-                                        <option value="Kompetisi" <?= ($_POST['kategori'] ?? '') === 'Kompetisi' ? 'selected' : '' ?>>Kompetisi</option>
+                                    <label class="field-label" for="kategori">Kategori</label>
+                                    <select id="kategori" name="kategori" class="input<?= $cls('kategori') ?>">
+                                        <?php foreach (EventHelper::KATEGORI as $k): ?>
+                                            <option value="<?= $h($k) ?>" <?= $val['kategori'] === $k ? 'selected' : '' ?>><?= $h($k) ?></option>
+                                        <?php endforeach; ?>
                                     </select>
+                                    <?php if ($err('kategori')): ?><p class="help help-error"><?= $h($err('kategori')) ?></p><?php endif; ?>
                                 </div>
                                 <div>
-                                    <label class="field-label">Penyelenggara</label>
-                                    <input type="text" class="input" value="<?= htmlspecialchars($owner['nama']) ?>"
-                                        readonly style="background:#F8F8FC">
+                                    <label class="field-label" for="penyelenggara">Penyelenggara</label>
+                                    <input type="text" id="penyelenggara" class="input" value="<?= $h($owner['nama']) ?>" readonly style="background:#F8F8FC">
                                 </div>
                             </div>
                             <div>
-                                <label class="field-label">Deskripsi Lengkap Acara *</label>
-                                <textarea name="deskripsi" class="input input-area"
-                                    style="height:120px;font-family:inherit;padding:12px"
-                                    placeholder="Jelaskan tujuan, topik pembahasan, dan manfaat mengikuti acara ini..."
-                                    required><?= htmlspecialchars($_POST['deskripsi'] ?? '') ?></textarea>
-                            </div>
-                            <div>
-                                <label class="field-label">Kapasitas / Kuota Peserta *</label>
-                                <input type="number" name="kuota" class="input" min="1" max="10000" placeholder="100"
-                                    required value="<?= htmlspecialchars((string) ($_POST['kuota'] ?? '100')) ?>">
+                                <label class="field-label" for="deskripsi">Deskripsi</label>
+                                <textarea id="deskripsi" name="deskripsi" class="input input-area<?= $cls('deskripsi') ?>"><?= $h($val['deskripsi']) ?></textarea>
+                                <?php if ($err('deskripsi')): ?><p class="help help-error"><?= $h($err('deskripsi')) ?></p><?php endif; ?>
                             </div>
                         </div>
                     </div>
 
                     <div class="card">
-                        <h2 class="card-title">Waktu &amp; Lokasi Acara</h2>
+                        <h2 class="card-title">Poster</h2>
+                        <?php if ($poster): ?>
+                            <img src="<?= $h($poster) ?>" alt="Poster saat ini" style="display:block;width:100%;max-width:360px;aspect-ratio:16/9;object-fit:cover;border-radius:8px;margin-bottom:12px">
+                        <?php endif; ?>
+                        <div class="dropzone<?= $cls('poster') ?>" style="<?= $err('poster') ? 'border-color:#B91C1C' : '' ?>">
+                            <b id="poster-judul" style="display:block"><?= $poster ? 'Ganti poster acara' : 'Unggah poster acara' ?></b>
+                            <span class="slate" id="poster-info" style="display:block;margin-bottom:10px">JPG atau PNG, rasio 16:9, maks. 2 MB</span>
+                            <input type="file" id="poster" name="poster" accept="image/jpeg,image/png,image/webp" style="display:none">
+                            <label for="poster" class="button secondary-button small-button" style="cursor:pointer">Pilih berkas</label>
+                        </div>
+                        <?php if ($err('poster')): ?><p class="help help-error"><?= $h($err('poster')) ?></p><?php endif; ?>
+                    </div>
+
+                    <div class="card">
+                        <h2 class="card-title">Waktu &amp; lokasi</h2>
                         <div class="stack gap-16">
                             <div class="two-fields">
                                 <div>
-                                    <label class="field-label">Waktu Mulai *</label>
-                                    <input type="datetime-local" name="tanggal_mulai" class="input" required
-                                        value="<?= htmlspecialchars($_POST['tanggal_mulai'] ?? '') ?>">
+                                    <label class="field-label" for="tanggal_mulai">Mulai</label>
+                                    <input type="datetime-local" id="tanggal_mulai" name="tanggal_mulai" class="input<?= $cls('tanggal_mulai') ?>" value="<?= $h($val['tanggal_mulai']) ?>">
+                                    <?php if ($err('tanggal_mulai')): ?><p class="help help-error"><?= $h($err('tanggal_mulai')) ?></p><?php endif; ?>
                                 </div>
                                 <div>
-                                    <label class="field-label">Waktu Selesai *</label>
-                                    <input type="datetime-local" name="tanggal_selesai" class="input" required
-                                        value="<?= htmlspecialchars($_POST['tanggal_selesai'] ?? '') ?>">
+                                    <label class="field-label" for="tanggal_selesai">Selesai</label>
+                                    <input type="datetime-local" id="tanggal_selesai" name="tanggal_selesai" class="input<?= $cls('tanggal_selesai') ?>" value="<?= $h($val['tanggal_selesai']) ?>">
+                                    <?php if ($err('tanggal_selesai')): ?><p class="help help-error"><?= $h($err('tanggal_selesai')) ?></p><?php endif; ?>
                                 </div>
                             </div>
                             <div class="two-fields">
                                 <div>
-                                    <label class="field-label">Nama Tempat / Gedung *</label>
-                                    <input type="text" name="nama_tempat" class="input"
-                                        placeholder="Contoh: Auditorium Gedung AH" required
-                                        value="<?= htmlspecialchars($_POST['nama_tempat'] ?? '') ?>">
+                                    <label class="field-label" for="nama_tempat">Nama tempat</label>
+                                    <input type="text" id="nama_tempat" name="nama_tempat" class="input<?= $cls('nama_tempat') ?>" maxlength="255" value="<?= $h($val['nama_tempat']) ?>">
+                                    <?php if ($err('nama_tempat')): ?><p class="help help-error"><?= $h($err('nama_tempat')) ?></p><?php endif; ?>
                                 </div>
                                 <div>
-                                    <label class="field-label">Kota *</label>
-                                    <input type="text" name="kota" class="input" placeholder="Malang" required
-                                        value="<?= htmlspecialchars($_POST['kota'] ?? 'Malang') ?>">
+                                    <label class="field-label" for="kota">Kota</label>
+                                    <input type="text" id="kota" name="kota" class="input<?= $cls('kota') ?>" maxlength="100" value="<?= $h($val['kota']) ?>">
+                                    <?php if ($err('kota')): ?><p class="help help-error"><?= $h($err('kota')) ?></p><?php endif; ?>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="wizard-footer"
-                        style="width:880px;box-sizing:border-box;display:flex;justify-content:space-between;align-items:center">
-                        <button type="submit" name="status_aksi" value="DRAF" class="button ghost-button"
-                            style="cursor:pointer">
-                            Simpan Sebagai Draf
-                        </button>
+                    <div class="wizard-footer" style="width:880px;box-sizing:border-box">
+                        <button type="submit" name="aksi" value="draf" class="button ghost-button">Simpan draf</button>
                         <div class="row">
-                            <a href="<?= BASE_URL ?>/event-owner/acara-saya" class="button secondary-button"
-                                style="text-decoration:none">Batal</a>
-                            <button type="submit" name="status_aksi" value="MENUNGGU_TINJAUAN"
-                                class="button primary-button" style="cursor:pointer">
-                                Ajukan ke Admin untuk Ditinjau
-                            </button>
+                            <a href="<?= BASE_URL ?>/event-owner/acara-saya" class="button secondary-button">Batal</a>
+                            <button type="submit" name="aksi" value="lanjut" class="button primary-button">Lanjut: Tiket &amp; kapasitas</button>
                         </div>
                     </div>
                 </form>
-            </main>
-        </div>
-    </div>
-    <script src="<?= BASE_URL ?>/event-owner/sidebar.js"></script>
-</body>
 
-</html>
+                <script>
+                    (function () {
+                        var input = document.getElementById('poster');
+                        input.addEventListener('change', function () {
+                            var f = input.files[0];
+                            if (!f) return;
+                            document.getElementById('poster-judul').textContent = f.name;
+                            document.getElementById('poster-info').textContent = (f.size / 1048576).toFixed(2) + ' MB' + (f.size > 2097152 ? ' — melebihi batas 2 MB' : '');
+                        });
+                    })();
+                </script>
+<?php EventHelper::renderBottom(); ?>

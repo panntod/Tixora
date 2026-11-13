@@ -18,13 +18,19 @@ declare(strict_types=1);
 class PaymentHelper
 {
     /**
-     * * Mode sandbox: aktif hanya jika env TIXORA_PAYMENT_SANDBOX=true.
-     * * Di production WAJIB tidak diset (atau diset false) supaya tombol
-     * * "Simulasikan pembayaran berhasil" tidak muncul.
-     * */
+     * Mode simulasi pembayaran (belum ada gateway sungguhan).
+     *
+     * AKTIF secara bawaan, supaya tombol "Simulasikan pembayaran berhasil" muncul selama tahap testing.
+     * Matikan dengan env TIXORA_PAYMENT_SANDBOX=false (juga: 0, off, no) SEBELUM memakai gateway sungguhan;
+     * jika tidak, siapa pun bisa "membayar" pesanannya sendiri tanpa transfer.
+     */
     public static function isSandbox(): bool
     {
-        return getenv('TIXORA_PAYMENT_SANDBOX') === 'true';
+        $value = getenv('TIXORA_PAYMENT_SANDBOX');
+        if ($value === false || trim($value) === '') {
+            return true;
+        }
+        return !in_array(strtolower(trim($value)), ['false', '0', 'off', 'no'], true);
         }
         
     public const PAYMENT_WINDOW_HOURS = 24;

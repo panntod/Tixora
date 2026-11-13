@@ -1,170 +1,275 @@
-<!DOCTYPE html>
-<html lang="id">
+<?php
+declare(strict_types=1);
 
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta charset="utf-8">
-    <title>TIXORA — Organizer — Buat Acara: Rundown</title>
-    <link rel="stylesheet" href="<?= BASE_URL ?>/event-owner/styles.css">
-</head>
+require_once defined('ROOT_DIR') ? ROOT_DIR . '/api/helpers/ViewHelper.php' : __DIR__ . '/../../../api/helpers/ViewHelper.php';
+require_once defined('ROOT_DIR') ? ROOT_DIR . '/api/helpers/EventHelper.php' : __DIR__ . '/../../../api/helpers/EventHelper.php';
 
-<body>
-    <div class="frame" style="width:1440px;height:795px">
-        <div class="app">
-            <aside class="sidebar">
-                <div class="logo"><img class="logo-img" src="<?= BASE_URL ?>/assets/logo.png" alt="Logo TIXORA"></div>
-                <span class="side-item">Dasbor</span><span class="side-item">Acara saya</span><span
-                    class="side-item side-item-active">Buat acara</span><span class="side-item">Pengaturan</span><span
-                    class="side-item">Keluar</span>
-                <div class="side-user"><b>Dimas Prakoso</b>HMTI Fakultas Ilmu Komputer</div>
-            </aside>
-            <main class="main">
-                <p class="crumb">Acara saya / Buat acara</p>
-                <div class="head">
-                    <div>
-                        <h1 class="page-title">Buat acara baru</h1>
-                        <p class="page-subtitle">Langkah 3 dari 4 · Draf tersimpan 10 Okt, 09.20</p>
-                    </div>
-                    <div class="head-actions"><span class="button secondary-button">Pratinjau</span></div>
-                </div>
-                <div class="stepper"><span class="step-item step-done"><span class="step-dot"><svg width="12"
-                                height="12" viewBox="0 0 16 16" aria-hidden="true">
-                                <path d="M3.5 8.5l3 3 6-6.5" stroke="#15803D" stroke-width="2" fill="none"
-                                    stroke-linecap="round" stroke-linejoin="round" />
-                            </svg></span>Informasi &amp; jadwal</span><span class="step-item step-done"><span
-                            class="step-dot"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true">
-                                <path d="M3.5 8.5l3 3 6-6.5" stroke="#15803D" stroke-width="2" fill="none"
-                                    stroke-linecap="round" stroke-linejoin="round" />
-                            </svg></span>Tiket &amp; kapasitas</span><span class="step-item step-active"><span
-                            class="step-dot">3</span>Rundown</span><span class="step-item "><span
-                            class="step-dot">4</span>Tinjau &amp; ajukan</span></div>
+$db = ViewHelper::getDb();
+$owner = ViewHelper::requireLogin(AuthHelper::ROLE_EVENT_OWNER);
+$event = EventHelper::requireDraft($db, $owner);
+$eventId = (string) $event['id'];
+$self = EventHelper::stepUrl(3, $eventId);
+
+$uuid = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i';
+
+/** Rundown acara, urut jam mulai (format "HH.MM" berurutan secara leksikografis). */
+$loadRows = static function () use ($db, $eventId): array {
+    $st = $db->prepare("
+        SELECT r.*, c.nama_panitia AS pic_nama
+        FROM rundowns r LEFT JOIN committees c ON c.id = r.committee_id
+        WHERE r.event_id = :id
+        ORDER BY r.waktu_mulai ASC, r.created_at ASC");
+    $st->execute(['id' => $eventId]);
+    return $st->fetchAll();
+};
+
+$st = $db->prepare("SELECT id, nama_panitia, posisi_jabatan FROM committees WHERE event_id = :id ORDER BY created_at ASC");
+$st->execute(['id' => $eventId]);
+$committees = $st->fetchAll();
+$committeeIds = array_column($committees, 'id');
+
+$topError = '';
+$errors = [];
+$form = ['id' => '', 'mulai' => '', 'selesai' => '', 'judul' => '', 'keterangan' => '', 'pic' => ''];
+$rows = $loadRows();
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $aksi = (string) ($_POST['aksi'] ?? '');
+    $rid = (string) ($_POST['rundown_id'] ?? '');
+
+    if (!ViewHelper::checkCsrf()) {
+        $topError = 'Sesi formulir kedaluwarsa. Muat ulang halaman lalu coba lagi.';
+    } elseif ($aksi === 'hapus' || $aksi === 'naik' || $aksi === 'turun') {
+        if (preg_match($uuid, $rid)) {
+            if ($aksi === 'hapus') {
+                $db->prepare("DELETE FROM rundowns WHERE id = :id AND event_id = :e")->execute(['id' => $rid, 'e' => $eventId]);
+            } else {
+                // Tukar slot jam dengan kegiatan di atas/bawahnya; urutan tetap kronologis dan tidak pernah bentrok.
+                $pos = array_search($rid, array_column($rows, 'id'), true);
+                $other = $pos === false ? null : ($rows[$aksi === 'naik' ? $pos - 1 : $pos + 1] ?? null);
+                if ($pos !== false && $other && ($aksi === 'turun' || $pos > 0)) {
+                    $a = $rows[$pos];
+                    try {
+                        $db->beginTransaction();
+                        $upd = $db->prepare("UPDATE rundowns SET waktu_mulai = :m, waktu_selesai = :s WHERE id = :id AND event_id = :e");
+                        $upd->execute(['m' => $other['waktu_mulai'], 's' => $other['waktu_selesai'], 'id' => $a['id'], 'e' => $eventId]);
+                        $upd->execute(['m' => $a['waktu_mulai'], 's' => $a['waktu_selesai'], 'id' => $other['id'], 'e' => $eventId]);
+                        $db->commit();
+                    } catch (PDOException $e) {
+                        if ($db->inTransaction()) {
+                            $db->rollBack();
+                        }
+                        error_log('[TIXORA] rundown wizard swap: ' . $e->getMessage());
+                    }
+                }
+            }
+            $db->prepare("UPDATE events SET updated_at = CURRENT_TIMESTAMP WHERE id = :id")->execute(['id' => $eventId]);
+        }
+        EventHelper::redirect($self);
+    } elseif ($aksi === 'simpan') {
+        $form = [
+            'id' => preg_match($uuid, $rid) ? $rid : '',
+            'mulai' => trim((string) ($_POST['mulai'] ?? '')),
+            'selesai' => trim((string) ($_POST['selesai'] ?? '')),
+            'judul' => trim((string) ($_POST['judul'] ?? '')),
+            'keterangan' => trim((string) ($_POST['keterangan'] ?? '')),
+            'pic' => trim((string) ($_POST['pic'] ?? '')),
+        ];
+        $mulai = EventHelper::normalizeTime($form['mulai']);
+        $selesai = EventHelper::normalizeTime($form['selesai']);
+
+        if ($mulai === null) {
+            $errors['mulai'] = 'Isi jam dengan format JJ.MM, mis. 08.30.';
+        }
+        if ($selesai === null) {
+            $errors['selesai'] = 'Isi jam dengan format JJ.MM, mis. 09.30.';
+        }
+        if ($mulai !== null && $selesai !== null) {
+            $m = EventHelper::timeToMinutes($mulai);
+            $s = EventHelper::timeToMinutes($selesai);
+            if ($s <= $m) {
+                $errors['selesai'] = 'Jam selesai harus setelah jam mulai.';
+            } else {
+                foreach ($rows as $r) {
+                    if ($r['id'] === $form['id']) {
+                        continue;
+                    }
+                    $rm = EventHelper::timeToMinutes((string) $r['waktu_mulai']);
+                    $rs = EventHelper::timeToMinutes((string) $r['waktu_selesai']);
+                    if ($m < $rs && $s > $rm) {
+                        $errors['mulai'] = 'Bentrok dengan ' . $r['judul_sesi'] . ' (' . $r['waktu_mulai'] . '–' . $r['waktu_selesai'] . ').';
+                        break;
+                    }
+                }
+            }
+        }
+        if ($form['judul'] === '') {
+            $errors['judul'] = 'Nama kegiatan wajib diisi.';
+        } elseif (mb_strlen($form['judul']) > 255) {
+            $errors['judul'] = 'Nama kegiatan maksimal 255 karakter.';
+        }
+        if (mb_strlen($form['keterangan']) > 1000) {
+            $errors['keterangan'] = 'Deskripsi maksimal 1000 karakter.';
+        }
+        if ($form['pic'] !== '' && !in_array($form['pic'], $committeeIds, true)) {
+            $errors['pic'] = 'Penanggung jawab tidak valid untuk acara ini.';
+        }
+
+        if (!$errors) {
+            try {
+                $p = [
+                    'm' => $mulai, 's' => $selesai, 'judul' => $form['judul'],
+                    'ket' => $form['keterangan'], 'pic' => $form['pic'] !== '' ? $form['pic'] : null, 'e' => $eventId,
+                ];
+                if ($form['id'] !== '') {
+                    $p['id'] = $form['id'];
+                    $db->prepare("UPDATE rundowns SET waktu_mulai = :m, waktu_selesai = :s, judul_sesi = :judul, keterangan = :ket,
+                                  committee_id = :pic WHERE id = :id AND event_id = :e")->execute($p);
+                } else {
+                    $db->prepare("INSERT INTO rundowns (event_id, committee_id, waktu_mulai, waktu_selesai, judul_sesi, pembicara, keterangan)
+                                  VALUES (:e, :pic, :m, :s, :judul, '', :ket)")->execute($p);
+                }
+                $db->prepare("UPDATE events SET updated_at = CURRENT_TIMESTAMP WHERE id = :id")->execute(['id' => $eventId]);
+                EventHelper::redirect($self);
+            } catch (PDOException $e) {
+                error_log('[TIXORA] rundown wizard simpan: ' . $e->getMessage());
+                $topError = 'Kegiatan gagal disimpan karena kesalahan server. Silakan coba lagi.';
+            }
+        }
+    }
+} elseif (preg_match($uuid, (string) ($_GET['edit'] ?? ''))) {
+    foreach ($rows as $r) {
+        if ($r['id'] === $_GET['edit']) {
+            $form = [
+                'id' => $r['id'], 'mulai' => $r['waktu_mulai'], 'selesai' => $r['waktu_selesai'], 'judul' => $r['judul_sesi'],
+                'keterangan' => (string) $r['keterangan'], 'pic' => (string) ($r['committee_id'] ?? ''),
+            ];
+        }
+    }
+}
+
+// Kegiatan baru: jam mulai default = jam selesai kegiatan terakhir, durasi 1 jam.
+if ($form['id'] === '' && $form['mulai'] === '' && $form['selesai'] === '') {
+    $last = $rows ? end($rows) : null;
+    $startMin = $last ? EventHelper::timeToMinutes((string) $last['waktu_selesai']) : 8 * 60;
+    $startMin = min($startMin, 22 * 60 + 59);
+    $form['mulai'] = sprintf('%02d.%02d', intdiv($startMin, 60), $startMin % 60);
+    $endMin = min($startMin + 60, 23 * 60 + 59);
+    $form['selesai'] = sprintf('%02d.%02d', intdiv($endMin, 60), $endMin % 60);
+}
+
+$h = [EventHelper::class, 'h'];
+$cls = static fn(string $k): string => isset($errors[$k]) ? ' input-error' : '';
+$msg = static function (string $k) use ($errors, $h): void {
+    if (isset($errors[$k])) {
+        echo '<p class="help help-error">' . $h($errors[$k]) . '</p>';
+    }
+};
+$editing = $form['id'] !== '';
+$last = count($rows) - 1;
+
+EventHelper::renderTop($db, $owner, 3, $event);
+?>
+                <?php if ($topError): ?>
+                    <div class="alert alert-error" style="width:1128px;margin-bottom:16px"><?= $h($topError) ?></div>
+                <?php endif; ?>
+
                 <div class="cols">
                     <div style="width:680px">
-                        <div class="run-row"><svg width="14" height="18" viewBox="0 0 14 18" aria-hidden="true"
-                                fill="#8A90AB">
-                                <circle cx="4" cy="4" r="1.5" />
-                                <circle cx="10" cy="4" r="1.5" />
-                                <circle cx="4" cy="9" r="1.5" />
-                                <circle cx="10" cy="9" r="1.5" />
-                                <circle cx="4" cy="14" r="1.5" />
-                                <circle cx="10" cy="14" r="1.5" />
-                            </svg><span class="run-time">07.30</span>
-                            <div class="run-body"><b>Registrasi ulang</b>
-                                <p>Pemindaian kode QR peserta · PIC: Putri Ayuningtyas</p>
-                            </div><span class="button ghost-button small-button" style="padding:0 8px"><svg width="14"
-                                    height="14" viewBox="0 0 14 14" aria-hidden="true">
-                                    <path d="M7 11V3M3.5 6.5L7 3l3.5 3.5" stroke="#4B5170" stroke-width="1.6"
-                                        fill="none" stroke-linecap="round" stroke-linejoin="round" />
-                                </svg></span><span class="button ghost-button small-button" style="padding:0 8px"><svg
-                                    width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-                                    <path d="M7 3v8M3.5 7.5L7 11l3.5-3.5" stroke="#4B5170" stroke-width="1.6"
-                                        fill="none" stroke-linecap="round" stroke-linejoin="round" />
-                                </svg></span><span class="button ghost-button small-button">Edit</span><span
-                                class="button ghost-button small-button" style="color:#B91C1C">Hapus</span>
-                        </div>
-                        <div class="run-row"><svg width="14" height="18" viewBox="0 0 14 18" aria-hidden="true"
-                                fill="#8A90AB">
-                                <circle cx="4" cy="4" r="1.5" />
-                                <circle cx="10" cy="4" r="1.5" />
-                                <circle cx="4" cy="9" r="1.5" />
-                                <circle cx="10" cy="9" r="1.5" />
-                                <circle cx="4" cy="14" r="1.5" />
-                                <circle cx="10" cy="14" r="1.5" />
-                            </svg><span class="run-time">08.30</span>
-                            <div class="run-body"><b>Pembukaan</b>
-                                <p>Sambutan ketua pelaksana dan dekan · PIC: Dimas Prakoso</p>
-                            </div><span class="button ghost-button small-button" style="padding:0 8px"><svg width="14"
-                                    height="14" viewBox="0 0 14 14" aria-hidden="true">
-                                    <path d="M7 11V3M3.5 6.5L7 3l3.5 3.5" stroke="#4B5170" stroke-width="1.6"
-                                        fill="none" stroke-linecap="round" stroke-linejoin="round" />
-                                </svg></span><span class="button ghost-button small-button" style="padding:0 8px"><svg
-                                    width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-                                    <path d="M7 3v8M3.5 7.5L7 11l3.5-3.5" stroke="#4B5170" stroke-width="1.6"
-                                        fill="none" stroke-linecap="round" stroke-linejoin="round" />
-                                </svg></span><span class="button ghost-button small-button">Edit</span><span
-                                class="button ghost-button small-button" style="color:#B91C1C">Hapus</span>
-                        </div>
-                        <div class="run-row"><svg width="14" height="18" viewBox="0 0 14 18" aria-hidden="true"
-                                fill="#8A90AB">
-                                <circle cx="4" cy="4" r="1.5" />
-                                <circle cx="10" cy="4" r="1.5" />
-                                <circle cx="4" cy="9" r="1.5" />
-                                <circle cx="10" cy="9" r="1.5" />
-                                <circle cx="4" cy="14" r="1.5" />
-                                <circle cx="10" cy="14" r="1.5" />
-                            </svg><span class="run-time">09.00</span>
-                            <div class="run-body"><b>Keynote: Arah AI di Industri Nasional</b>
-                                <p>Dr. Rina Kusumawati, M.Kom. · PIC: Nabila Safitri</p>
-                            </div><span class="button ghost-button small-button" style="padding:0 8px"><svg width="14"
-                                    height="14" viewBox="0 0 14 14" aria-hidden="true">
-                                    <path d="M7 11V3M3.5 6.5L7 3l3.5 3.5" stroke="#4B5170" stroke-width="1.6"
-                                        fill="none" stroke-linecap="round" stroke-linejoin="round" />
-                                </svg></span><span class="button ghost-button small-button" style="padding:0 8px"><svg
-                                    width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-                                    <path d="M7 3v8M3.5 7.5L7 11l3.5-3.5" stroke="#4B5170" stroke-width="1.6"
-                                        fill="none" stroke-linecap="round" stroke-linejoin="round" />
-                                </svg></span><span class="button ghost-button small-button">Edit</span><span
-                                class="button ghost-button small-button" style="color:#B91C1C">Hapus</span>
-                        </div>
-                        <div class="run-row"><svg width="14" height="18" viewBox="0 0 14 18" aria-hidden="true"
-                                fill="#8A90AB">
-                                <circle cx="4" cy="4" r="1.5" />
-                                <circle cx="10" cy="4" r="1.5" />
-                                <circle cx="4" cy="9" r="1.5" />
-                                <circle cx="10" cy="9" r="1.5" />
-                                <circle cx="4" cy="14" r="1.5" />
-                                <circle cx="10" cy="14" r="1.5" />
-                            </svg><span class="run-time">11.00</span>
-                            <div class="run-body"><b>Diskusi panel: Karier di Era Otomasi</b>
-                                <p>Bagas Pratama dan Dewi Anggraeni · PIC: Fajar Nugroho</p>
-                            </div><span class="button ghost-button small-button" style="padding:0 8px"><svg width="14"
-                                    height="14" viewBox="0 0 14 14" aria-hidden="true">
-                                    <path d="M7 11V3M3.5 6.5L7 3l3.5 3.5" stroke="#4B5170" stroke-width="1.6"
-                                        fill="none" stroke-linecap="round" stroke-linejoin="round" />
-                                </svg></span><span class="button ghost-button small-button" style="padding:0 8px"><svg
-                                    width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-                                    <path d="M7 3v8M3.5 7.5L7 11l3.5-3.5" stroke="#4B5170" stroke-width="1.6"
-                                        fill="none" stroke-linecap="round" stroke-linejoin="round" />
-                                </svg></span><span class="button ghost-button small-button">Edit</span><span
-                                class="button ghost-button small-button" style="color:#B91C1C">Hapus</span>
-                        </div>
-                    </div>
-                    <div class="card col-narrow" style="box-sizing:border-box">
-                        <h2 class="card-title">Kegiatan baru</h2>
-                        <div class="stack gap-16">
-                            <div class="two-fields">
-                                <div><label class="field-label">Mulai</label>
-                                    <div class="input"><span class="">12.00</span></div>
+                        <?php foreach ($rows as $n => $r):
+                            $sub = [];
+                            if (trim((string) $r['pembicara']) !== '') {
+                                $sub[] = $r['pembicara'];
+                            }
+                            if (trim((string) $r['keterangan']) !== '') {
+                                $sub[] = $r['keterangan'];
+                            }
+                            if (!empty($r['pic_nama'])) {
+                                $sub[] = 'PIC: ' . $r['pic_nama'];
+                            }
+                            $aksiForm = static function (string $aksi, string $inner, string $extra = '') use ($r, $self): string {
+                                return '<form method="POST" action="' . htmlspecialchars($self, ENT_QUOTES) . '" style="margin:0;display:inline-flex"' . $extra . '>'
+                                    . ViewHelper::csrfField()
+                                    . '<input type="hidden" name="aksi" value="' . $aksi . '">'
+                                    . '<input type="hidden" name="rundown_id" value="' . htmlspecialchars((string) $r['id'], ENT_QUOTES) . '">'
+                                    . $inner . '</form>';
+                            };
+                            $naik = '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 11V3M3.5 6.5L7 3l3.5 3.5" stroke="#4B5170" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round" /></svg>';
+                            $turun = '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 3v8M3.5 7.5L7 11l3.5-3.5" stroke="#4B5170" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round" /></svg>';
+                            ?>
+                            <div class="run-row" style="margin-bottom:12px<?= $editing && $form['id'] === $r['id'] ? ';outline:2px solid #4B34DB' : '' ?>">
+                                <span class="run-time" title="s.d. <?= $h($r['waktu_selesai']) ?>"><?= $h($r['waktu_mulai']) ?></span>
+                                <div class="run-body">
+                                    <b><?= $h($r['judul_sesi']) ?></b>
+                                    <?php if ($sub): ?><p><?= $h(implode(' · ', $sub)) ?></p><?php endif; ?>
                                 </div>
-                                <div><label class="field-label">Selesai</label>
-                                    <div class="input"><span class="">13.00</span></div>
-                                </div>
+                                <?= $aksiForm('naik', '<button type="submit" class="button ghost-button small-button" style="padding:0 8px"'
+                                    . ($n === 0 ? ' disabled' : '') . ' title="Tukar ke atas (jam mengikuti posisi)" aria-label="Naikkan">' . $naik . '</button>') ?>
+                                <?= $aksiForm('turun', '<button type="submit" class="button ghost-button small-button" style="padding:0 8px"'
+                                    . ($n === $last ? ' disabled' : '') . ' title="Tukar ke bawah (jam mengikuti posisi)" aria-label="Turunkan">' . $turun . '</button>') ?>
+                                <a class="button ghost-button small-button" href="<?= $self ?>&amp;edit=<?= $h($r['id']) ?>">Edit</a>
+                                <?= $aksiForm('hapus', '<button type="submit" class="button ghost-button small-button" style="color:#B91C1C">Hapus</button>',
+                                    ' onsubmit="return confirm(\'Hapus kegiatan ini?\');"') ?>
                             </div>
-                            <div><label class="field-label">Kegiatan</label>
-                                <div class="input"><span class="input-placeholder">Nama kegiatan</span></div>
-                            </div>
-                            <div><label class="field-label">Deskripsi</label>
-                                <div class="input"><span class="input-placeholder">Keterangan singkat</span></div>
-                            </div>
-                            <div><label class="field-label">Penanggung jawab</label>
-                                <div class="input"><span class="input-placeholder">Pilih anggota panitia</span><svg
-                                        width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-                                        <path d="M4 6l4 4 4-4" stroke="#5F6483" stroke-width="1.5" fill="none"
-                                            stroke-linecap="round" stroke-linejoin="round" />
-                                    </svg></div>
-                            </div><span class="button primary-button">Simpan kegiatan</span>
-                        </div>
+                        <?php endforeach; ?>
+                        <?php if (!$rows): ?>
+                            <div class="card" style="text-align:center;color:#5F6483">Belum ada kegiatan. Tambahkan kegiatan pertama lewat formulir di samping.</div>
+                        <?php endif; ?>
                     </div>
-                </div>
-                <div class="wizard-footer" style="width:1128px;box-sizing:border-box"><span
-                        class="button ghost-button">Simpan draf</span>
-                    <div class="row"><span class="button secondary-button">Kembali</span><span
-                            class="button primary-button">Lanjut: Tinjau &amp; ajukan</span></div>
-                </div>
-            </main>
-        </div>
-    </div>
-    <script src="<?= BASE_URL ?>/event-owner/sidebar.js"></script>
-</body>
 
-</html>
+                    <div class="card col-narrow" style="box-sizing:border-box">
+                        <h2 class="card-title"><?= $editing ? 'Edit kegiatan' : 'Kegiatan baru' ?></h2>
+                        <form method="POST" action="<?= $self ?>" class="stack gap-16" novalidate>
+                            <?= ViewHelper::csrfField() ?>
+                            <input type="hidden" name="aksi" value="simpan">
+                            <input type="hidden" name="rundown_id" value="<?= $h($form['id']) ?>">
+                            <div class="two-fields">
+                                <div>
+                                    <label class="field-label" for="f-mulai">Mulai</label>
+                                    <input type="text" id="f-mulai" name="mulai" class="input<?= $cls('mulai') ?>" placeholder="08.00" maxlength="5" value="<?= $h($form['mulai']) ?>">
+                                </div>
+                                <div>
+                                    <label class="field-label" for="f-selesai">Selesai</label>
+                                    <input type="text" id="f-selesai" name="selesai" class="input<?= $cls('selesai') ?>" placeholder="09.00" maxlength="5" value="<?= $h($form['selesai']) ?>">
+                                </div>
+                            </div>
+                            <?php $msg('mulai'); $msg('selesai'); ?>
+                            <div>
+                                <label class="field-label" for="f-judul">Kegiatan</label>
+                                <input type="text" id="f-judul" name="judul" class="input<?= $cls('judul') ?>" placeholder="Nama kegiatan" maxlength="255" value="<?= $h($form['judul']) ?>">
+                                <?php $msg('judul'); ?>
+                            </div>
+                            <div>
+                                <label class="field-label" for="f-ket">Deskripsi</label>
+                                <input type="text" id="f-ket" name="keterangan" class="input<?= $cls('keterangan') ?>" placeholder="Keterangan singkat" value="<?= $h($form['keterangan']) ?>">
+                                <?php $msg('keterangan'); ?>
+                            </div>
+                            <div>
+                                <label class="field-label" for="f-pic">Penanggung jawab</label>
+                                <select id="f-pic" name="pic" class="input<?= $cls('pic') ?>">
+                                    <option value="">Pilih anggota panitia</option>
+                                    <?php foreach ($committees as $c): ?>
+                                        <option value="<?= $h($c['id']) ?>" <?= $form['pic'] === $c['id'] ? 'selected' : '' ?>><?= $h($c['nama_panitia']) ?> — <?= $h($c['posisi_jabatan']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <?php $msg('pic'); ?>
+                                <?php if (!$committees): ?>
+                                    <p class="help">Belum ada panitia. <a href="<?= BASE_URL ?>/event-owner/panitia?id=<?= $h($eventId) ?>" target="_blank" rel="noopener" style="color:#4b34db">Tambah panitia</a> untuk memilih PIC (opsional).</p>
+                                <?php endif; ?>
+                            </div>
+                            <button type="submit" class="button primary-button full-width"><?= $editing ? 'Simpan perubahan' : 'Simpan kegiatan' ?></button>
+                            <?php if ($editing): ?>
+                                <a href="<?= $self ?>" class="button secondary-button full-width" style="justify-content:center">Batal</a>
+                            <?php endif; ?>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="wizard-footer" style="width:1128px;box-sizing:border-box;margin-top:24px">
+                    <a href="<?= BASE_URL ?>/event-owner/acara-saya?draf=1" class="button ghost-button">Simpan draf</a>
+                    <div class="row">
+                        <a href="<?= EventHelper::stepUrl(2, $eventId) ?>" class="button secondary-button">Kembali</a>
+                        <a href="<?= EventHelper::stepUrl(4, $eventId) ?>" class="button primary-button">Lanjut: Tinjau &amp; ajukan</a>
+                    </div>
+                </div>
+<?php EventHelper::renderBottom(); ?>

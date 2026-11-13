@@ -97,6 +97,7 @@ Panduan lengkap untuk mempublikasikan Docker Image TIXORA ke Docker Hub dan mend
    | `DATABASE_URL` | `postgresql://neondb_owner:npg_xxxx@ep-....neon.tech/neondb?sslmode=require` | Connection string Neon Anda |
    | `AUTO_MIGRATE` | `true` | Menjalankan migrasi database otomatis saat pertama start |
    | `TIXORA_QR_SECRET` | `string-acak-rahasia-minimal-32-karakter` | Kunci enkripsi token QR tiket |
+   | `TIXORA_PAYMENT_SANDBOX` | `true` | Simulasi pembayaran (tombol "Simulasikan pembayaran berhasil"). Bawaan aktif; ubah ke `false` sebelum memakai gateway sungguhan |
    | `TIXORA_PUBLIC_URL` | `https://tixora-xxxx.b4a.run` | (Opsional) URL publik untuk isi QR e-ticket, tanpa `/` di akhir |
 
 7. Klik **Create App** (Deploy).

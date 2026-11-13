@@ -440,6 +440,16 @@ $routes = [
     'event-owner/buat-acara' =>
         'event-owner/buat-acara/index.php',
 
+    // Wizard buat acara: langkah 2-4 (langkah 1 = route di atas)
+    'event-owner/buat-acara/tiket' =>
+        'event-owner/buat-acara/buat-acara-tiket.php',
+
+    'event-owner/buat-acara/rundown' =>
+        'event-owner/buat-acara/buat-acara-rundown.php',
+
+    'event-owner/buat-acara/tinjau' =>
+        'event-owner/buat-acara/buat-acara-tinjau.php',
+
     // Event Operations
     'event-owner/rundown' =>
         'event-owner/rundown.php',

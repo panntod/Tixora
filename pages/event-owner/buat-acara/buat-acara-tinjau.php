@@ -1,106 +1,152 @@
-<!DOCTYPE html>
-<html lang="id">
+<?php
+declare(strict_types=1);
 
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta charset="utf-8">
-    <title>TIXORA — Organizer — Buat Acara: Tinjau dan Ajukan</title>
-    <link rel="stylesheet" href="<?= BASE_URL ?>/event-owner/styles.css">
-</head>
+require_once defined('ROOT_DIR') ? ROOT_DIR . '/api/helpers/ViewHelper.php' : __DIR__ . '/../../../api/helpers/ViewHelper.php';
+require_once defined('ROOT_DIR') ? ROOT_DIR . '/api/helpers/EventHelper.php' : __DIR__ . '/../../../api/helpers/EventHelper.php';
 
-<body>
-    <div class="frame" style="width:1440px;height:991px">
-        <div class="app">
-            <aside class="sidebar">
-                <div class="logo"><img class="logo-img" src="<?= BASE_URL ?>/assets/logo.png" alt="Logo TIXORA"></div>
-                <span class="side-item">Dasbor</span><span class="side-item">Acara saya</span><span
-                    class="side-item side-item-active">Buat acara</span><span class="side-item">Pengaturan</span><span
-                    class="side-item">Keluar</span>
-                <div class="side-user"><b>Dimas Prakoso</b>HMTI Fakultas Ilmu Komputer</div>
-            </aside>
-            <main class="main">
-                <p class="crumb">Acara saya / Buat acara</p>
-                <div class="head">
-                    <div>
-                        <h1 class="page-title">Buat acara baru</h1>
-                        <p class="page-subtitle">Langkah 4 dari 4 · Periksa sebelum diajukan</p>
-                    </div>
-                    <div class="head-actions"><span class="button secondary-button">Pratinjau</span></div>
-                </div>
-                <div class="stepper"><span class="step-item step-done"><span class="step-dot"><svg width="12"
-                                height="12" viewBox="0 0 16 16" aria-hidden="true">
-                                <path d="M3.5 8.5l3 3 6-6.5" stroke="#15803D" stroke-width="2" fill="none"
-                                    stroke-linecap="round" stroke-linejoin="round" />
-                            </svg></span>Informasi &amp; jadwal</span><span class="step-item step-done"><span
-                            class="step-dot"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true">
-                                <path d="M3.5 8.5l3 3 6-6.5" stroke="#15803D" stroke-width="2" fill="none"
-                                    stroke-linecap="round" stroke-linejoin="round" />
-                            </svg></span>Tiket &amp; kapasitas</span><span class="step-item step-done"><span
-                            class="step-dot"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true">
-                                <path d="M3.5 8.5l3 3 6-6.5" stroke="#15803D" stroke-width="2" fill="none"
-                                    stroke-linecap="round" stroke-linejoin="round" />
-                            </svg></span>Rundown</span><span class="step-item step-active"><span
-                            class="step-dot">4</span>Tinjau &amp; ajukan</span></div>
-                <div class="stack gap-24" style="width:880px">
-                    <div class="alert alert-info">Setelah diajukan, acara berstatus <b>Menunggu tinjauan</b> dan tidak
-                        dapat diedit sampai admin memberi keputusan.</div>
-                    <div class="card">
-                        <div class="row-between" style="margin-bottom:12px">
-                            <h2 class="card-title" style="margin:0">Informasi &amp; jadwal</h2><span
-                                class="badge badge-success"><span class="badge-dot"></span>Lengkap</span>
-                        </div>
-                        <dl class="definition">
-                            <div>
-                                <dt>NAMA ACARA</dt>
-                                <dd>Konferensi Pendidikan Digital Jawa Timur</dd>
-                            </div>
-                            <div>
-                                <dt>KATEGORI</dt>
-                                <dd>Konferensi</dd>
-                            </div>
-                            <div>
-                                <dt>WAKTU</dt>
-                                <dd>12–13 Nov 2026</dd>
-                            </div>
-                            <div>
-                                <dt>LOKASI</dt>
-                                <dd>Gedung Serbaguna Kampus, Malang</dd>
-                            </div>
-                        </dl>
-                    </div>
-                    <div class="card">
-                        <div class="row-between" style="margin-bottom:12px">
-                            <h2 class="card-title" style="margin:0">Tiket &amp; kapasitas</h2><span
-                                class="badge badge-success"><span class="badge-dot"></span>Lengkap</span>
-                        </div>
-                        <p class="slate" style="font-size:14px;line-height:21px">2 kategori · Umum Rp250.000 (200) dan
-                            Pelajar / Mahasiswa Rp150.000 (100) · kapasitas 300 kursi</p>
-                    </div>
-                    <div class="card">
-                        <div class="row-between" style="margin-bottom:12px">
-                            <h2 class="card-title" style="margin:0">Rundown</h2><span class="badge badge-warning"><span
-                                    class="badge-dot"></span>Perlu dilengkapi</span>
-                        </div>
-                        <p class="slate" style="font-size:14px;line-height:21px">4 kegiatan hari pertama, 0 kegiatan
-                            hari kedua</p>
-                    </div>
-                    <div class="card">
-                        <div class="row-between" style="margin-bottom:12px">
-                            <h2 class="card-title" style="margin:0">RAB</h2><span class="badge badge-success"><span
-                                    class="badge-dot"></span>Lengkap</span>
-                        </div>
-                        <p class="slate" style="font-size:14px;line-height:21px">Rp21.500.000 terlampir</p>
-                    </div>
-                </div>
-                <div class="wizard-footer" style="width:880px;box-sizing:border-box"><span
-                        class="button ghost-button">Simpan draf</span>
-                    <div class="row"><span class="button secondary-button">Kembali</span><span
-                            class="button primary-button">Ajukan untuk ditinjau</span></div>
-                </div>
-            </main>
-        </div>
-    </div>
-    <script src="<?= BASE_URL ?>/event-owner/sidebar.js"></script>
-</body>
+$db = ViewHelper::getDb();
+$owner = ViewHelper::requireLogin(AuthHelper::ROLE_EVENT_OWNER);
+$event = EventHelper::requireDraft($db, $owner);
+EventHelper::ensureSchema($db);
+$eventId = (string) $event['id'];
 
-</html>
+$review = EventHelper::review($db, $event);
+$topError = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['aksi'] ?? '') === 'ajukan') {
+    if (!ViewHelper::checkCsrf()) {
+        $topError = 'Sesi formulir kedaluwarsa. Muat ulang halaman lalu coba lagi.';
+    } elseif (!$review['ready']) {
+        $topError = 'Lengkapi bagian yang bertanda "Perlu dilengkapi" sebelum mengajukan.';
+    } else {
+        try {
+            $db->beginTransaction();
+            $upd = $db->prepare("
+                UPDATE events
+                SET status_verifikasi = 'MENUNGGU_TINJAUAN', alasan_penolakan = NULL, updated_at = CURRENT_TIMESTAMP
+                WHERE id = :id AND owner_id = :owner AND status_verifikasi IN ('DRAF', 'DITOLAK')");
+            $upd->execute(['id' => $eventId, 'owner' => $owner['id']]);
+            if ($upd->rowCount() === 1) {
+                $db->prepare("INSERT INTO event_submission_logs (event_id, status, catatan)
+                              VALUES (:id, 'MENUNGGU_TINJAUAN', 'Acara diajukan untuk peninjauan admin.')")
+                    ->execute(['id' => $eventId]);
+            }
+            $db->commit();
+            EventHelper::redirect(BASE_URL . '/event-owner/acara-saya?diajukan=1');
+        } catch (PDOException $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            error_log('[TIXORA] buat-acara langkah 4: ' . $e->getMessage());
+            $topError = 'Acara gagal diajukan karena kesalahan server. Silakan coba lagi.';
+        }
+    }
+}
+
+$h = [EventHelper::class, 'h'];
+$badge = static fn(bool $ok, string $okLabel = 'Lengkap', string $badLabel = 'Perlu dilengkapi'): string => $ok
+    ? '<span class="badge badge-success"><span class="badge-dot"></span>' . $okLabel . '</span>'
+    : '<span class="badge badge-warning"><span class="badge-dot"></span>' . $badLabel . '</span>';
+$fix = static fn(int $step): string => '<a href="' . EventHelper::stepUrl($step, $eventId) . '" style="color:#4b34db;font-weight:600">Lengkapi di langkah ' . $step . '</a>';
+
+// Ringkasan tiket: "Umum Rp250.000 (200), Mahasiswa Rp150.000 (100) dan VIP Gratis (20)".
+$items = array_map(static fn($k) => $k['nama_kategori'] . ' '
+    . ((float) $k['harga'] > 0 ? EO::rp($k['harga']) : 'Gratis') . ' (' . (int) $k['kuota'] . ')', $review['kategori']);
+$daftarTiket = count($items) > 1 ? implode(', ', array_slice($items, 0, -1)) . ' dan ' . end($items) : ($items[0] ?? '');
+
+$infoOk = !$review['info'];
+$tiketOk = $review['total_kuota'] > 0;
+$rundownOk = $review['rundown'] > 0;
+
+EventHelper::renderTop($db, $owner, 4, $event);
+?>
+                <?php if ($topError): ?>
+                    <div class="alert alert-error" style="width:880px;margin-bottom:16px"><?= $h($topError) ?></div>
+                <?php endif; ?>
+
+                <form method="POST" action="<?= EventHelper::stepUrl(4, $eventId) ?>">
+                    <?= ViewHelper::csrfField() ?>
+                    <input type="hidden" name="aksi" value="ajukan">
+
+                    <div class="stack gap-24" style="width:880px">
+                        <div class="alert alert-info">Setelah diajukan, acara berstatus <b>Menunggu tinjauan</b> dan tidak
+                            dapat diedit sampai admin memberi keputusan.</div>
+
+                        <div class="card">
+                            <div class="row-between" style="margin-bottom:12px">
+                                <h2 class="card-title" style="margin:0">Informasi &amp; jadwal</h2>
+                                <?= $badge($infoOk) ?>
+                            </div>
+                            <dl class="definition">
+                                <div>
+                                    <dt>NAMA ACARA</dt>
+                                    <dd><?= $h($event['judul_event']) ?></dd>
+                                </div>
+                                <div>
+                                    <dt>KATEGORI</dt>
+                                    <dd><?= $h($event['kategori']) ?></dd>
+                                </div>
+                                <div>
+                                    <dt>WAKTU</dt>
+                                    <dd><?= $event['tanggal_mulai'] !== $event['tanggal_selesai'] ? $h(EventHelper::rentang((string) $event['tanggal_mulai'], (string) $event['tanggal_selesai'])) : '—' ?></dd>
+                                </div>
+                                <div>
+                                    <dt>LOKASI</dt>
+                                    <dd><?= trim((string) $event['nama_tempat']) !== '' ? $h($event['nama_tempat'] . ', ' . $event['kota']) : '—' ?></dd>
+                                </div>
+                            </dl>
+                            <?php if (!$infoOk): ?>
+                                <p class="slate" style="font-size:14px;line-height:21px;margin-top:12px">
+                                    <?= $h(implode(' ', array_values($review['info']))) ?> <?= $fix(1) ?>
+                                </p>
+                            <?php endif; ?>
+                        </div>
+
+                        <div class="card">
+                            <div class="row-between" style="margin-bottom:12px">
+                                <h2 class="card-title" style="margin:0">Tiket &amp; kapasitas</h2>
+                                <?= $badge($tiketOk) ?>
+                            </div>
+                            <?php if ($tiketOk): ?>
+                                <p class="slate" style="font-size:14px;line-height:21px"><?= count($review['kategori']) ?> kategori · <?= $h($daftarTiket) ?> · kapasitas <?= number_format($review['total_kuota'], 0, ',', '.') ?> kursi</p>
+                            <?php else: ?>
+                                <p class="slate" style="font-size:14px;line-height:21px">Belum ada kategori tiket. <?= $fix(2) ?></p>
+                            <?php endif; ?>
+                        </div>
+
+                        <div class="card">
+                            <div class="row-between" style="margin-bottom:12px">
+                                <h2 class="card-title" style="margin:0">Rundown</h2>
+                                <?= $badge($rundownOk) ?>
+                            </div>
+                            <p class="slate" style="font-size:14px;line-height:21px">
+                                <?php if ($rundownOk): ?>
+                                    <?= $review['rundown'] ?> kegiatan
+                                <?php else: ?>
+                                    Belum ada kegiatan. <?= $fix(3) ?>
+                                <?php endif; ?>
+                            </p>
+                        </div>
+
+                        <div class="card">
+                            <div class="row-between" style="margin-bottom:12px">
+                                <h2 class="card-title" style="margin:0">RAB</h2>
+                                <?= $badge($review['rab_count'] > 0, 'Lengkap', 'Opsional') ?>
+                            </div>
+                            <p class="slate" style="font-size:14px;line-height:21px">
+                                <?= $review['rab_count'] > 0
+                                    ? $h(EO::rp($review['rab_total'])) . ' terlampir'
+                                    : 'Belum ada anggaran. RAB bersifat opsional dan tidak menghalangi pengajuan.' ?>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="wizard-footer" style="width:880px;box-sizing:border-box;margin-top:24px">
+                        <a href="<?= BASE_URL ?>/event-owner/acara-saya?draf=1" class="button ghost-button">Simpan draf</a>
+                        <div class="row">
+                            <a href="<?= EventHelper::stepUrl(3, $eventId) ?>" class="button secondary-button">Kembali</a>
+                            <button type="submit" class="button primary-button"<?= $review['ready'] ? '' : ' disabled' ?>>Ajukan untuk ditinjau</button>
+                        </div>
+                    </div>
+                </form>
+<?php EventHelper::renderBottom(); ?>
