@@ -44,6 +44,7 @@ $menungguCount = (int)$db->query("SELECT COUNT(*) FROM events WHERE status_verif
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>TIXORA — Admin — Penyelenggara</title>
     <link rel="stylesheet" href="<?= BASE_URL ?>/admin/styles.css">
+    <script src="<?= BASE_URL ?>/admin/responsive.js" defer></script>
 </head>
 
 <body>

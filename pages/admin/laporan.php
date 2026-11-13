@@ -113,6 +113,7 @@ $buildUrl = function (array $extra = []) use ($urlBase, $from, $to): string {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>TIXORA — Admin — Laporan</title>
     <link rel="stylesheet" href="<?= BASE_URL ?>/admin/styles.css">
+    <script src="<?= BASE_URL ?>/admin/responsive.js" defer></script>
 </head>
 
 <body>

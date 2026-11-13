@@ -2141,3 +2141,363 @@ textarea.input {
   padding-right: 8px;         /* jarak antara teks dan scrollbar */
   scrollbar-width: thin;
 }
+
+/* =====================================================================
+   RESPONSIVE — layout admin
+   Breakpoint: 1024px (tablet / sidebar jadi drawer), 900px (kolom bertumpuk),
+   600px (mobile). Memakai !important karena banyak lebar tetap ditulis inline.
+   ===================================================================== */
+
+/* ---- Dasar: layout cair (fluid), tidak lagi memakai lebar tetap ---- */
+img,
+svg {
+  max-width: 100%;
+}
+
+.frame {
+  overflow-x: clip;
+}
+
+.main {
+  width: auto !important;
+  flex: 1 1 0 !important;
+  min-width: 0;
+}
+
+.col-wide,
+.col-wide-card {
+  width: auto !important;
+  flex: 1 1 0 !important;
+  min-width: 0;
+}
+
+.col-narrow {
+  width: auto !important;
+  flex: 0 0 clamp(300px, 36%, 424px) !important;
+  min-width: 0;
+}
+
+/* Dua kolom (.cols): kolom pertama fleksibel, kolom kedua lebarnya terbatas.
+   Lebar inline (740px / 364px / 680px / 424px) ditimpa di sini. */
+.cols > :first-child {
+  width: auto !important;
+  flex: 1 1 0 !important;
+  min-width: 0;
+}
+
+.cols > :last-child:not(:first-child) {
+  width: auto !important;
+  flex: 0 0 clamp(300px, 34%, 424px) !important;
+  min-width: 0;
+}
+
+.main p[style*="width"],
+.main h2[style*="width"],
+.main .card[style*="width"],
+.main .stack[style*="width"] {
+  width: auto !important;
+  max-width: 100%;
+}
+
+/* ---- Tabel (.tbl-*): kolom berlebar tetap -> scroll horizontal di dalam card ---- */
+.tbl-card,
+.card:has(.tbl-head),
+.card-flush {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tbl-card .tbl-head,
+.tbl-card .tbl-row,
+.card:has(.tbl-head) .tbl-head,
+.card:has(.tbl-head) .tbl-row {
+  min-width: max-content;
+}
+
+.dialog {
+  width: 100%;
+  max-width: 420px;
+}
+
+/* ---- Drawer sidebar + top bar (disuntik oleh admin/responsive.js) ---- */
+.adm-topbar,
+.adm-backdrop {
+  display: none;
+}
+
+/* ===================== <= 1024px : tablet ===================== */
+@media (max-width: 1024px) {
+  .adm-topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 90;
+    height: 56px;
+    padding: 0 12px 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #ffffff;
+    border-bottom: 1px solid #e4e4ee;
+  }
+
+  .adm-menu-btn {
+    width: 40px;
+    height: 40px;
+    flex: none;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+  }
+
+  .adm-menu-btn:hover {
+    background: #f1f0ff;
+  }
+
+  .adm-menu-btn span {
+    display: block;
+    width: 20px;
+    height: 2px;
+    border-radius: 2px;
+    background: #0e1128;
+  }
+
+  .adm-topbar .logo-img {
+    height: 28px;
+  }
+
+  .adm-topbar-label {
+    margin-left: auto;
+    font-size: 12px;
+    line-height: 18px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #5f6483;
+  }
+
+  .adm-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 95;
+    background: rgba(14, 17, 40, 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+
+  .adm-backdrop.is-open {
+    display: block;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .app {
+    padding-top: 56px;
+  }
+
+  .sidebar {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 100;
+    width: 264px;
+    max-width: 85vw;
+    height: 100dvh;
+    transform: translateX(-100%);
+    transition: transform 0.22s ease;
+    box-shadow: none;
+  }
+
+  .sidebar.is-open {
+    transform: none;
+    box-shadow: 0 16px 40px rgba(14, 17, 40, 0.25);
+  }
+
+  .main {
+    padding: 20px 24px 48px;
+  }
+
+  .metrics {
+    flex-wrap: wrap;
+  }
+
+  .metric {
+    flex: 1 1 calc(50% - 8px);
+    min-width: 180px;
+  }
+}
+
+/* ===================== <= 900px : kolom bertumpuk ===================== */
+@media (max-width: 900px) {
+  .cols {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cols > *,
+  .cols > :first-child,
+  .cols > :last-child:not(:first-child),
+  .col-wide,
+  .col-wide-card,
+  .col-narrow {
+    width: 100% !important;
+    flex: none !important;
+  }
+
+  .cols-stretch {
+    min-height: 0;
+  }
+
+  /* Basis 0 hanya cocok untuk baris sejajar; saat bertumpuk beri tinggi maksimum */
+  .scroll-body {
+    flex: none;
+    max-height: 360px;
+  }
+
+  .two-col {
+    flex-direction: column;
+  }
+
+  .col-main,
+  .col-side {
+    width: 100%;
+  }
+}
+
+/* ===================== <= 600px : mobile ===================== */
+@media (max-width: 600px) {
+  .main {
+    padding: 16px 16px 40px;
+  }
+
+  .head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .head-actions {
+    flex-wrap: wrap;
+  }
+
+  .head-actions .button {
+    flex: 1 1 auto;
+  }
+
+  .page-title {
+    font-size: 24px;
+    line-height: 30px;
+    letter-spacing: -0.4px;
+    overflow-wrap: anywhere;
+  }
+
+  .page-subtitle {
+    font-size: 14px;
+    line-height: 21px;
+  }
+
+  .crumb {
+    overflow-wrap: anywhere;
+  }
+
+  .metrics {
+    gap: 12px;
+  }
+
+  .metric {
+    flex: 1 1 100%;
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+  .card-flush {
+    padding: 16px 12px 8px;
+  }
+
+  .card-title {
+    font-size: 18px;
+    line-height: 26px;
+  }
+
+  .two-fields {
+    flex-direction: column;
+  }
+
+  .definition div {
+    width: 100%;
+  }
+
+  .legend-item {
+    width: 100%;
+  }
+
+  /* Filter / pencarian */
+  .filter-bar,
+  .chip-row {
+    flex-wrap: wrap;
+  }
+
+  .filter-bar > * {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+  }
+
+  .filter-bar .input,
+  .filter-bar .button {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+  }
+
+  /* Dialog & halaman contoh dialog */
+  .dialog {
+    padding: 20px 16px;
+  }
+
+  .dialog-actions {
+    flex-wrap: wrap;
+  }
+
+  .dialog-actions .button {
+    flex: 1 1 auto;
+  }
+
+  .spec {
+    padding: 24px 16px 40px;
+  }
+
+  .spec-cell {
+    width: 100%;
+    max-width: 620px;
+  }
+
+  .row-between {
+    flex-wrap: wrap;
+  }
+
+  .rundown-row {
+    gap: 12px;
+  }
+
+  .wizard-footer {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .bar-chart {
+    gap: 8px;
+  }
+
+  .poster-title {
+    font-size: 22px;
+    line-height: 24px;
+  }
+}

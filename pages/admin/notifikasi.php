@@ -5,6 +5,8 @@
     <meta charset="utf-8">
     <title>TIXORA — Admin — Notifikasi</title>
     <link rel="stylesheet" href="<?= BASE_URL ?>/admin/styles.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="<?= BASE_URL ?>/admin/responsive.js" defer></script>
 </head>
 
 <body>

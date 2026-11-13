@@ -60,6 +60,7 @@ function roleBadge(string $roleId): array
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>TIXORA — Admin — Pengguna</title>
     <link rel="stylesheet" href="<?= BASE_URL ?>/admin/styles.css">
+    <script src="<?= BASE_URL ?>/admin/responsive.js" defer></script>
 </head>
 
 <body>
