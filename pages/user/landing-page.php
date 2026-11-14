@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once defined('ROOT_DIR') ? ROOT_DIR . '/api/helpers/ViewHelper.php' : __DIR__ . '/../../api/helpers/ViewHelper.php';
@@ -15,7 +16,7 @@ $stmt = $db->query("
     FROM events e
     JOIN users u ON e.owner_id = u.id
     WHERE e.status_verifikasi IN ('TERBIT', 'PUBLISHED', 'DISETUJUI')
-    ORDER BY e.tanggal_mulai ASC
+    ORDER BY (e.tanggal_selesai <= NOW()) ASC, e.tanggal_mulai ASC
     LIMIT 8
 ");
 $events = $stmt->fetchAll();
@@ -108,11 +109,16 @@ $events = $stmt->fetchAll();
                             <?php
                             $sisaKuota = max(0, (int) $ev['kuota'] - (int) $ev['total_pendaftar']);
                             $dateStr = date('d M Y', strtotime($ev['tanggal_mulai']));
+                            $ditutup = ViewHelper::isEventClosed($ev);
                             ?>
-                            <article class="event-card tx-style-30e741d98e">
+                            <article class="event-card tx-style-30e741d98e<?= $ditutup ? ' event-card-closed' : '' ?>">
                                 <?= BannerHelper::render($ev, 'card') ?>
                                 <div class="event-card-body">
-                                    <span class="badge badge-purple"><span class="badge-dot"></span>Akan datang</span>
+                                    <?php if ($ditutup): ?>
+                                        <span class="badge badge-neutral"><span class="badge-dot"></span>Sudah ditutup</span>
+                                    <?php else: ?>
+                                        <span class="badge badge-purple"><span class="badge-dot"></span>Akan datang</span>
+                                    <?php endif; ?>
                                     <h3 class="event-card-title"><?= htmlspecialchars($ev['judul_event']) ?></h3>
                                     <p class="event-card-meta"><?= $dateStr ?> · <?= htmlspecialchars($ev['nama_tempat']) ?></p>
                                     <div class="event-card-footer tx-style-34c37090dc">
@@ -123,8 +129,13 @@ $events = $stmt->fetchAll();
                                         <?php endif; ?>
                                         <span class="event-card-left">Sisa <?= $sisaKuota ?> kursi</span>
                                     </div>
-                                    <a href="<?= BASE_URL ?>/detail-acara?id=<?= $ev['id'] ?>" class="button primary-button"
-                                        style="width:100%;margin-top:12px;text-align:center">Lihat Detail &amp; Tiket</a>
+                                    <?php if ($ditutup): ?>
+                                        <span class="button disabled-button closed-button" aria-disabled="true"
+                                            style="width:100%;margin-top:12px;text-align:center;cursor:not-allowed">Pendaftaran Ditutup</span>
+                                    <?php else: ?>
+                                        <a href="<?= BASE_URL ?>/detail-acara?id=<?= $ev['id'] ?>" class="button primary-button"
+                                            style="width:100%;margin-top:12px;text-align:center">Lihat Detail &amp; Tiket</a>
+                                    <?php endif; ?>
                                 </div>
                             </article>
                         <?php endforeach; ?>

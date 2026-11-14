@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -32,16 +33,18 @@ header('Cache-Control: no-store');
 
 if (!$ticket) {
     http_response_code(404);
-    ?>
+?>
     <!DOCTYPE html>
     <html lang="id">
+
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="color-scheme" content="light">
+        <meta name="color-scheme" content="light">
         <title>TIXORA — Tiket tidak valid</title>
         <link rel="stylesheet" href="<?= BASE_URL ?>/user/styles.css">
     </head>
+
     <body>
         <main style="max-width:390px;margin:96px auto;padding:0 16px;text-align:center;font-family:Arial,sans-serif">
             <h1 style="font-size:20px;color:#0E1128">Tiket tidak valid</h1>
@@ -49,8 +52,9 @@ if (!$ticket) {
             <a href="<?= BASE_URL ?>/" class="button button-large secondary-button" style="text-decoration:none;display:inline-block;margin-top:16px">Ke beranda</a>
         </main>
     </body>
+
     </html>
-    <?php
+<?php
     exit;
 }
 
@@ -153,9 +157,12 @@ try {
     <?php if ($showQr): ?>
         <script src="<?= BASE_URL ?>/assets/qr.js"></script>
         <script>
-            <?php if ($qrUrl !== ''): ?>TixoraQR.render('#qr', <?= json_encode($qrUrl, JSON_UNESCAPED_SLASHES) ?>, {label: 'QR Code <?= htmlspecialchars($ticket['kode_tiket'], ENT_QUOTES) ?>'});<?php endif; ?>
+            <?php if ($qrUrl !== ''): ?>TixoraQR.render('#qr', <?= json_encode($qrUrl, JSON_UNESCAPED_SLASHES) ?>, {
+                label: 'QR Code <?= htmlspecialchars($ticket['kode_tiket'], ENT_QUOTES) ?>'
+            });
+            <?php endif; ?>
         </script>
     <?php endif; ?>
 </body>
 
-</html> 
+</html>

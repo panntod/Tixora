@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../api/helpers/ViewHelper.php';
@@ -31,6 +32,11 @@ if ($currentUser) {
 
 $errorMessage = '';
 $successMessage = '';
+
+$infoMessage = '';
+if (($_GET['info'] ?? '') === 'wajib-login') {
+    $infoMessage = 'Silakan login terlebih dahulu untuk mendaftar acara. Belum punya akun? Daftar akun lebih dulu.';
+}
 
 if (isset($_GET['registered'])) {
     $successMessage = 'Registrasi berhasil! Silakan masuk menggunakan akun Anda.';
@@ -127,6 +133,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         Masuk dengan akun penyelenggara untuk membuat acara. Belum punya akun penyelenggara?
                         <a href="<?= BASE_URL ?>/ajukan-akun" class="link-text" style="color:#4B34DB;font-weight:700">Ajukan
                             akun</a>.
+                    </div>
+                <?php endif; ?>
+
+                <?php if ($infoMessage !== ''): ?>
+                    <div class="alert alert-info tx-style-602d1a6aa5">
+                        Silakan login terlebih dahulu untuk mendaftar acara. Belum punya akun?
+                        <a href="<?= BASE_URL ?>/register" class="link-text" style="color:#4B34DB;font-weight:700">Daftar akun</a>.
                     </div>
                 <?php endif; ?>
 

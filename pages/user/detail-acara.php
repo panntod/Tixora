@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once defined('ROOT_DIR') ? ROOT_DIR . '/api/helpers/ViewHelper.php' : __DIR__ . '/../../../api/helpers/ViewHelper.php';
@@ -54,6 +55,13 @@ $stmtRundowns = $db->prepare("SELECT * FROM rundowns WHERE event_id = :event_id 
 $stmtRundowns->execute(['event_id' => $event['id']]);
 $rundowns = $stmtRundowns->fetchAll();
 
+// Pengunjung belum login: simpan halaman ini agar setelah login langsung kembali ke sini.
+$currentUser = ViewHelper::getCurrentUser();
+$isGuest = $currentUser === null;
+if ($isGuest && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
+    $_SESSION['after_login'] = BASE_URL . '/detail-acara?id=' . rawurlencode((string) $event['id']);
+}
+
 $sisaKuota = max(0, (int) $event['kuota'] - (int) $event['total_pendaftar']);
 $eventTerbuka = in_array($event['status_verifikasi'], ['TERBIT', 'PUBLISHED', 'DISETUJUI'], true)
     && strtotime($event['tanggal_selesai']) > time();
@@ -88,6 +96,7 @@ $kickerDate = strtoupper(date('d M Y', strtotime($event['tanggal_mulai'])));
         function formatRupiah(n) {
             return n > 0 ? 'Rp' + Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') : 'Gratis (Rp0)';
         }
+
         function switchTab(evt, tabName) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('tab-active'));
             evt.target.classList.add('tab-active');
@@ -115,8 +124,12 @@ $kickerDate = strtoupper(date('d M Y', strtotime($event['tanggal_mulai'])));
 
             <div class="two-col tx-style-c2f8546b67">
                 <div class="col-main">
-                    <span class="badge badge-purple"><span
-                            class="badge-dot"></span><?= htmlspecialchars($event['status_verifikasi'] === 'TERBIT' ? 'Akan datang' : $event['status_verifikasi']) ?></span>
+                    <?php if (ViewHelper::isEventClosed($event)): ?>
+                        <span class="badge badge-neutral"><span class="badge-dot"></span>Sudah ditutup</span>
+                    <?php else: ?>
+                        <span class="badge badge-purple"><span
+                                class="badge-dot"></span><?= htmlspecialchars($event['status_verifikasi'] === 'TERBIT' ? 'Akan datang' : $event['status_verifikasi']) ?></span>
+                    <?php endif; ?>
                     <h1 class="page-title tx-style-d60550f657"><?= htmlspecialchars($event['judul_event']) ?></h1>
                     <div class="meta-row">
                         <span><?= $dateFormatted ?></span>
@@ -185,7 +198,7 @@ $kickerDate = strtoupper(date('d M Y', strtotime($event['tanggal_mulai'])));
                                         style="cursor:<?= $habis ? 'not-allowed' : 'pointer' ?>;display:flex;align-items:center;justify-content:space-between;<?= $habis ? 'opacity:.55' : '' ?>">
                                         <div style="display:flex;align-items:center;gap:10px">
                                             <input type="radio" name="category_id" value="<?= htmlspecialchars($cat['id']) ?>"
-                                                data-harga="<?= $hargaCat ?>" <?= $dipilih ? 'checked' : '' ?>         <?= $habis ? 'disabled' : '' ?>
+                                                data-harga="<?= $hargaCat ?>" <?= $dipilih ? 'checked' : '' ?> <?= $habis ? 'disabled' : '' ?>
                                                 onchange="document.querySelectorAll('.col-side .option').forEach(el=>el.classList.remove('option-selected'));this.closest('.option').classList.add('option-selected');document.getElementById('total-biaya').textContent=formatRupiah(parseFloat(this.dataset.harga))">
                                             <div>
                                                 <b><?= htmlspecialchars($cat['nama_kategori']) ?></b>
@@ -224,15 +237,30 @@ $kickerDate = strtoupper(date('d M Y', strtotime($event['tanggal_mulai'])));
                                 id="total-biaya"><?= $hargaDefault > 0 ? PaymentHelper::rupiah($hargaDefault) : 'Gratis (Rp0)' ?></b>
                         </div>
 
-                        <?php if ($eventTerbuka && $sisaKuota > 0 && (empty($ticketCategories) || $defaultCatId !== null)): ?>
+                        <?php if (!$eventTerbuka): ?>
+                            <button type="button" disabled class="button button-large closed-button full-width"
+                                style="margin-top:16px">
+                                Pendaftaran Ditutup
+                            </button>
+                        <?php elseif ($sisaKuota <= 0 || (!empty($ticketCategories) && $defaultCatId === null)): ?>
+                            <button type="button" disabled class="button button-large disabled-button full-width"
+                                style="margin-top:16px">
+                                Tiket Habis
+                            </button>
+                        <?php elseif ($isGuest): ?>
+                            <a href="<?= BASE_URL ?>/login?info=wajib-login"
+                                class="button button-large primary-button full-width"
+                                style="margin-top:16px;text-align:center">
+                                Silakan login dahulu
+                            </a>
+                            <p class="help" style="margin-top:8px;text-align:center">
+                                Belum punya akun? <a href="<?= BASE_URL ?>/register" class="link-text"
+                                    style="color:#4B34DB;font-weight:700">Daftar akun</a>
+                            </p>
+                        <?php else: ?>
                             <button type="submit" class="button button-large primary-button full-width tx-style-1b0f4999d2"
                                 style="margin-top:16px;cursor:pointer">
                                 Daftar Sekarang
-                            </button>
-                        <?php else: ?>
-                            <button type="button" disabled class="button button-large disabled-button full-width"
-                                style="margin-top:16px">
-                                <?= $eventTerbuka ? 'Tiket Habis' : 'Pendaftaran Ditutup' ?>
                             </button>
                         <?php endif; ?>
                     </form>

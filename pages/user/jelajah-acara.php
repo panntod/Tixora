@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../api/helpers/ViewHelper.php';
@@ -32,9 +33,9 @@ if (!empty($search)) {
 }
 
 if ($sortBy === 'terdekat') {
-    $sql .= " ORDER BY e.tanggal_mulai ASC";
+    $sql .= " ORDER BY (e.tanggal_selesai <= NOW()) ASC, e.tanggal_mulai ASC";
 } else {
-    $sql .= " ORDER BY e.created_at DESC";
+    $sql .= " ORDER BY (e.tanggal_selesai <= NOW()) ASC, e.created_at DESC";
 }
 
 $stmt = $db->prepare($sql);
@@ -102,11 +103,16 @@ $categories = ['Semua', 'Seminar', 'Workshop', 'Konferensi', 'Kompetisi'];
                         <?php
                         $sisaKuota = max(0, (int) $ev['kuota'] - (int) $ev['total_pendaftar']);
                         $dateStr = date('d M Y', strtotime($ev['tanggal_mulai']));
+                        $ditutup = ViewHelper::isEventClosed($ev);
                         ?>
-                        <article class="event-card tx-style-30e741d98e">
+                        <article class="event-card tx-style-30e741d98e<?= $ditutup ? ' event-card-closed' : '' ?>">
                             <?= BannerHelper::render($ev, 'card', ['style' => 'height:138px']) ?>
                             <div class="event-card-body">
-                                <span class="badge badge-purple"><span class="badge-dot"></span>Akan datang</span>
+                                <?php if ($ditutup): ?>
+                                    <span class="badge badge-neutral"><span class="badge-dot"></span>Sudah ditutup</span>
+                                <?php else: ?>
+                                    <span class="badge badge-purple"><span class="badge-dot"></span>Akan datang</span>
+                                <?php endif; ?>
                                 <h3 class="event-card-title"><?= htmlspecialchars($ev['judul_event']) ?></h3>
                                 <p class="event-card-meta"><?= $dateStr ?> · <?= htmlspecialchars($ev['nama_tempat']) ?></p>
                                 <div class="event-card-footer tx-style-34c37090dc">
@@ -117,8 +123,13 @@ $categories = ['Semua', 'Seminar', 'Workshop', 'Konferensi', 'Kompetisi'];
                                     <?php endif; ?>
                                     <span class="event-card-left">Sisa <?= $sisaKuota ?> kursi</span>
                                 </div>
-                                <a href="<?= BASE_URL ?>/detail-acara?id=<?= $ev['id'] ?>" class="button primary-button"
-                                    style="width:100%;margin-top:12px;text-align:center">Detail &amp; Daftar</a>
+                                <?php if ($ditutup): ?>
+                                    <span class="button disabled-button closed-button" aria-disabled="true"
+                                        style="width:100%;margin-top:12px;text-align:center;cursor:not-allowed">Pendaftaran Ditutup</span>
+                                <?php else: ?>
+                                    <a href="<?= BASE_URL ?>/detail-acara?id=<?= $ev['id'] ?>" class="button primary-button"
+                                        style="width:100%;margin-top:12px;text-align:center">Detail &amp; Daftar</a>
+                                <?php endif; ?>
                             </div>
                         </article>
                     <?php endforeach; ?>

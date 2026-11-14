@@ -82,6 +82,11 @@ class ViewHelper {
         return $target;
     }
 
+    /** Acara dianggap ditutup bila waktu selesainya sudah lewat (sama dengan aturan di halaman detail & pendaftaran). */
+    public static function isEventClosed(array $ev): bool {
+        return !empty($ev['tanggal_selesai']) && strtotime((string) $ev['tanggal_selesai']) <= time();
+    }
+
     public static function renderFooter(): void {
         ?>
         <footer class="footer">

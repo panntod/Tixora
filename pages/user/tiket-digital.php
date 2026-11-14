@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once defined('ROOT_DIR') ? ROOT_DIR . '/api/helpers/ViewHelper.php' : __DIR__ . '/../../../api/helpers/ViewHelper.php';
@@ -200,7 +201,10 @@ $kickerDate = strtoupper(date('D · d M Y', strtotime($ticket['tanggal_mulai']))
     <script src="<?= BASE_URL ?>/assets/default-banner.js"></script>
     <script src="<?= BASE_URL ?>/assets/qr.js"></script>
     <script>
-        <?php if ($qrUrl !== ''): ?>TixoraQR.render('#qr', <?= json_encode($qrUrl, JSON_UNESCAPED_SLASHES) ?>, { label: 'QR Code <?= htmlspecialchars($ticket['kode_tiket'], ENT_QUOTES) ?>' });<?php endif; ?>
+        <?php if ($qrUrl !== ''): ?>TixoraQR.render('#qr', <?= json_encode($qrUrl, JSON_UNESCAPED_SLASHES) ?>, {
+            label: 'QR Code <?= htmlspecialchars($ticket['kode_tiket'], ENT_QUOTES) ?>'
+        });
+        <?php endif; ?>
     </script>
 </body>
 

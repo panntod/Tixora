@@ -3156,3 +3156,24 @@ img {
     line-height: 30px;
   }
 }
+
+/* Acara yang pendaftarannya sudah ditutup */
+.event-card-closed {
+  filter: grayscale(1);
+  opacity: 0.7;
+}
+
+.event-card-closed .event-card-title,
+.event-card-closed .event-card-meta {
+  color: #6b7090;
+}
+
+.button.closed-button,
+.button.closed-button:hover {
+  background: #d9dae5;
+  color: #6b7090;
+  opacity: 1;
+  box-shadow: none;
+  pointer-events: none;
+  cursor: not-allowed;
+}
