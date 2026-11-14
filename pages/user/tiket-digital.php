@@ -69,6 +69,17 @@ if ($ticket['status_tiket'] === 'MENUNGGU_PEMBAYARAN') {
 }
 
 $isSuccess = isset($_GET['success']);
+// URL QR dihitung SEBELUM HTML dikirim, supaya error konfigurasi tidak memotong halaman.
+$qrUrl = '';
+$qrError = '';
+try {
+    $qrUrl = TicketLinkHelper::url($ticket['kode_tiket']);
+} catch (Throwable $e) {
+    error_log('[TIXORA] Gagal membuat URL QR: ' . $e->getMessage());
+    $qrError = 'QR belum dapat dibuat. Hubungi administrator.';
+    http_response_code(200);
+}
+
 $kickerDate = strtoupper(date('D · d M Y', strtotime($ticket['tanggal_mulai'])));
 ?>
 <!DOCTYPE html>
@@ -125,7 +136,7 @@ $kickerDate = strtoupper(date('D · d M Y', strtotime($ticket['tanggal_mulai']))
 
                     <div class="qr-box tx-style-f63b87b3fb" style="text-align:center;padding:16px 0">
                         <!-- QR asli: berisi tautan e-ticket bertanda tangan, dirender oleh assets/qr.js -->
-                        <div id="qr" class="qr-canvas"></div>
+                        <div id="qr" class="qr-canvas"><?= $qrError !== '' ? htmlspecialchars($qrError) : '' ?></div>
                         <noscript><span class="help" style="display:block">Aktifkan JavaScript untuk menampilkan kode
                                 QR.</span></noscript>
                         <span class="help tx-style-1169661891" style="display:block;margin-top:8px">Tunjukkan kode QR
@@ -189,7 +200,7 @@ $kickerDate = strtoupper(date('D · d M Y', strtotime($ticket['tanggal_mulai']))
     <script src="<?= BASE_URL ?>/assets/default-banner.js"></script>
     <script src="<?= BASE_URL ?>/assets/qr.js"></script>
     <script>
-        TixoraQR.render('#qr', <?= json_encode(TicketLinkHelper::url($ticket['kode_tiket']), JSON_UNESCAPED_SLASHES) ?>, { label: 'QR Code <?= htmlspecialchars($ticket['kode_tiket'], ENT_QUOTES) ?>' });
+        <?php if ($qrUrl !== ''): ?>TixoraQR.render('#qr', <?= json_encode($qrUrl, JSON_UNESCAPED_SLASHES) ?>, { label: 'QR Code <?= htmlspecialchars($ticket['kode_tiket'], ENT_QUOTES) ?>' });<?php endif; ?>
     </script>
 </body>
 

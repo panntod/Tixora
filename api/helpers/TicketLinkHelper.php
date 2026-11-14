@@ -84,16 +84,21 @@ class TicketLinkHelper
             return rtrim($env, '/');
         }
 
-        // 2. Production: FAIL HARD
-        if (self::isProduction()) {
-            error_log('[TIXORA] FATAL: TIXORA_PUBLIC_URL wajib diset di production untuk QR e-ticket.');
-            http_response_code(500);
-            throw new RuntimeException('Konfigurasi URL publik belum siap.');
+        // 2. Fallback aman: pakai host asli dari reverse proxy (Railway/Render, dll).
+        //    Tanda tangan QR (HMAC) tidak bergantung pada host, jadi ini tidak
+        //    melemahkan keamanan. Tetap disarankan set TIXORA_PUBLIC_URL.
+        $forwardedProto = $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '';
+        $forwardedProto = strtolower(trim(explode(',', $forwardedProto)[0]));
+        $https = $forwardedProto === 'https'
+            || (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+        $host = $_SERVER['HTTP_X_FORWARDED_HOST'] ?? ($_SERVER['HTTP_HOST'] ?? 'localhost');
+        $host = trim(explode(',', $host)[0]);
+        if (!preg_match('/^[A-Za-z0-9.\-]+(:[0-9]{1,5})?$/', $host)) {
+            $host = 'localhost';
         }
-
-        // 3. Dev lokal
-        $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
-        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        if (self::isProduction()) {
+            error_log('[TIXORA] WARN: TIXORA_PUBLIC_URL belum diset, memakai host request untuk QR.');
+        }
         return ($https ? 'https' : 'http') . '://' . $host . (defined('BASE_URL') ? BASE_URL : '');
     }
 

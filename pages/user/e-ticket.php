@@ -59,6 +59,17 @@ $isCancelled = $ticket['status_tiket'] === 'BATAL';
 $isPending = $ticket['status_tiket'] === 'MENUNGGU_PEMBAYARAN';
 $isUsed = !$isCancelled && !$isPending && (!empty($ticket['status_kehadiran']) || $ticket['status_tiket'] === 'SUDAH_PAKAI');
 $showQr = !$isCancelled && !$isPending;
+
+// URL QR dihitung SEBELUM HTML dikirim, supaya error konfigurasi tidak memotong halaman.
+$qrUrl = '';
+$qrError = '';
+try {
+    $qrUrl = TicketLinkHelper::url($ticket['kode_tiket']);
+} catch (Throwable $e) {
+    error_log('[TIXORA] Gagal membuat URL QR: ' . $e->getMessage());
+    $qrError = 'QR belum dapat dibuat. Hubungi administrator.';
+    http_response_code(200);
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -102,7 +113,7 @@ $showQr = !$isCancelled && !$isPending;
 
                     <?php if ($showQr): ?>
                         <div class="qr-box" style="text-align:center;padding:16px 0">
-                            <div id="qr" class="qr-canvas"></div>
+                            <div id="qr" class="qr-canvas"><?= $qrError !== '' ? htmlspecialchars($qrError) : '' ?></div>
                             <span class="help" style="display:block;margin-top:8px">
                                 <?= $isUsed ? 'Tiket ini sudah di-check-in dan tidak berlaku lagi' : 'Tunjukkan kode QR ini ke panitia di meja registrasi' ?>
                             </span>
@@ -142,9 +153,9 @@ $showQr = !$isCancelled && !$isPending;
     <?php if ($showQr): ?>
         <script src="<?= BASE_URL ?>/assets/qr.js"></script>
         <script>
-            TixoraQR.render('#qr', <?= json_encode(TicketLinkHelper::url($ticket['kode_tiket']), JSON_UNESCAPED_SLASHES) ?>, {label: 'QR Code <?= htmlspecialchars($ticket['kode_tiket'], ENT_QUOTES) ?>'});
+            <?php if ($qrUrl !== ''): ?>TixoraQR.render('#qr', <?= json_encode($qrUrl, JSON_UNESCAPED_SLASHES) ?>, {label: 'QR Code <?= htmlspecialchars($ticket['kode_tiket'], ENT_QUOTES) ?>'});<?php endif; ?>
         </script>
     <?php endif; ?>
 </body>
 
-</html>
+</html> 
