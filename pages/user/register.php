@@ -124,6 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </footer>
     </div>
+    <script src="<?= BASE_URL ?>/assets/password-toggle.js"></script>
 </body>
 
 </html>

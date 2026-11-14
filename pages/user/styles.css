@@ -3177,3 +3177,35 @@ img {
   pointer-events: none;
   cursor: not-allowed;
 }
+
+
+/* Tombol lihat/sembunyikan kata sandi */
+.pw-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.pw-wrap input.input {
+  padding-right: 44px;
+}
+
+.pw-toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 40px;
+  width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  border-radius: 0 8px 8px 0;
+  color: #6b7090;
+  cursor: pointer;
+}
+
+.pw-toggle:hover,
+.pw-toggle:focus-visible {
+  color: #4b34db;
+}

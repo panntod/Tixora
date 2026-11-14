@@ -1,5 +1,4 @@
 <?php
-
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../api/helpers/ViewHelper.php';
@@ -200,6 +199,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </footer>
     </div>
+    <script src="<?= BASE_URL ?>/assets/password-toggle.js"></script>
 </body>
 
 </html>
