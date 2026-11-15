@@ -18,6 +18,7 @@ class Ticket {
     public function findByCode(string $code): ?array {
         $stmt = $this->db->prepare("
             SELECT t.*, u.nama AS user_nama, u.email AS user_email,
+                   u.institusi AS user_institusi, u.no_whatsapp AS user_whatsapp,
                    e.judul_event, e.owner_id AS event_owner_id
             FROM tickets t
             JOIN users u ON t.user_id = u.id
@@ -43,5 +44,16 @@ class Ticket {
         ");
         $stmt->execute([':id' => $ticketId]);
         return $stmt->rowCount() === 1;
+    }
+
+    /**
+     * Waktu check-in tiket (kolom updated_at diperbarui saat markAsPresent()).
+     * Dibaca dari database agar zona waktunya sama dengan data lain di sistem.
+     */
+    public function getCheckInTime(string $ticketId): ?string {
+        $stmt = $this->db->prepare("SELECT updated_at FROM tickets WHERE id = :id");
+        $stmt->execute([':id' => $ticketId]);
+        $value = $stmt->fetchColumn();
+        return $value === false || $value === null ? null : (string)$value;
     }
 }

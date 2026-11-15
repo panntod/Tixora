@@ -19,6 +19,7 @@ final class EO
         'tiket' => 'Tiket',
         'rundown' => 'Rundown',
         'peserta' => 'Peserta',
+        'scan-tiket' => 'Scan tiket',
         'rab' => 'RAB',
         'panitia' => 'Panitia',
         'analitik' => 'Analitik',

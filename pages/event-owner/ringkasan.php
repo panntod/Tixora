@@ -33,6 +33,7 @@ foreach ($categories as $c) {
 
 $actions = ($isPublished
         ? '<a href="' . BASE_URL . '/detail-acara?id=' . EO::e($id) . '" class="button secondary-button" style="text-decoration:none;cursor:pointer">Lihat halaman publik</a>'
+            . '<a href="' . EO::url('scan-tiket', $id) . '" class="button secondary-button" style="text-decoration:none;cursor:pointer">Scan tiket</a>'
         : '')
     . '<a href="' . EO::url('edit-informasi', $id) . '" class="button primary-button" style="text-decoration:none;cursor:pointer">Edit informasi</a>';
 

@@ -136,6 +136,11 @@ $totalSemua = array_sum($rawCounts);
                                         class="button secondary-button small-button"
                                         style="text-decoration:none;cursor:pointer"><?= $ev['status_verifikasi'] === 'DRAF' ? 'Lanjutkan' : 'Perbaiki' ?></a>
                                 <?php endif; ?>
+                                <?php if (in_array($ev['status_verifikasi'], ['TERBIT', 'PUBLISHED'], true)): ?>
+                                    <a href="<?= EO::url('scan-tiket', $ev['id']) ?>"
+                                        class="button secondary-button small-button"
+                                        style="text-decoration:none;cursor:pointer">Scan tiket</a>
+                                <?php endif; ?>
                                 <a href="<?= EO::url('ringkasan', $ev['id']) ?>" class="button primary-button small-button"
                                     style="text-decoration:none;cursor:pointer">Kelola</a>
                             </div>

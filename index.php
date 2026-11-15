@@ -460,6 +460,10 @@ $routes = [
     'event-owner/peserta' =>
         'event-owner/peserta.php',
 
+    // Scan tiket: EO memvalidasi kehadiran peserta (scan QR e-ticket)
+    'event-owner/scan-tiket' =>
+        'event-owner/scan-tiket.php',
+
     'event-owner/panitia' =>
         'event-owner/panitia.php',
 

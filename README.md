@@ -79,3 +79,26 @@ login -> jelajah-acara -> detail-acara -> pendaftaran -> pembayaran -> konfirmas
 ### Perubahan database (hanya menambah)
 
 `api/migrations/002_payment.sql` menambah kolom `ticket_categories.harga`, tabel `payments`, dan tabel `password_resets`, serta memberi harga contoh pada kategori seed. Aplikasi menjalankannya otomatis satu kali bila kolom `harga` belum ada (`PaymentHelper::ensureSchema`); file ini juga aman dijalankan manual berulang kali. Tabel dan data yang sudah ada tidak diubah atau dihapus.
+
+## Scan tiket (Event Owner)
+
+Route: `/event-owner/scan-tiket?id=<UUID acara>` (juga tab **Scan tiket** di setiap halaman acara, serta tombol di *Acara saya* dan *Ringkasan*). Hanya acara berstatus `TERBIT` yang bisa dipindai.
+
+```text
+EO buka Scan tiket -> scan QR e-ticket mahasiswa -> POST /api/scanner/scan
+  -> identitas peserta + notifikasi "TERDAFTAR" -> tiket menjadi SUDAH_PAKAI
+```
+
+| Berkas | Peran |
+| --- | --- |
+| `pages/event-owner/scan-tiket.php` | Halaman (statistik hadir, kartu hasil, check-in terbaru) |
+| `pages/event-owner/scan-tiket.js` | Kamera, foto QR, input kode/scanner USB, tampilan hasil |
+| `api/controllers/ScannerController.php` | Validasi: tanda tangan QR, milik EO, acara sama, sekali pakai, status tiket |
+
+Hasil yang mungkin: **Terdaftar** (hijau), **Sudah check-in** (kuning), serta penolakan (merah): QR tidak valid, tiket tidak ditemukan, acara berbeda, belum bayar / batal, bukan acara Anda.
+
+Catatan penggunaan:
+
+- Kamera browser hanya jalan di **HTTPS atau `http://localhost`**. Di HP lewat IP LAN (http) pakai *Unggah foto QR* atau kolom kode.
+- Browser tanpa `BarcodeDetector` (mis. Chrome desktop Windows/Linux) memuat pustaka jsQR dari CDN. Untuk **presentasi offline**, unduh `jsQR.min.js` (jsQR 1.4.0) dan simpan sebagai `assets/jsQR.min.js`.
+- Tidak ada perubahan skema database.

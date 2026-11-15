@@ -2296,3 +2296,446 @@ select.input {
   pointer-events: none;
   transition: opacity 0.22s ease;
 }
+
+/* ==========================================================================
+   Scan tiket (Event Owner) — pages/event-owner/scan-tiket.php
+   ========================================================================== */
+.scan-grid {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.scan-col {
+  flex: 1 1 0;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.scan-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #0e1128;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.scan-stage video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+}
+
+.scan-stage.is-live video {
+  display: block;
+}
+
+.scan-frame {
+  position: absolute;
+  inset: 16% 22%;
+  display: none;
+  overflow: hidden;
+  pointer-events: none;
+  border: 3px solid rgba(255, 255, 255, 0.92);
+  border-radius: 16px;
+  box-shadow: 0 0 0 999px rgba(14, 17, 40, 0.38);
+}
+
+.scan-stage.is-live .scan-frame {
+  display: block;
+}
+
+.scan-line {
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  top: 6%;
+  height: 2px;
+  background: #8f7dff;
+  box-shadow: 0 0 10px #8f7dff;
+  animation: scan-sweep 1.8s ease-in-out infinite alternate;
+}
+
+@keyframes scan-sweep {
+  to {
+    top: 94%;
+  }
+}
+
+.scan-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 24px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 21px;
+  color: #c9cbdc;
+}
+
+.scan-placeholder b {
+  font-size: 16px;
+  color: #ffffff;
+}
+
+.scan-stage.is-live .scan-placeholder {
+  display: none;
+}
+
+.scan-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.scan-manual {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #e4e4ee;
+}
+
+.scan-manual-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.scan-sound {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  font-size: 13px;
+  color: #5f6483;
+}
+
+/* Kartu hasil pemindaian */
+.scan-result {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  border-left: 6px solid #c9cbdc;
+  transition: background 0.2s;
+}
+
+.scan-result-icon {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #f1f1f7;
+  color: #5f6483;
+}
+
+.scan-result-icon svg {
+  width: 30px;
+  height: 30px;
+}
+
+.scan-result-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.scan-result-kicker {
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  color: #5f6483;
+}
+
+.scan-result-title {
+  margin: 2px 0 4px;
+  font-size: 24px;
+  line-height: 30px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.scan-result-msg {
+  font-size: 14px;
+  line-height: 21px;
+  color: #4b5170;
+}
+
+.scan-detail {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 16px;
+  margin: 16px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid #e4e4ee;
+  font-size: 14px;
+  line-height: 21px;
+}
+
+.scan-detail dt {
+  padding-top: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #5f6483;
+}
+
+.scan-detail dd {
+  margin: 0;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.scan-result.is-ok {
+  border-left-color: #15803d;
+  background: #f3fbf5;
+}
+
+.scan-result.is-ok .scan-result-icon {
+  background: #15803d;
+  color: #ffffff;
+}
+
+.scan-result.is-ok .scan-result-kicker {
+  color: #15803d;
+}
+
+.scan-result.is-warn {
+  border-left-color: #b45309;
+  background: #fff9ef;
+}
+
+.scan-result.is-warn .scan-result-icon {
+  background: #b45309;
+  color: #ffffff;
+}
+
+.scan-result.is-warn .scan-result-kicker {
+  color: #b45309;
+}
+
+.scan-result.is-bad {
+  border-left-color: #b91c1c;
+  background: #fff5f5;
+}
+
+.scan-result.is-bad .scan-result-icon {
+  background: #b91c1c;
+  color: #ffffff;
+}
+
+.scan-result.is-bad .scan-result-kicker {
+  color: #b91c1c;
+}
+
+.scan-result.is-loading {
+  border-left-color: #4b34db;
+}
+
+.scan-result.is-loading .scan-result-icon {
+  background: #f1f0ff;
+  color: #4b34db;
+}
+
+.scan-result.is-loading .scan-result-icon svg {
+  animation: scan-spin 0.8s linear infinite;
+}
+
+.scan-result.is-pop {
+  animation: scan-pop 0.35s ease-out;
+}
+
+@keyframes scan-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes scan-pop {
+  0% {
+    transform: scale(0.97);
+  }
+  60% {
+    transform: scale(1.015);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Check-in terbaru */
+.scan-recent {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.scan-recent li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #eeeef5;
+  font-size: 14px;
+  line-height: 21px;
+}
+
+.scan-recent li:last-child {
+  border-bottom: 0;
+}
+
+.scan-recent li > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.scan-recent-time {
+  flex: none;
+  font-size: 13px;
+  color: #5f6483;
+}
+
+.scan-recent li.is-new {
+  animation: scan-flash 1.4s ease-out;
+}
+
+@keyframes scan-flash {
+  from {
+    background: #e8f6ec;
+  }
+  to {
+    background: transparent;
+  }
+}
+
+/* Notifikasi singkat di atas layar */
+.scan-toast {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  z-index: 60;
+  max-width: min(92vw, 440px);
+  padding: 12px 18px;
+  transform: translateX(-50%);
+  border-radius: 10px;
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 700;
+  color: #ffffff;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(14, 17, 40, 0.25);
+}
+
+.scan-toast[hidden] {
+  display: none;
+}
+
+.scan-toast.is-ok {
+  background: #15803d;
+}
+
+.scan-toast.is-warn {
+  background: #b45309;
+}
+
+.scan-toast.is-bad {
+  background: #b91c1c;
+}
+
+@media (max-width: 900px) {
+  /* Statistik dibuat ringkas satu baris agar kamera cepat terlihat */
+  #scanner-app .metrics {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  #scanner-app .metric {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 12px;
+  }
+
+  #scanner-app .metric-value {
+    font-size: 22px;
+    line-height: 28px;
+  }
+
+  #scanner-app .metric-note {
+    display: none;
+  }
+
+  .scan-grid {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .scan-col {
+    flex: none;
+    width: 100%;
+  }
+
+  /* Kartu hasil & riwayat jadi anak langsung .scan-grid supaya hasil bisa menempel di bawah layar */
+  .scan-col-result {
+    display: contents;
+  }
+
+  /* Di HP, hasil scan menempel di bawah layar: kamera tetap terlihat di atas, identitas peserta di bawah */
+  #scan-result {
+    position: sticky;
+    bottom: 8px;
+    z-index: 20;
+    max-height: 42vh;
+    overflow-y: auto;
+    gap: 12px;
+    padding: 16px;
+    box-shadow: 0 8px 28px rgba(14, 17, 40, 0.28);
+  }
+
+  .scan-stage {
+    aspect-ratio: 16 / 10;
+  }
+
+  .scan-result-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .scan-result-icon svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .scan-result-title {
+    font-size: 20px;
+    line-height: 26px;
+  }
+
+  .scan-detail {
+    gap: 4px 12px;
+    margin-top: 12px;
+    padding-top: 10px;
+    font-size: 13px;
+    line-height: 19px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scan-line,
+  .scan-result.is-pop,
+  .scan-result.is-loading .scan-result-icon svg,
+  .scan-recent li.is-new {
+    animation: none;
+  }
+}
