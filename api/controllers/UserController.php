@@ -8,13 +8,15 @@ require_once __DIR__ . '/../helpers/AuthHelper.php';
  * Controller Modul User & Manajemen Pengguna (Tixora)
  * Mengelola eksplorasi event, pendaftaran tiket, profil akun saya, ganti kata sandi, dan daftar pengguna.
  */
-class UserController {
+class UserController
+{
     /** Status acara yang tampil & bisa didaftar publik (disamakan dengan halaman web). */
     private const OPEN_STATUSES = ['TERBIT', 'PUBLISHED', 'DISETUJUI'];
 
     private PDO $db;
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->db = Database::getInstance()->getConnection();
     }
 
@@ -23,7 +25,8 @@ class UserController {
      * Mengambil daftar event publik yang berstatus TERBIT / PUBLISHED
      * Mengoperasikan parameter Query: search, kategori, sortBy
      */
-    public function getActiveEvents(): void {
+    public function getActiveEvents(): void
+    {
         try {
             $search = trim($_GET['search'] ?? '');
             $kategori = trim($_GET['kategori'] ?? '');
@@ -38,7 +41,7 @@ class UserController {
                 JOIN users u ON e.owner_id = u.id
                 WHERE e.status_verifikasi IN ('TERBIT', 'PUBLISHED', 'DISETUJUI')
             ";
-            
+
             $params = [];
 
             // Filter Kategori (jika ada dan bukan 'Semua')
@@ -72,8 +75,8 @@ class UserController {
 
             // Hitung sisa kuota untuk setiap event
             foreach ($events as &$event) {
-                $totalPendaftar = (int)($event['total_pendaftar'] ?? 0);
-                $event['sisa_kuota'] = max(0, (int)$event['kuota'] - $totalPendaftar);
+                $totalPendaftar = (int) ($event['total_pendaftar'] ?? 0);
+                $event['sisa_kuota'] = max(0, (int) $event['kuota'] - $totalPendaftar);
             }
 
             echo json_encode([
@@ -94,7 +97,8 @@ class UserController {
     /**
      * Mengambil detail event publik berdasarkan ID-nya
      */
-    public function getEventById(string $eventId): void {
+    public function getEventById(string $eventId): void
+    {
         try {
             // Ambil detail event yang statusnya TERBIT / PUBLISHED
             $stmt = $this->db->prepare("
@@ -109,7 +113,7 @@ class UserController {
             if (!$event) {
                 http_response_code(404);
                 echo json_encode([
-                    'success' => false, 
+                    'success' => false,
                     'message' => 'Event tidak ditemukan atau belum dipublikasikan.'
                 ]);
                 return;
@@ -140,9 +144,9 @@ class UserController {
                 WHERE event_id = :event_id AND status_tiket != 'BATAL'
             ");
             $stmtCount->execute(['event_id' => $eventId]);
-            $totalTerdaftar = (int)$stmtCount->fetchColumn();
+            $totalTerdaftar = (int) $stmtCount->fetchColumn();
 
-            $event['sisa_kuota'] = max(0, (int)$event['kuota'] - $totalTerdaftar);
+            $event['sisa_kuota'] = max(0, (int) $event['kuota'] - $totalTerdaftar);
             $event['kategori_tiket'] = $kategoriTiket;
             $event['rundowns'] = $rundowns;
 
@@ -169,9 +173,10 @@ class UserController {
      * Body JSON: event_id (wajib), ticket_category_id (wajib jika acara punya kategori),
      *            no_whatsapp, institusi (opsional)
      */
-    public function registerEvent(): void {
+    public function registerEvent(): void
+    {
         AuthHelper::initSession();
-        AuthHelper::checkRole('USER'); // Hanya role USER yang dapat mendaftar
+        AuthHelper::checkRole(AuthHelper::ROLE_USER); // Hanya role USER yang dapat mendaftar
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             http_response_code(405);
@@ -181,8 +186,8 @@ class UserController {
 
         $userId = $_SESSION['user']['id'];
         $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
-        $eventId = (string)($input['event_id'] ?? '');
-        $categoryId = (string)($input['ticket_category_id'] ?? '');
+        $eventId = (string) ($input['event_id'] ?? '');
+        $categoryId = (string) ($input['ticket_category_id'] ?? '');
         $noWhatsApp = trim($input['no_whatsapp'] ?? '');
         $institusi = trim($input['institusi'] ?? '');
 
@@ -225,7 +230,7 @@ class UserController {
             // 2. Kuota total event (semua tiket selain BATAL, termasuk yang sudah check-in)
             $stmtCount = $this->db->prepare("SELECT COUNT(*) FROM tickets WHERE event_id = :event_id AND status_tiket != 'BATAL'");
             $stmtCount->execute(['event_id' => $eventId]);
-            if ((int)$stmtCount->fetchColumn() >= (int)$event['kuota']) {
+            if ((int) $stmtCount->fetchColumn() >= (int) $event['kuota']) {
                 throw new DomainException('Mohon maaf, kuota pendaftaran untuk event ini sudah penuh!');
             }
 
@@ -243,7 +248,7 @@ class UserController {
             // 4. Kategori tiket: wajib dipilih bila acara punya kategori; kuota & harga dibaca dari DB
             $stmtCats = $this->db->prepare("SELECT COUNT(*) FROM ticket_categories WHERE event_id = :event_id");
             $stmtCats->execute(['event_id' => $eventId]);
-            $punyaKategori = (int)$stmtCats->fetchColumn() > 0;
+            $punyaKategori = (int) $stmtCats->fetchColumn() > 0;
 
             $jenisTiket = 'Umum';
             $ticketCatId = null;
@@ -262,12 +267,12 @@ class UserController {
                 if (!$cat) {
                     throw new DomainException('Kategori tiket tidak ditemukan untuk acara ini.');
                 }
-                if ((float)$cat['harga'] > 0) {
+                if ((float) $cat['harga'] > 0) {
                     throw new DomainException('Kategori tiket ini berbayar. Silakan pesan melalui halaman pendaftaran agar dapat membayar.');
                 }
                 $stmtCatCount = $this->db->prepare("SELECT COUNT(*) FROM tickets WHERE ticket_category_id = :id AND status_tiket != 'BATAL'");
                 $stmtCatCount->execute(['id' => $cat['id']]);
-                if ((int)$stmtCatCount->fetchColumn() >= (int)$cat['kuota']) {
+                if ((int) $stmtCatCount->fetchColumn() >= (int) $cat['kuota']) {
                     throw new DomainException('Maaf, kuota untuk kategori tiket ini sudah penuh.');
                 }
                 $jenisTiket = $cat['nama_kategori'];
@@ -283,10 +288,10 @@ class UserController {
                         updated_at = CURRENT_TIMESTAMP
                     WHERE id = :user_id
                 ")->execute([
-                    'no_whatsapp' => $noWhatsApp,
-                    'institusi' => $institusi,
-                    'user_id' => $userId
-                ]);
+                            'no_whatsapp' => $noWhatsApp,
+                            'institusi' => $institusi,
+                            'user_id' => $userId
+                        ]);
             }
 
             // 6. Kode tiket unik (Format: TXR-YYYYMMDD-Random), diulang bila bentrok
@@ -305,12 +310,12 @@ class UserController {
                 INSERT INTO tickets (event_id, ticket_category_id, user_id, kode_tiket, jenis_tiket, status_tiket, status_kehadiran)
                 VALUES (:event_id, :ticket_category_id, :user_id, :kode_tiket, :jenis_tiket, 'AKTIF', FALSE)
             ")->execute([
-                'event_id' => $eventId,
-                'ticket_category_id' => $ticketCatId,
-                'user_id' => $userId,
-                'kode_tiket' => $kodeTiket,
-                'jenis_tiket' => $jenisTiket
-            ]);
+                        'event_id' => $eventId,
+                        'ticket_category_id' => $ticketCatId,
+                        'user_id' => $userId,
+                        'kode_tiket' => $kodeTiket,
+                        'jenis_tiket' => $jenisTiket
+                    ]);
 
             $this->db->commit();
 
@@ -344,13 +349,18 @@ class UserController {
     /**
      * 3. Memperbarui Profil Pengguna (Halaman Akun Saya)
      */
-    public function updateProfile(): void {
+    public function updateProfile(): void
+    {
         AuthHelper::initSession();
-        AuthHelper::checkAnyRole(['USER', 'EVENT_OWNER', 'ADMIN']);
+        AuthHelper::checkAnyRole([
+            AuthHelper::ROLE_USER,
+            AuthHelper::ROLE_EVENT_OWNER,
+            AuthHelper::ROLE_ADMIN,
+        ]);
 
         $userId = $_SESSION['user']['id'];
         $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
-        
+
         $nama = trim($input['nama'] ?? '');
         $noWhatsApp = trim($input['no_whatsapp'] ?? '');
         $institusi = trim($input['institusi'] ?? '');
@@ -395,14 +405,19 @@ class UserController {
      * Wajib menyertakan kata sandi lama, supaya sesi yang dibajak tidak langsung bisa
      * mengambil alih akun.
      */
-    public function changePassword(): void {
+    public function changePassword(): void
+    {
         AuthHelper::initSession();
-        AuthHelper::checkAnyRole(['USER', 'EVENT_OWNER', 'ADMIN']);
+        AuthHelper::checkAnyRole([
+            AuthHelper::ROLE_USER,
+            AuthHelper::ROLE_EVENT_OWNER,
+            AuthHelper::ROLE_ADMIN,
+        ]);
 
         $userId = $_SESSION['user']['id'];
         $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
-        $kataSandiLama = (string)($input['kata_sandi_lama'] ?? '');
-        $kataSandiBaru = (string)($input['kata_sandi_baru'] ?? '');
+        $kataSandiLama = (string) ($input['kata_sandi_lama'] ?? '');
+        $kataSandiBaru = (string) ($input['kata_sandi_baru'] ?? '');
 
         if ($kataSandiLama === '') {
             http_response_code(400);
@@ -420,7 +435,7 @@ class UserController {
             $stmtOld->execute(['id' => $userId]);
             $hashLama = $stmtOld->fetchColumn();
 
-            if (!$hashLama || !password_verify($kataSandiLama, (string)$hashLama)) {
+            if (!$hashLama || !password_verify($kataSandiLama, (string) $hashLama)) {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => 'Kata sandi lama tidak sesuai.']);
                 return;
@@ -440,4 +455,4 @@ class UserController {
             echo json_encode(['success' => false, 'message' => 'Gagal mengubah kata sandi. Terjadi kesalahan pada server, silakan coba lagi.']);
         }
     }
-} 
+}
