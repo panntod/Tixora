@@ -73,7 +73,7 @@ EO::open($db, $owner, $event, 'scan-tiket', $subtitle, $actions, 'Scan tiket', '
                             <div class="metric-note">tidak termasuk yang batal / belum bayar</div>
                         </div>
                     </div>
-
+                    <div class="scan-toast" id="scan-toast" role="alert" aria-live="assertive" hidden></div>
                     <div class="scan-grid">
                         <div class="card scan-col">
                             <h2 class="card-title" style="margin-bottom:12px">Pindai QR tiket</h2>
@@ -136,8 +136,6 @@ EO::open($db, $owner, $event, 'scan-tiket', $subtitle, $actions, 'Scan tiket', '
                         </div>
                     </div>
                 </div>
-
-                <div class="scan-toast" id="scan-toast" role="alert" aria-live="assertive" hidden></div>
                 <?php endif; ?>
 <?php
 $script = $canScan

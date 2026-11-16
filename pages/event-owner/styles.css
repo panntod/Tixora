@@ -2498,17 +2498,17 @@ select.input {
 }
 
 .scan-result.is-ok {
-  border-left-color: #15803d;
-  background: #f3fbf5;
+  border-left-color: #E8F0FE;
+  background: #E8F0FE;
 }
 
 .scan-result.is-ok .scan-result-icon {
-  background: #15803d;
+  background: #4B34DB;
   color: #ffffff;
 }
 
 .scan-result.is-ok .scan-result-kicker {
-  color: #15803d;
+  color: #E8F0FE;
 }
 
 .scan-result.is-warn {
@@ -2621,20 +2621,12 @@ select.input {
 
 /* Notifikasi singkat di atas layar */
 .scan-toast {
-  position: fixed;
-  top: 16px;
-  left: 50%;
-  z-index: 60;
-  max-width: min(92vw, 440px);
-  padding: 12px 18px;
-  transform: translateX(-50%);
-  border-radius: 10px;
-  font-size: 15px;
-  line-height: 22px;
-  font-weight: 700;
-  color: #ffffff;
-  text-align: center;
-  box-shadow: 0 8px 24px rgba(14, 17, 40, 0.25);
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 21px;
+  font-weight: 500;
 }
 
 .scan-toast[hidden] {
@@ -2642,15 +2634,18 @@ select.input {
 }
 
 .scan-toast.is-ok {
-  background: #15803d;
+  background: #e8f6ec;
+  color: #166534;
 }
 
 .scan-toast.is-warn {
-  background: #b45309;
+  background: #fef3e2;
+  color: #92400e;
 }
 
 .scan-toast.is-bad {
-  background: #b91c1c;
+  background: #fdecec;
+  color: #991b1b;
 }
 
 @media (max-width: 900px) {

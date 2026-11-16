@@ -407,8 +407,6 @@
         t.className = 'scan-toast is-' + state;
         t.textContent = text;
         t.hidden = false;
-        clearTimeout(toastTimer);
-        toastTimer = setTimeout(function () { t.hidden = true; }, TOAST_MS);
     }
 
     function toInt(el) { return parseInt(el.textContent, 10) || 0; }
