@@ -8,26 +8,29 @@ require_once __DIR__ . '/../helpers/AuthHelper.php';
  * Controller Modul Admin (Pengelola Sistem Tixora)
  * Mengelola Dasbor Statistik, Antrean & Detail Event, Moderasi (Approve/Reject), Manajemen Pengguna, Laporan, dan Notifikasi.
  */
-class AdminController {
+class AdminController
+{
     private PDO $db;
 
-    public function __construct() {
+    public function __construct()
+    {
         AuthHelper::initSession();
         AuthHelper::checkRole(AuthHelper::ROLE_ADMIN); // Proteksi RBAC ketat khusus ADMIN
-        
+
         $this->db = Database::getInstance()->getConnection();
     }
 
     /**
      * 1. Dashboard Statistik Singkat & Aktivitas Terbaru
      */
-    public function getDashboardStats(): void {
+    public function getDashboardStats(): void
+    {
         try {
-            $totalPengguna = (int)$this->db->query("SELECT COUNT(*) FROM users")->fetchColumn();
-            $totalAcara = (int)$this->db->query("SELECT COUNT(*) FROM events")->fetchColumn();
-            $totalTransaksi = (int)$this->db->query("SELECT COUNT(*) FROM tickets WHERE status_tiket != 'BATAL'")->fetchColumn();
-            $menungguTinjauan = (int)$this->db->query("SELECT COUNT(*) FROM events WHERE status_verifikasi = 'MENUNGGU_TINJAUAN'")->fetchColumn();
-            $acaraTerbit = (int)$this->db->query("SELECT COUNT(*) FROM events WHERE status_verifikasi = 'TERBIT'")->fetchColumn();
+            $totalPengguna = (int) $this->db->query("SELECT COUNT(*) FROM users")->fetchColumn();
+            $totalAcara = (int) $this->db->query("SELECT COUNT(*) FROM events")->fetchColumn();
+            $totalTransaksi = (int) $this->db->query("SELECT COUNT(*) FROM tickets WHERE status_tiket != 'BATAL'")->fetchColumn();
+            $menungguTinjauan = (int) $this->db->query("SELECT COUNT(*) FROM events WHERE status_verifikasi = 'MENUNGGU_TINJAUAN'")->fetchColumn();
+            $acaraTerbit = (int) $this->db->query("SELECT COUNT(*) FROM events WHERE status_verifikasi = 'TERBIT'")->fetchColumn();
 
             // Event yang perlu tindakan (menunggu tinjauan)
             $stmtPerluTindakan = $this->db->query("
@@ -74,7 +77,8 @@ class AdminController {
     /**
      * 2. Antrean Acara (Daftar & Filter Status, Kategori, Search)[cite: 13]
      */
-    public function getEventQueue(): void {
+    public function getEventQueue(): void
+    {
         try {
             $status = $_GET['status'] ?? null;
             $kategori = $_GET['kategori'] ?? null;
@@ -125,7 +129,8 @@ class AdminController {
     /**
      * 3. Detail Kelengkapan Acara oleh Admin (Termasuk RAB, Panitia, Rundown, Log)
      */
-    public function getAdminEventDetail(string $eventId): void {
+    public function getAdminEventDetail(string $eventId): void
+    {
         try {
             $stmt = $this->db->prepare("
                 SELECT e.*, u.id as owner_id, u.nama as owner_nama, u.email as owner_email, u.no_whatsapp as owner_whatsapp, u.institusi as owner_institusi
@@ -182,7 +187,8 @@ class AdminController {
     /**
      * 4. Verifikasi / Moderasi Event (Approve/Terbit atau Reject/Ditolak dengan Validasi Alasan Min 20 Karakter)[cite: 13]
      */
-    public function verifyEvent(string $eventId): void {
+    public function verifyEvent(string $eventId): void
+    {
         if ($_SERVER['REQUEST_METHOD'] !== 'PATCH' && $_SERVER['REQUEST_METHOD'] !== 'POST') {
             http_response_code(405);
             echo json_encode(['success' => false, 'message' => 'Metode HTTP tidak diizinkan.']);
@@ -190,7 +196,7 @@ class AdminController {
         }
 
         $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
-        $status = strtoupper(trim($input['status'] ?? '')); 
+        $status = strtoupper(trim($input['status'] ?? ''));
         $catatan = trim($input['catatan'] ?? $input['alasan_penolakan'] ?? '');
 
         if (!in_array($status, ['APPROVED', 'DISETUJUI', 'REJECTED', 'DITOLAK'], true)) {
@@ -239,7 +245,9 @@ class AdminController {
             $stmtLog->execute([
                 'event_id' => $eventId,
                 'status' => $statusVerifikasi,
-                'catatan' => $statusVerifikasi === 'TERBIT' ? 'Acara disetujui dan diterbitkan oleh admin.' : "Ditolak oleh admin. Alasan: {$catatan}"
+                'catatan' => $statusVerifikasi === 'DISETUJUI'
+                    ? 'Acara disetujui oleh admin.'
+                    : "Ditolak oleh admin. Alasan: {$catatan}"
             ]);
 
             // Catat log moderasi
@@ -274,7 +282,8 @@ class AdminController {
     /**
      * 5. Manajemen Pengguna (Daftar & Pencarian)
      */
-    public function getAllUsers(): void {
+    public function getAllUsers(): void
+    {
         try {
             $search = $_GET['search'] ?? null;
             $sql = "
@@ -311,7 +320,8 @@ class AdminController {
     /**
      * 6. Tangguhkan / Suspend Akun Pengguna[cite: 13]
      */
-    public function suspendUser(string $userId): void {
+    public function suspendUser(string $userId): void
+    {
         if ($_SERVER['REQUEST_METHOD'] !== 'PATCH' && $_SERVER['REQUEST_METHOD'] !== 'POST') {
             http_response_code(405);
             echo json_encode(['success' => false, 'message' => 'Metode HTTP tidak diizinkan.']);
@@ -380,11 +390,12 @@ class AdminController {
     /**
      * 7. Laporan & Rekapitulasi Platform
      */
-    public function getAdminReports(): void {
+    public function getAdminReports(): void
+    {
         try {
-            $totalTiket = (int)$this->db->query("SELECT COUNT(*) FROM tickets WHERE status_tiket != 'BATAL'")->fetchColumn();
-            $totalEventTerbit = (int)$this->db->query("SELECT COUNT(*) FROM events WHERE status_verifikasi = 'TERBIT'")->fetchColumn();
-            $totalUser = (int)$this->db->query("SELECT COUNT(*) FROM users")->fetchColumn();
+            $totalTiket = (int) $this->db->query("SELECT COUNT(*) FROM tickets WHERE status_tiket != 'BATAL'")->fetchColumn();
+            $totalEventTerbit = (int) $this->db->query("SELECT COUNT(*) FROM events WHERE status_verifikasi = 'TERBIT'")->fetchColumn();
+            $totalUser = (int) $this->db->query("SELECT COUNT(*) FROM users")->fetchColumn();
 
             $stmtEvents = $this->db->query("
                 SELECT e.judul_event, e.kategori, e.tanggal_mulai, e.status_verifikasi, u.nama as owner_nama,
@@ -416,9 +427,10 @@ class AdminController {
     /**
      * 8. Pusat Notifikasi Admin
      */
-    public function getAdminNotifications(): void {
+    public function getAdminNotifications(): void
+    {
         try {
-            $pendingCount = (int)$this->db->query("SELECT COUNT(*) FROM events WHERE status_verifikasi = 'MENUNGGU_TINJAUAN'")->fetchColumn();
+            $pendingCount = (int) $this->db->query("SELECT COUNT(*) FROM events WHERE status_verifikasi = 'MENUNGGU_TINJAUAN'")->fetchColumn();
 
             $notifications = [
                 [
@@ -455,7 +467,8 @@ class AdminController {
     /**
      * 9. Tandai Semua Notifikasi Dibaca
      */
-    public function markAllNotificationsAsRead(): void {
+    public function markAllNotificationsAsRead(): void
+    {
         echo json_encode([
             'success' => true,
             'message' => 'Semua notifikasi berhasil ditandai sebagai dibaca.'
