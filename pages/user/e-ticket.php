@@ -12,13 +12,16 @@ require_once defined('ROOT_DIR') ? ROOT_DIR . '/api/helpers/BannerHelper.php' : 
 require_once defined('ROOT_DIR') ? ROOT_DIR . '/api/helpers/TicketLinkHelper.php' : __DIR__ . '/../../api/helpers/TicketLinkHelper.php';
 
 $db = ViewHelper::getDb();
-$kode = trim((string)($_GET['code'] ?? ''));
-$sig = trim((string)($_GET['s'] ?? ''));
+$kode = trim((string) ($_GET['code'] ?? ''));
+$sig = trim((string) ($_GET['s'] ?? ''));
 
 $ticket = null;
 if (TicketLinkHelper::verify($kode, $sig)) {
     $stmt = $db->prepare("
-        SELECT t.*, e.judul_event, e.kategori, e.banner_url, e.tanggal_mulai, e.nama_tempat, u.nama AS user_nama
+        SELECT t.*, e.judul_event, e.kategori, e.banner_url,
+           e.tanggal_mulai, e.tanggal_selesai,
+           e.status_verifikasi AS event_status,
+           e.nama_tempat, u.nama AS user_nama
         FROM tickets t
         JOIN events e ON t.event_id = e.id
         JOIN users u ON t.user_id = u.id
@@ -33,7 +36,7 @@ header('Cache-Control: no-store');
 
 if (!$ticket) {
     http_response_code(404);
-?>
+    ?>
     <!DOCTYPE html>
     <html lang="id">
 
@@ -48,13 +51,15 @@ if (!$ticket) {
     <body>
         <main style="max-width:390px;margin:96px auto;padding:0 16px;text-align:center;font-family:Arial,sans-serif">
             <h1 style="font-size:20px;color:#0E1128">Tiket tidak valid</h1>
-            <p style="color:#5F6483">Kode QR ini tidak dikenali atau tautannya sudah diubah. Pastikan Anda memindai QR dari e-ticket TIXORA yang asli.</p>
-            <a href="<?= BASE_URL ?>/" class="button button-large secondary-button" style="text-decoration:none;display:inline-block;margin-top:16px">Ke beranda</a>
+            <p style="color:#5F6483">Kode QR ini tidak dikenali atau tautannya sudah diubah. Pastikan Anda memindai QR dari
+                e-ticket TIXORA yang asli.</p>
+            <a href="<?= BASE_URL ?>/" class="button button-large secondary-button"
+                style="text-decoration:none;display:inline-block;margin-top:16px">Ke beranda</a>
         </main>
     </body>
 
     </html>
-<?php
+    <?php
     exit;
 }
 
@@ -62,7 +67,9 @@ $kickerDate = strtoupper(date('D · d M Y', strtotime($ticket['tanggal_mulai']))
 $isCancelled = $ticket['status_tiket'] === 'BATAL';
 $isPending = $ticket['status_tiket'] === 'MENUNGGU_PEMBAYARAN';
 $isUsed = !$isCancelled && !$isPending && (!empty($ticket['status_kehadiran']) || $ticket['status_tiket'] === 'SUDAH_PAKAI');
-$showQr = !$isCancelled && !$isPending;
+$eventCancelled = ($ticket['event_status'] ?? '') === 'BATAL';
+$eventPast = !empty($ticket['tanggal_selesai']) && strtotime($ticket['tanggal_selesai']) < time();
+$showQr = !$isCancelled && !$isPending && !$eventCancelled && !$eventPast;
 
 // URL QR dihitung SEBELUM HTML dikirim, supaya error konfigurasi tidak memotong halaman.
 $qrUrl = '';
@@ -89,7 +96,8 @@ try {
 
 <body>
     <div class="frame">
-        <header style="display:flex;align-items:center;justify-content:space-between;padding:16px 24px;background:#fff;border-bottom:1px solid #E4E4EE">
+        <header
+            style="display:flex;align-items:center;justify-content:space-between;padding:16px 24px;background:#fff;border-bottom:1px solid #E4E4EE">
             <span style="font-weight:700;color:#0E1128">E-Ticket</span>
             <span class="badge badge-purple">TIXORA E-PASS</span>
         </header>
@@ -103,10 +111,14 @@ try {
                     <span class="ticket-notch-right"></span>
 
                     <div class="row-between">
-                        <?php if ($isCancelled): ?>
+                        <?php if ($eventCancelled): ?>
+                            <span class="badge badge-error"><span class="badge-dot"></span>Acara Dibatalkan</span>
+                        <?php elseif ($isCancelled): ?>
                             <span class="badge badge-error"><span class="badge-dot"></span>Dibatalkan</span>
                         <?php elseif ($isPending): ?>
                             <span class="badge badge-neutral"><span class="badge-dot"></span>Menunggu Pembayaran</span>
+                        <?php elseif ($eventPast): ?>
+                            <span class="badge badge-neutral"><span class="badge-dot"></span>Acara Selesai</span>
                         <?php elseif ($isUsed): ?>
                             <span class="badge badge-neutral"><span class="badge-dot"></span>Sudah Hadir</span>
                         <?php else: ?>
@@ -121,6 +133,19 @@ try {
                             <span class="help" style="display:block;margin-top:8px">
                                 <?= $isUsed ? 'Tiket ini sudah di-check-in dan tidak berlaku lagi' : 'Tunjukkan kode QR ini ke panitia di meja registrasi' ?>
                             </span>
+                        </div>
+                    <?php else: ?>
+                        <div class="alert alert-error" style="margin-top:12px">
+                            <?php if ($eventCancelled): ?>
+                                Acara ini telah dibatalkan oleh penyelenggara.
+                            <?php elseif ($eventPast): ?>
+                                Acara ini telah selesai pada
+                                <?= date('d M Y', strtotime($ticket['tanggal_selesai'])) ?>.
+                            <?php elseif ($isCancelled): ?>
+                                Tiket ini telah dibatalkan.
+                            <?php elseif ($isPending): ?>
+                                Tiket aktif setelah pembayaran dikonfirmasi.
+                            <?php endif; ?>
                         </div>
                     <?php endif; ?>
 
@@ -149,7 +174,8 @@ try {
                 </div>
             </div>
 
-            <p class="help" style="text-align:center;margin-top:12px">Kode QR bersifat pribadi dan unik per peserta. Jangan dibagikan kepada orang lain.</p>
+            <p class="help" style="text-align:center;margin-top:12px">Kode QR bersifat pribadi dan unik per peserta.
+                Jangan dibagikan kepada orang lain.</p>
         </main>
     </div>
 
@@ -157,9 +183,9 @@ try {
     <?php if ($showQr): ?>
         <script src="<?= BASE_URL ?>/assets/qr.js"></script>
         <script>
-            <?php if ($qrUrl !== ''): ?>TixoraQR.render('#qr', <?= json_encode($qrUrl, JSON_UNESCAPED_SLASHES) ?>, {
-                label: 'QR Code <?= htmlspecialchars($ticket['kode_tiket'], ENT_QUOTES) ?>'
-            });
+                    <?php if ($qrUrl !== ''): ?>TixoraQR.render('#qr', <?= json_encode($qrUrl, JSON_UNESCAPED_SLASHES) ?>, {
+                            label: 'QR Code <?= htmlspecialchars($ticket['kode_tiket'], ENT_QUOTES) ?>'
+                        });
             <?php endif; ?>
         </script>
     <?php endif; ?>
