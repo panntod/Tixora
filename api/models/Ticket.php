@@ -19,7 +19,7 @@ class Ticket {
         $stmt = $this->db->prepare("
             SELECT t.*, u.nama AS user_nama, u.email AS user_email,
                    u.institusi AS user_institusi, u.no_whatsapp AS user_whatsapp,
-                   e.judul_event, e.owner_id AS event_owner_id
+                   e.judul_event, e.owner_id AS event_owner_id, e.status_verifikasi AS event_status
             FROM tickets t
             JOIN users u ON t.user_id = u.id
             JOIN events e ON t.event_id = e.id

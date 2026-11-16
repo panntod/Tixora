@@ -24,7 +24,8 @@ require_once __DIR__ . '/../models/Ticket.php';
  *   QR_TIDAK_VALID | TIDAK_DITEMUKAN | BUKAN_ACARA_ANDA | ACARA_LAIN |
  *   SUDAH_DIGUNAKAN | TIDAK_AKTIF | BARU_DIGUNAKAN
  */
-class ScannerController {
+class ScannerController
+{
     private PDO $db;
     private Ticket $ticketModel;
 
@@ -34,7 +35,8 @@ class ScannerController {
         'BATAL' => 'dibatalkan',
     ];
 
-    public function __construct() {
+    public function __construct()
+    {
         AuthHelper::initSession();
         // Hanya Event Owner (pemilik acara) atau Admin yang diizinkan melakukan scan tiket
         AuthHelper::checkAnyRole([AuthHelper::ROLE_EVENT_OWNER, AuthHelper::ROLE_ADMIN]);
@@ -43,7 +45,8 @@ class ScannerController {
         $this->ticketModel = new Ticket($this->db);
     }
 
-    private function respond(int $status, bool $success, string $message, ?array $data = null): void {
+    private function respond(int $status, bool $success, string $message, ?array $data = null): void
+    {
         http_response_code($status);
         $body = ['success' => $success, 'message' => $message];
         if ($data !== null) {
@@ -53,12 +56,14 @@ class ScannerController {
     }
 
     /** Respons gagal dengan kode alasan (+ data tambahan seperti identitas peserta). */
-    private function fail(int $status, string $reason, string $message, array $extra = []): void {
+    private function fail(int $status, string $reason, string $message, array $extra = []): void
+    {
         $this->respond($status, false, $message, ['reason' => $reason] + $extra);
     }
 
     /** Identitas peserta yang ditampilkan petugas setelah scan. */
-    private function attendeeData(array $ticket): array {
+    private function attendeeData(array $ticket): array
+    {
         return [
             'kode_tiket' => $ticket['kode_tiket'],
             'nama_peserta' => $ticket['user_nama'],
@@ -71,7 +76,8 @@ class ScannerController {
     }
 
     /** "2026-11-15 09:14:03.123456" -> "2026-11-15 09:14:03" */
-    private function formatTime(?string $timestamp): string {
+    private function formatTime(?string $timestamp): string
+    {
         return $timestamp ? substr($timestamp, 0, 19) : date('Y-m-d H:i:s');
     }
 
@@ -79,15 +85,16 @@ class ScannerController {
      * Isi QR berupa URL e-ticket ber-tanda-tangan (?code=...&s=...).
      * Jika yang dikirim URL, tanda tangannya wajib valid; jika kode polos, cukup dicari di DB.
      */
-    private function extractCode(string $raw, bool &$signatureValid): string {
+    private function extractCode(string $raw, bool &$signatureValid): string
+    {
         $signatureValid = true;
         if (stripos($raw, 'code=') === false) {
             return $raw;
         }
         $query = parse_url($raw, PHP_URL_QUERY) ?: '';
         parse_str($query, $params);
-        $code = trim((string)($params['code'] ?? ''));
-        $sig = trim((string)($params['s'] ?? ''));
+        $code = trim((string) ($params['code'] ?? ''));
+        $sig = trim((string) ($params['s'] ?? ''));
         $signatureValid = TicketLinkHelper::verify($code, $sig);
         return $code;
     }
@@ -95,15 +102,16 @@ class ScannerController {
     /**
      * Memproses pemindaian kode tiket (QR Code Check-in)
      */
-    public function scanTicket(): void {
+    public function scanTicket(): void
+    {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->respond(405, false, 'Metode HTTP tidak diizinkan.');
             return;
         }
 
         $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
-        $raw = trim((string)($input['kode_tiket'] ?? ''));
-        $expectedEventId = trim((string)($input['event_id'] ?? ''));
+        $raw = trim((string) ($input['kode_tiket'] ?? ''));
+        $expectedEventId = trim((string) ($input['event_id'] ?? ''));
 
         if ($raw === '' || strlen($raw) > 600) {
             $this->fail(400, 'QR_TIDAK_VALID', 'Kode tiket wajib disertakan dalam pemindaian.');
@@ -133,7 +141,7 @@ class ScannerController {
             }
 
             // 3. Halaman scanner terikat ke satu acara: tiket acara lain ditolak
-            if ($expectedEventId !== '' && strcasecmp((string)$ticket['event_id'], $expectedEventId) !== 0) {
+            if ($expectedEventId !== '' && strcasecmp((string) $ticket['event_id'], $expectedEventId) !== 0) {
                 $this->fail(
                     409,
                     'ACARA_LAIN',
@@ -144,7 +152,7 @@ class ScannerController {
             }
 
             // 4. Tiket yang sudah dipakai (single-use)
-            if ((bool)$ticket['status_kehadiran'] === true || $ticket['status_tiket'] === 'SUDAH_PAKAI') {
+            if ((bool) $ticket['status_kehadiran'] === true || $ticket['status_tiket'] === 'SUDAH_PAKAI') {
                 $this->fail(
                     409,
                     'SUDAH_DIGUNAKAN',
@@ -157,11 +165,30 @@ class ScannerController {
             // 5. Status keaktifan tiket (menunggu pembayaran / batal tidak boleh masuk)
             if ($ticket['status_tiket'] !== 'AKTIF') {
                 $label = self::STATUS_LABEL[$ticket['status_tiket']]
-                    ?? strtolower(str_replace('_', ' ', (string)$ticket['status_tiket']));
+                    ?? strtolower(str_replace('_', ' ', (string) $ticket['status_tiket']));
                 $this->fail(
                     400,
                     'TIDAK_AKTIF',
                     "Tiket ini tidak dapat digunakan (status: {$label}).",
+                    $this->attendeeData($ticket)
+                );
+                return;
+            }
+
+            // 5.5 Status acara harus TERBIT — mencegah peserta masuk ke event yang dibatalkan
+            if (($ticket['event_status'] ?? '') !== 'TERBIT') {
+                $label = match ($ticket['event_status'] ?? '') {
+                    'BATAL' => 'dibatalkan',
+                    'DITOLAK' => 'ditolak',
+                    'MENUNGGU_TINJAUAN' => 'belum disetujui',
+                    'DISETUJUI' => 'belum diterbitkan',
+                    'SELESAI' => 'sudah selesai',
+                    default => 'tidak aktif',
+                };
+                $this->fail(
+                    409,
+                    'ACARA_TIDAK_AKTIF',
+                    "Acara ini {$label} sehingga tiket tidak dapat digunakan.",
                     $this->attendeeData($ticket)
                 );
                 return;
