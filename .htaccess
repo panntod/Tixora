@@ -1,44 +1,38 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    # RewriteBase /tixora/ (Aktifkan baris ini hanya jika dijalankan di subfolder Laragon tanpa vhost)
 
-    # CSS modul (/user|admin|event-owner/styles.css) dilayani oleh index.php (static file handler)
+    # ------------------------------------------------------------------
+    # 1. Blokir folder sensitif SEBELUM file-serving fallthrough
+    #    (agar /pages/*, /bin/*, /docker/*, dan isi backend internal
+    #     tidak bisa diakses langsung dari browser)
+    # ------------------------------------------------------------------
+    RewriteRule ^(bin|docker)(?:/|$) - [F,L]
+    RewriteRule ^pages(?:/|$) - [F,L]
+    RewriteRule ^api/(config|controllers|helpers|models|migrations)(?:/|$) - [F,L]
 
-    # Jangan rewrite file atau direktori yang sudah ada
+    # ------------------------------------------------------------------
+    # 2. Blokir dotfiles (.env, .env.example, .git, .htaccess, dsb)
+    # ------------------------------------------------------------------
+    RewriteRule (^|/)\. - [F,L]
+
+    # ------------------------------------------------------------------
+    # 3. File & direktori yang memang ada: layani langsung
+    #    (assets/*.js, assets/*.png, site.webmanifest, dll)
+    # ------------------------------------------------------------------
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
 
-    # Blokir akses langsung ke folder pages/
-    RewriteRule ^pages(?:/|$) - [F,L]
-
-    # Routing API ditangani oleh /api/.htaccess
+    # ------------------------------------------------------------------
+    # 4. Serahkan routing API ke /api/.htaccess (yang punya aturan sendiri)
+    # ------------------------------------------------------------------
     RewriteRule ^api(?:/|$) - [L]
 
-    # Routing halaman utama
+    # ------------------------------------------------------------------
+    # 5. Semua request lain → front controller
+    # ------------------------------------------------------------------
     RewriteRule ^ index.php [L]
 </IfModule>
 
 # Nonaktifkan directory listing
 Options -Indexes
-
-# <IfModule mod_rewrite.c>
-#     RewriteEngine On
-#     RewriteBase /tixora/
-
-#     # Jangan rewrite endpoint API
-#     RewriteRule ^api(?:/|$) - [L]
-
-#     # Jangan izinkan akses langsung ke file pages
-#     RewriteRule ^pages(?:/|$) - [F,L]
-
-#     # Jangan rewrite file atau direktori yang tersedia
-#     RewriteCond %{REQUEST_FILENAME} -f [OR]
-#     RewriteCond %{REQUEST_FILENAME} -d
-#     RewriteRule ^ - [L]
-
-#     # Semua request lainnya ditangani router utama
-#     RewriteRule ^ index.php [QSA,L]
-# </IfModule>
-
-# Options -Indexes
