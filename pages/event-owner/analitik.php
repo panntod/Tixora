@@ -35,8 +35,19 @@ if (($_GET['export'] ?? '') === 'csv') {
     $out = fopen('php://output', 'w');
     fwrite($out, "\xEF\xBB\xBF");
     fputcsv($out, ['Tanggal', 'Pendaftar']);
+    
+    // Sanitasi CSV injection (meski data di sini bukan input user langsung,
+    // konsisten dengan laporan admin & proteksi terhadap perubahan query di masa depan).
+    $csvSafe = static function ($v): string {
+        $s = (string) $v;
+        if ($s !== '' && in_array($s[0], ['=', '+', '-', '@', "\t", "\r", "\n"], true)) {
+            return "'" . $s;
+        }
+        return $s;
+    };
+
     foreach ($series as $s) {
-        fputcsv($out, [$s['hari'], $s['n']]);
+        fputcsv($out, [$csvSafe($s['hari']), $s['n']]);
     }
     exit;
 }
@@ -63,62 +74,71 @@ EO::open($db, $owner, $event, 'analitik', $subtitle, $actions, 'Analitik acara',
 $barW = 24;
 $gap = 16;
 ?>
-                <div class="metrics">
-                    <div class="metric">
-                        <div class="metric-label">PENDAPATAN</div>
-                        <div class="metric-value"><?= EO::e(EO::rp($stats['pendapatan'])) ?></div>
-                        <div class="metric-note"><?= EO::e($namaKategori !== '' ? 'Tiket ' . $namaKategori : 'Belum ada kategori tiket') ?></div>
-                    </div>
-                    <div class="metric">
-                        <div class="metric-label">TIKET TERJUAL</div>
-                        <div class="metric-value"><?= $stats['pendaftar'] ?></div>
-                        <div class="metric-note"><?= $stats['persen'] ?>% dari kapasitas</div>
-                    </div>
-                    <div class="metric">
-                        <div class="metric-label">PENDAFTARAN / HARI</div>
-                        <div class="metric-value"><?= $rata ?></div>
-                        <div class="metric-note">Rata-rata <?= HARI_RATA2 ?> hari terakhir</div>
-                    </div>
-                    <div class="metric">
-                        <div class="metric-label">MENUNGGU PEMBAYARAN</div>
-                        <div class="metric-value"><?= $stats['menunggu'] ?></div>
-                        <div class="metric-note"><?= EO::e(EO::rp($stats['tertunda'])) ?> tertunda</div>
-                    </div>
-                </div>
+<div class="metrics">
+    <div class="metric">
+        <div class="metric-label">PENDAPATAN</div>
+        <div class="metric-value"><?= EO::e(EO::rp($stats['pendapatan'])) ?></div>
+        <div class="metric-note">
+            <?= EO::e($namaKategori !== '' ? 'Tiket ' . $namaKategori : 'Belum ada kategori tiket') ?></div>
+    </div>
+    <div class="metric">
+        <div class="metric-label">TIKET TERJUAL</div>
+        <div class="metric-value"><?= $stats['pendaftar'] ?></div>
+        <div class="metric-note"><?= $stats['persen'] ?>% dari kapasitas</div>
+    </div>
+    <div class="metric">
+        <div class="metric-label">PENDAFTARAN / HARI</div>
+        <div class="metric-value"><?= $rata ?></div>
+        <div class="metric-note">Rata-rata <?= HARI_RATA2 ?> hari terakhir</div>
+    </div>
+    <div class="metric">
+        <div class="metric-label">MENUNGGU PEMBAYARAN</div>
+        <div class="metric-value"><?= $stats['menunggu'] ?></div>
+        <div class="metric-note"><?= EO::e(EO::rp($stats['tertunda'])) ?> tertunda</div>
+    </div>
+</div>
 
-                <div class="cols">
-                    <div class="card col-wide" style="box-sizing:border-box">
-                        <h2 class="card-title">Pendaftaran per hari</h2>
-                        <svg width="100%" viewBox="0 0 580 190" role="img" aria-label="Grafik batang pendaftaran per hari selama <?= HARI_GRAFIK ?> hari terakhir"
-                            style="max-width:616px">
-                            <line x1="0" y1="170" x2="580" y2="170" stroke="#E4E4EE" />
-                            <?php foreach ($series as $i => $s):
-                                $h = $s['n'] > 0 ? max(4, (int) round($s['n'] / $max * 156)) : 0;
-                                $isPeak = $peak['n'] > 0 && $s['hari'] === $peak['hari'];
-                                ?>
-                                <rect x="<?= 16 + $i * ($barW + $gap) ?>" y="<?= 170 - $h ?>" width="<?= $barW ?>" height="<?= $h ?>" rx="4"
-                                    fill="<?= $isPeak ? '#4B34DB' : '#C9C5FF' ?>"><title><?= EO::e(EO::tanggalPendek($s['hari'])) ?>: <?= $s['n'] ?> pendaftar</title></rect>
-                            <?php endforeach; ?>
-                        </svg>
-                        <p class="help">
-                            <?= $peak['n'] > 0
-                                ? 'Puncak: ' . $peak['n'] . ' pendaftar pada ' . EO::e(EO::tanggalPendek($peak['hari'])) . '.'
-                                : 'Belum ada pendaftar dalam ' . HARI_GRAFIK . ' hari terakhir.' ?>
-                            Menampilkan <?= HARI_GRAFIK ?> hari terakhir, <?= EO::e(EO::tanggalPendek($series[0]['hari'])) ?>–<?= EO::e(EO::tanggalPendek($series[HARI_GRAFIK - 1]['hari'])) ?>.
-                        </p>
-                    </div>
+<div class="cols">
+    <div class="card col-wide" style="box-sizing:border-box">
+        <h2 class="card-title">Pendaftaran per hari</h2>
+        <svg width="100%" viewBox="0 0 580 190" role="img"
+            aria-label="Grafik batang pendaftaran per hari selama <?= HARI_GRAFIK ?> hari terakhir"
+            style="max-width:616px">
+            <line x1="0" y1="170" x2="580" y2="170" stroke="#E4E4EE" />
+            <?php foreach ($series as $i => $s):
+                $h = $s['n'] > 0 ? max(4, (int) round($s['n'] / $max * 156)) : 0;
+                $isPeak = $peak['n'] > 0 && $s['hari'] === $peak['hari'];
+                ?>
+                <rect x="<?= 16 + $i * ($barW + $gap) ?>" y="<?= 170 - $h ?>" width="<?= $barW ?>" height="<?= $h ?>" rx="4"
+                    fill="<?= $isPeak ? '#4B34DB' : '#C9C5FF' ?>">
+                    <title><?= EO::e(EO::tanggalPendek($s['hari'])) ?>: <?= $s['n'] ?> pendaftar</title>
+                </rect>
+            <?php endforeach; ?>
+        </svg>
+        <p class="help">
+            <?= $peak['n'] > 0
+                ? 'Puncak: ' . $peak['n'] . ' pendaftar pada ' . EO::e(EO::tanggalPendek($peak['hari'])) . '.'
+                : 'Belum ada pendaftar dalam ' . HARI_GRAFIK . ' hari terakhir.' ?>
+            Menampilkan <?= HARI_GRAFIK ?> hari terakhir,
+            <?= EO::e(EO::tanggalPendek($series[0]['hari'])) ?>–<?= EO::e(EO::tanggalPendek($series[HARI_GRAFIK - 1]['hari'])) ?>.
+        </p>
+    </div>
 
-                    <div class="card col-narrow" style="box-sizing:border-box">
-                        <h2 class="card-title">Pendapatan per kategori</h2>
-                        <?php foreach ($categories as $c):
-                            $share = $totalPendapatan > 0 ? (int) round((float) $c['pendapatan'] / $totalPendapatan * 100) : 0;
-                            ?>
-                            <div style="margin-bottom:16px">
-                                <div class="legend-row"><b><?= EO::e($c['nama_kategori']) ?></b><span class="slate"><?= EO::e(EO::rp($c['pendapatan'])) ?></span></div>
-                                <div class="progress"><div class="progress-fill" style="width:<?= $share ?>%"></div></div>
-                            </div>
-                        <?php endforeach; ?>
-                        <?php if (!$categories): ?><p class="slate" style="font-size:14px">Belum ada kategori tiket.</p><?php endif; ?>
-                    </div>
+    <div class="card col-narrow" style="box-sizing:border-box">
+        <h2 class="card-title">Pendapatan per kategori</h2>
+        <?php foreach ($categories as $c):
+            $share = $totalPendapatan > 0 ? (int) round((float) $c['pendapatan'] / $totalPendapatan * 100) : 0;
+            ?>
+            <div style="margin-bottom:16px">
+                <div class="legend-row"><b><?= EO::e($c['nama_kategori']) ?></b><span
+                        class="slate"><?= EO::e(EO::rp($c['pendapatan'])) ?></span></div>
+                <div class="progress">
+                    <div class="progress-fill" style="width:<?= $share ?>%"></div>
                 </div>
+            </div>
+        <?php endforeach; ?>
+        <?php if (!$categories): ?>
+            <p class="slate" style="font-size:14px">Belum ada kategori tiket.</p><?php endif; ?>
+    </div>
+</div>
 <?php EO::close(); ?>

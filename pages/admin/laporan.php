@@ -10,9 +10,9 @@ $activePage = 'laporan';
 
 // === PERIODE ===
 $presetList = [
-    '7'     => '7 hari terakhir',
-    '30'    => '30 hari terakhir',
-    '90'    => '90 hari terakhir',
+    '7' => '7 hari terakhir',
+    '30' => '30 hari terakhir',
+    '90' => '90 hari terakhir',
     'bulan' => 'Bulan ini',
     'tahun' => 'Tahun ini',
     'semua' => 'Semua waktu',
@@ -24,25 +24,25 @@ if (!is_string($periode) || !isset($presetList[$periode])) {
 $allTime = ($periode === 'semua');
 
 $today = new DateTimeImmutable('today');
-$end   = $today;
+$end = $today;
 $start = match ($periode) {
-    '7'     => $today->modify('-6 days'),
-    '30'    => $today->modify('-29 days'),
-    '90'    => $today->modify('-89 days'),
+    '7' => $today->modify('-6 days'),
+    '30' => $today->modify('-29 days'),
+    '90' => $today->modify('-89 days'),
     'bulan' => $today->modify('first day of this month'),
-    'tahun' => $today->setDate((int)$today->format('Y'), 1, 1),
+    'tahun' => $today->setDate((int) $today->format('Y'), 1, 1),
     default => null,
 };
 if ($start === null) {
-    $min   = $db->query("SELECT MIN(created_at) FROM users")->fetchColumn();
-    $start = $min ? new DateTimeImmutable(substr((string)$min, 0, 10)) : $today;
+    $min = $db->query("SELECT MIN(created_at) FROM users")->fetchColumn();
+    $start = $min ? new DateTimeImmutable(substr((string) $min, 0, 10)) : $today;
 }
 
 $qStart = $allTime ? '1970-01-01 00:00:00' : $start->format('Y-m-d') . ' 00:00:00';
-$qEnd   = $end->format('Y-m-d') . ' 23:59:59';
-$range  = ['s' => $qStart, 'e' => $qEnd];
+$qEnd = $end->format('Y-m-d') . ' 23:59:59';
+$range = ['s' => $qStart, 'e' => $qEnd];
 
-$sameYear     = $start->format('Y') === $end->format('Y');
+$sameYear = $start->format('Y') === $end->format('Y');
 $periodeLabel = adm_tgl($start->format('Y-m-d'), !$sameYear) . ' – ' . adm_tgl($end->format('Y-m-d'), true);
 
 // === CSV EXPORT (acara yang dibuat pada periode terpilih) ===
@@ -54,8 +54,24 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     header('Content-Disposition: attachment; filename="tixora-laporan-' . date('Ymd-His') . '.csv"');
     $out = fopen('php://output', 'w');
     fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF)); // BOM untuk Excel
-    fputcsv($out, ['Judul Acara', 'Penyelenggara', 'Kategori', 'Tanggal Mulai', 'Status',
-                   'Total Pendaftar', 'Total Hadir', 'Estimasi RAB']);
+    fputcsv($out, [
+        'Judul Acara',
+        'Penyelenggara',
+        'Kategori',
+        'Tanggal Mulai',
+        'Status',
+        'Total Pendaftar',
+        'Total Hadir',
+        'Estimasi RAB'
+    ]);
+
+    $csvSafe = static function ($v): string {
+        $s = (string) $v;
+        if ($s !== '' && in_array($s[0], ['=', '+', '-', '@', "\t", "\r", "\n"], true)) {
+            return "'" . $s;
+        }
+        return $s;
+    };
 
     $stmt = $db->prepare("
         SELECT e.judul_event, e.kategori, e.tanggal_mulai, e.status_verifikasi,
@@ -71,21 +87,21 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     $stmt->execute($dateParams);
     while ($row = $stmt->fetch()) {
         fputcsv($out, [
-            $row['judul_event'],
-            $row['owner_nama'],
-            $row['kategori'],
+            $csvSafe($row['judul_event']),
+            $csvSafe($row['owner_nama']),
+            $csvSafe($row['kategori']),
             $row['tanggal_mulai'],
             $row['status_verifikasi'],
             $row['pendaftar'],
             $row['hadir'],
-            number_format((float)$row['rab'], 0, ',', '.'),
+            number_format((float) $row['rab'], 0, ',', '.'),
         ]);
     }
     fclose($out);
     exit;
 }
 
-$fmt = fn($n): string => number_format((int)$n, 0, ',', '.');
+$fmt = fn($n): string => number_format((int) $n, 0, ',', '.');
 
 // === METRIK (mengikuti periode) ===
 $stmtSub = $db->prepare("
@@ -98,30 +114,30 @@ $stmtSub = $db->prepare("
 ");
 $stmtSub->execute($range);
 $sub = $stmtSub->fetch();
-$pengajuan = (int)($sub['diajukan'] ?? 0);
-$disetujui = (int)($sub['disetujui'] ?? 0);
-$ditolak   = (int)($sub['ditolak'] ?? 0);
+$pengajuan = (int) ($sub['diajukan'] ?? 0);
+$disetujui = (int) ($sub['disetujui'] ?? 0);
+$ditolak = (int) ($sub['ditolak'] ?? 0);
 
 $stmtBaru = $db->prepare("SELECT COUNT(*) FROM users WHERE created_at >= :s AND created_at <= :e");
 $stmtBaru->execute($range);
-$penggunaBaru  = (int)$stmtBaru->fetchColumn();
-$totalPengguna = (int)$db->query("SELECT COUNT(*) FROM users")->fetchColumn();
+$penggunaBaru = (int) $stmtBaru->fetchColumn();
+$totalPengguna = (int) $db->query("SELECT COUNT(*) FROM users")->fetchColumn();
 
 $stmtTiket = $db->prepare("
     SELECT COUNT(*) FROM tickets
     WHERE status_tiket != 'BATAL' AND waktu_daftar >= :s AND waktu_daftar <= :e
 ");
 $stmtTiket->execute($range);
-$totalTiket = (int)$stmtTiket->fetchColumn();
+$totalTiket = (int) $stmtTiket->fetchColumn();
 
 $stmtNilai = $db->prepare("
     SELECT COALESCE(SUM(jumlah), 0) FROM payments
     WHERE status = 'BERHASIL' AND COALESCE(dibayar_pada, created_at) >= :s AND COALESCE(dibayar_pada, created_at) <= :e
 ");
 $stmtNilai->execute($range);
-$nilaiTransaksi = (float)$stmtNilai->fetchColumn();
+$nilaiTransaksi = (float) $stmtNilai->fetchColumn();
 
-$menungguCount = (int)$db->query("SELECT COUNT(*) FROM events WHERE status_verifikasi = 'MENUNGGU_TINJAUAN'")->fetchColumn();
+$menungguCount = (int) $db->query("SELECT COUNT(*) FROM events WHERE status_verifikasi = 'MENUNGGU_TINJAUAN'")->fetchColumn();
 
 // === GRAFIK 1: pengajuan & persetujuan per minggu (9 minggu terakhir sampai akhir periode) ===
 $jumlahMinggu = 9;
@@ -137,7 +153,7 @@ $stmtWk = $db->prepare("
 ");
 $stmtWk->execute(['ws' => $wkFirst->format('Y-m-d') . ' 00:00:00', 'e' => $qEnd]);
 foreach ($stmtWk->fetchAll() as $row) {
-    $idx = intdiv((int)$wkFirst->diff(new DateTimeImmutable((string)$row['d']))->days, 7);
+    $idx = intdiv((int) $wkFirst->diff(new DateTimeImmutable((string) $row['d']))->days, 7);
     if ($idx < 0 || $idx >= $jumlahMinggu) {
         continue;
     }
@@ -147,12 +163,12 @@ $maxMinggu = 1;
 foreach ($minggu as $m) {
     $maxMinggu = max($maxMinggu, $m['diajukan'], $m['disetujui']);
 }
-$barPct = fn(int $v): int => $v > 0 ? max(4, (int)round($v / $maxMinggu * 100)) : 0;
+$barPct = fn(int $v): int => $v > 0 ? max(4, (int) round($v / $maxMinggu * 100)) : 0;
 
 // === GRAFIK 2: pertumbuhan pengguna (total kumulatif sepanjang periode) ===
 $stmtBefore = $db->prepare("SELECT COUNT(*) FROM users WHERE created_at < :s");
 $stmtBefore->execute(['s' => $qStart]);
-$totalAwal = (int)$stmtBefore->fetchColumn();
+$totalAwal = (int) $stmtBefore->fetchColumn();
 
 $stmtDay = $db->prepare("
     SELECT created_at::date AS d, COUNT(*) AS c
@@ -163,19 +179,19 @@ $stmtDay = $db->prepare("
 $stmtDay->execute($range);
 $perHari = [];
 foreach ($stmtDay->fetchAll() as $row) {
-    $perHari[(string)$row['d']] = (int)$row['c'];
+    $perHari[(string) $row['d']] = (int) $row['c'];
 }
 
-$nHari   = (int)$start->diff($end)->days + 1;
+$nHari = (int) $start->diff($end)->days + 1;
 $running = $totalAwal;
-$seri    = [];
+$seri = [];
 for ($i = 0; $i < $nHari; $i++) {
     $running += $perHari[$start->modify("+{$i} days")->format('Y-m-d')] ?? 0;
     $seri[] = $running;
 }
 $totalAkhir = $running;
 
-$step = max(1, (int)ceil(count($seri) / 40));
+$step = max(1, (int) ceil(count($seri) / 40));
 $titik = [];
 for ($i = 0; $i < count($seri); $i += $step) {
     $titik[] = $seri[$i];
@@ -247,13 +263,15 @@ $topEvent = $stmtTop->fetchAll();
                             <select name="periode" class="input select-input" aria-label="Periode laporan"
                                 onchange="this.form.submit()">
                                 <?php foreach ($presetList as $val => $label): ?>
-                                    <option value="<?= adm_h($val) ?>" <?= (string)$val === $periode ? 'selected' : '' ?>><?= adm_h($label) ?></option>
+                                    <option value="<?= adm_h($val) ?>" <?= (string) $val === $periode ? 'selected' : '' ?>>
+                                        <?= adm_h($label) ?>
+                                    </option>
                                 <?php endforeach; ?>
                             </select>
                             <noscript><button type="submit" class="button secondary-button">Terapkan</button></noscript>
                         </form>
                         <a href="<?= BASE_URL ?>/admin/laporan?periode=<?= urlencode($periode) ?>&export=csv"
-                           class="button secondary-button">Ekspor CSV</a>
+                            class="button secondary-button">Ekspor CSV</a>
                         <button type="button" class="button primary-button" style="cursor:pointer"
                             onclick="window.print()">Unduh laporan PDF</button>
                     </div>
@@ -292,14 +310,15 @@ $topEvent = $stmtTop->fetchAll();
                                 $wAkhir = $wMulai->modify('+6 days');
                                 $tip = adm_tgl($wMulai->format('Y-m-d')) . ' – ' . adm_tgl($wAkhir->format('Y-m-d'))
                                     . ': ' . $m['diajukan'] . ' diajukan, ' . $m['disetujui'] . ' disetujui';
-                            ?>
+                                ?>
                                 <div class="wk-group" title="<?= adm_h($tip) ?>">
                                     <span class="wk-bar wk-light" style="height:<?= $barPct($m['diajukan']) ?>%"></span>
                                     <span class="wk-bar wk-dark" style="height:<?= $barPct($m['disetujui']) ?>%"></span>
                                 </div>
                             <?php endforeach; ?>
                         </div>
-                        <p class="chart-note">Ungu muda: diajukan · ungu tua: disetujui. <?= $jumlahMinggu ?> minggu terakhir.</p>
+                        <p class="chart-note">Ungu muda: diajukan · ungu tua: disetujui. <?= $jumlahMinggu ?> minggu
+                            terakhir.</p>
                     </div>
 
                     <div class="card">
