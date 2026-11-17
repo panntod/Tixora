@@ -18,7 +18,7 @@ $sql = "
            COALESCE((SELECT MIN(c.harga) FROM ticket_categories c WHERE c.event_id = e.id), 0) as harga_mulai
     FROM events e
     JOIN users u ON e.owner_id = u.id
-    WHERE e.status_verifikasi IN ('TERBIT', 'PUBLISHED', 'DISETUJUI')
+    WHERE e.status_verifikasi = 'TERBIT'
 ";
 $params = [];
 
