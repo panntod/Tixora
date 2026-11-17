@@ -664,24 +664,69 @@ class OwnerController
         }
 
         try {
-            $stmtCheck = $this->db->prepare("SELECT id, status_verifikasi FROM events WHERE id = :id AND owner_id = :owner_id");
-            $stmtCheck->execute(['id' => $eventId, 'owner_id' => $this->ownerId]);
-            $event = $stmtCheck->fetch();
+            $this->db->beginTransaction();
 
-            if (!$event || !in_array($event['status_verifikasi'], ['TERBIT', 'DISETUJUI', 'APPROVED'])) {
-                http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Acara belum disetujui oleh admin atau tidak valid untuk diterbitkan.']);
+            // Hanya DISETUJUI yang bisa di-publish (TERBIT = idempotent success)
+            $stmtCheck = $this->db->prepare("
+            SELECT status_verifikasi FROM events
+            WHERE id = :id AND owner_id = :owner_id
+        ");
+            $stmtCheck->execute(['id' => $eventId, 'owner_id' => $this->ownerId]);
+            $current = $stmtCheck->fetch();
+
+            if (!$current) {
+                $this->db->rollBack();
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Acara tidak ditemukan.']);
                 return;
             }
 
-            $stmt = $this->db->prepare("UPDATE events SET status_verifikasi = 'TERBIT', updated_at = CURRENT_TIMESTAMP WHERE id = :id");
-            $stmt->execute(['id' => $eventId]);
+            if ($current['status_verifikasi'] === 'TERBIT') {
+                $this->db->rollBack();
+                echo json_encode(['success' => true, 'message' => 'Acara sudah dalam status terbit.']);
+                return;
+            }
 
-            echo json_encode(['success' => true, 'message' => 'Acara berhasil dipublikasikan secara resmi.']);
+            if ($current['status_verifikasi'] !== 'DISETUJUI') {
+                $this->db->rollBack();
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => "Acara belum disetujui admin (status: {$current['status_verifikasi']})."
+                ]);
+                return;
+            }
+
+            // Atomic update — guard terhadap race condition
+            $stmt = $this->db->prepare("
+            UPDATE events
+            SET status_verifikasi = 'TERBIT', updated_at = CURRENT_TIMESTAMP
+            WHERE id = :id AND owner_id = :owner_id AND status_verifikasi = 'DISETUJUI'
+        ");
+            $stmt->execute(['id' => $eventId, 'owner_id' => $this->ownerId]);
+
+            if ($stmt->rowCount() === 0) {
+                $this->db->rollBack();
+                http_response_code(409);
+                echo json_encode(['success' => false, 'message' => 'Status acara berubah. Muat ulang dan coba lagi.']);
+                return;
+            }
+
+            // Log audit — ini yang sebelumnya hilang
+            $this->db->prepare("
+            INSERT INTO event_submission_logs (event_id, status, catatan)
+            VALUES (:event_id, 'TERBIT', 'Acara diterbitkan oleh penyelenggara.')
+        ")->execute(['event_id' => $eventId]);
+
+            $this->db->commit();
+            echo json_encode(['success' => true, 'message' => 'Acara berhasil dipublikasikan.']);
         } catch (PDOException $e) {
-            http_response_code(500);
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
-            echo json_encode(['success' => false, 'message' => 'Gagal mempublikasikan acara. Terjadi kesalahan pada server, silakan coba lagi.']);
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Gagal mempublikasikan acara. Terjadi kesalahan pada server.']);
         }
     }
 
