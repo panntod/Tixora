@@ -23,8 +23,12 @@ if ($search !== '') {
     $params['s'] = "%{$search}%";
 }
 if ($roleFilter !== '') {
-    $sql .= " AND u.role_id = :role";
-    $params['role'] = $roleFilter;
+    if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $roleFilter)) {
+        $sql .= " AND u.role_id = :role";
+        $params['role'] = $roleFilter;
+    } else {
+        $roleFilter = ''; // abaikan filter invalid, tampilkan semua
+    }
 }
 $sql .= " ORDER BY u.created_at DESC LIMIT 100";
 
