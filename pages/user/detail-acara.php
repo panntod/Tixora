@@ -17,7 +17,7 @@ if (!empty($eventId)) {
                (SELECT COUNT(*) FROM tickets t WHERE t.event_id = e.id AND t.status_tiket != 'BATAL') as total_pendaftar
         FROM events e
         JOIN users u ON e.owner_id = u.id
-        WHERE e.id = :id
+        WHERE e.id = :id AND e.status_verifikasi = 'TERBIT'
     ");
     $stmt->execute(['id' => $eventId]);
     $event = $stmt->fetch();
@@ -50,7 +50,7 @@ if ($isGuest && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
 }
 
 $sisaKuota = max(0, (int) $event['kuota'] - (int) $event['total_pendaftar']);
-$eventTerbuka = in_array($event['status_verifikasi'], ['TERBIT', 'PUBLISHED', 'DISETUJUI'], true)
+$eventTerbuka = $event['status_verifikasi'] === 'TERBIT'
     && strtotime($event['tanggal_selesai']) > time();
 
 // Kategori yang masih punya kursi; kategori pertama yang tersedia dipilih secara bawaan

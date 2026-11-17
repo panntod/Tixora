@@ -11,7 +11,7 @@ require_once __DIR__ . '/../helpers/AuthHelper.php';
 class UserController
 {
     /** Status acara yang tampil & bisa didaftar publik (disamakan dengan halaman web). */
-    private const OPEN_STATUSES = ['TERBIT', 'PUBLISHED', 'DISETUJUI'];
+    private const OPEN_STATUSES = ['TERBIT'];
 
     private PDO $db;
 
@@ -39,7 +39,7 @@ class UserController
                        (SELECT COUNT(*) FROM tickets t WHERE t.event_id = e.id AND t.status_tiket != 'BATAL') as total_pendaftar
                 FROM events e
                 JOIN users u ON e.owner_id = u.id
-                WHERE e.status_verifikasi IN ('TERBIT', 'PUBLISHED', 'DISETUJUI')
+                WHERE e.status_verifikasi = 'TERBIT'
             ";
 
             $params = [];
@@ -105,7 +105,7 @@ class UserController
                 SELECT e.*, u.nama as owner_nama, u.email as owner_email 
                 FROM events e
                 JOIN users u ON e.owner_id = u.id
-                WHERE e.id = :id AND e.status_verifikasi IN ('TERBIT', 'PUBLISHED', 'DISETUJUI')
+                WHERE e.id = :id AND e.status_verifikasi = 'TERBIT'
             ");
             $stmt->execute(['id' => $eventId]);
             $event = $stmt->fetch();

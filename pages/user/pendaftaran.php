@@ -11,7 +11,7 @@ PaymentHelper::expireOverdue($db);
 // Wajib login untuk mendaftar tiket (setelah login kembali ke halaman ini)
 $currentUser = ViewHelper::requireLogin(AuthHelper::ROLE_USER);
 
-const EVENT_OPEN_STATUSES = ['TERBIT', 'PUBLISHED', 'DISETUJUI'];
+const EVENT_OPEN_STATUSES = ['TERBIT'];
 
 $eventId = trim($_GET['event_id'] ?? $_POST['event_id'] ?? '');
 $categoryId = trim($_GET['category_id'] ?? $_POST['category_id'] ?? '');
