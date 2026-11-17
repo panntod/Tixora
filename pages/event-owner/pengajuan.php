@@ -24,7 +24,7 @@ $logLabel = static fn(string $s): string => match ($s) {
 };
 
 $canSubmit = in_array($status, ['DRAF', 'DITOLAK'], true);
-$canWithdraw = $status === 'MENUNGGU_TINJAUAN';
+$canWithdraw = in_array($status, ['MENUNGGU_TINJAUAN', 'DISETUJUI'], true);
 $canPublish = $status === 'DISETUJUI';
 
 $actions = '';

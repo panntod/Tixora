@@ -218,24 +218,63 @@ class AdminController
         try {
             $this->db->beginTransaction();
 
-            $stmtCheck = $this->db->prepare("SELECT id FROM events WHERE id = :id");
+            // 1. Ambil status saat ini + validasi
+            $stmtCheck = $this->db->prepare("SELECT id, status_verifikasi FROM events WHERE id = :id");
             $stmtCheck->execute(['id' => $eventId]);
-            if (!$stmtCheck->fetch()) {
-                throw new Exception('Acara tidak ditemukan.');
+            $current = $stmtCheck->fetch();
+
+            if (!$current) {
+                $this->db->rollBack();
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Acara tidak ditemukan.']);
+                return;
             }
 
+            // hanya MENUNGGU_TINJAUAN yang bisa dimoderasi
+            if ($current['status_verifikasi'] !== 'MENUNGGU_TINJAUAN') {
+                $this->db->rollBack();
+
+                // pesan khusus untuk reject event yang sudah disetujui/terbit
+                if ($statusVerifikasi === 'DITOLAK' && in_array($current['status_verifikasi'], ['DISETUJUI', 'TERBIT'], true)) {
+                    http_response_code(409);
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'Acara sudah disetujui/terbit. Minta penyelenggara membatalkan acara, atau gunakan alur penarikan.',
+                    ]);
+                    return;
+                }
+
+                http_response_code(409);
+                echo json_encode([
+                    'success' => false,
+                    'message' => "Acara tidak dalam antrean tinjauan (status: {$current['status_verifikasi']}).",
+                ]);
+                return;
+            }
+
+            // 2. Update dengan guard status
             $stmtUpdate = $this->db->prepare("
-                UPDATE events 
-                SET status_verifikasi = :status_verifikasi, 
-                    alasan_penolakan = :alasan_penolakan, 
-                    updated_at = CURRENT_TIMESTAMP 
-                WHERE id = :id
-            ");
+    UPDATE events
+    SET status_verifikasi = :status_verifikasi,
+        alasan_penolakan = :alasan_penolakan,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = :id AND status_verifikasi = 'MENUNGGU_TINJAUAN'
+");
             $stmtUpdate->execute([
                 'status_verifikasi' => $statusVerifikasi,
                 'alasan_penolakan' => ($statusVerifikasi === 'DITOLAK') ? $catatan : null,
-                'id' => $eventId
+                'id' => $eventId,
             ]);
+
+            if ($stmtUpdate->rowCount() === 0) {
+                $this->db->rollBack();
+                http_response_code(409);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Status acara berubah selama proses. Muat ulang dan coba lagi.',
+                ]);
+                return;
+            }
 
             // Catat log pengajuan
             $stmtLog = $this->db->prepare("

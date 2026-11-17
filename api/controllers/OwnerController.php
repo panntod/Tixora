@@ -635,11 +635,16 @@ class OwnerController
             $stmtCheck->execute(['id' => $eventId, 'owner_id' => $this->ownerId]);
             $event = $stmtCheck->fetch();
 
-            if (!$event || $event['status_verifikasi'] !== 'MENUNGGU_TINJAUAN') {
+            if (!$event || !in_array($event['status_verifikasi'], ['MENUNGGU_TINJAUAN', 'DISETUJUI'], true)) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Acara tidak dapat ditarik kembali ke draf.']);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Acara hanya dapat ditarik saat menunggu tinjauan atau sudah disetujui (belum terbit).'
+                ]);
                 return;
             }
+
+            $previousStatus = $event['status_verifikasi'];
 
             $stmtUpdate = $this->db->prepare("UPDATE events SET status_verifikasi = 'DRAF', updated_at = CURRENT_TIMESTAMP WHERE id = :id");
             $stmtUpdate->execute(['id' => $eventId]);
