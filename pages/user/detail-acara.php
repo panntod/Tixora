@@ -24,20 +24,7 @@ if (!empty($eventId)) {
 }
 
 if (!$event) {
-    // Fallback ke event terbit pertama
-    $stmt = $db->query("
-        SELECT e.*, u.nama as owner_nama,
-               (SELECT COUNT(*) FROM tickets t WHERE t.event_id = e.id AND t.status_tiket != 'BATAL') as total_pendaftar
-        FROM events e
-        JOIN users u ON e.owner_id = u.id
-        WHERE e.status_verifikasi IN ('TERBIT', 'PUBLISHED', 'DISETUJUI')
-        ORDER BY e.created_at DESC LIMIT 1
-    ");
-    $event = $stmt->fetch();
-}
-
-if (!$event) {
-    header('Location: ' . BASE_URL . '/jelajah-acara');
+    header('Location: ' . BASE_URL . '/jelajah-acara?notfound=1');
     exit;
 }
 

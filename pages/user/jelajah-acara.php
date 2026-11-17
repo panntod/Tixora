@@ -58,6 +58,12 @@ $categories = ['Semua', 'Seminar', 'Workshop', 'Konferensi', 'Kompetisi'];
 <body>
     <div class="frame">
         <?php ViewHelper::renderNavbar('jelajah'); ?>
+        
+        <?php if (isset($_GET['notfound'])): ?>
+            <div class="alert alert-error" style="margin-bottom:16px">
+                Acara yang Anda cari tidak ditemukan atau sudah tidak dipublikasikan.
+            </div>
+        <?php endif; ?>
 
         <main class="page-body tx-style-27072cba65">
             <div class="page-head tx-style-3e5bc306f6">
@@ -125,7 +131,8 @@ $categories = ['Semua', 'Seminar', 'Workshop', 'Konferensi', 'Kompetisi'];
                                 </div>
                                 <?php if ($ditutup): ?>
                                     <span class="button disabled-button closed-button" aria-disabled="true"
-                                        style="width:100%;margin-top:12px;text-align:center;cursor:not-allowed">Pendaftaran Ditutup</span>
+                                        style="width:100%;margin-top:12px;text-align:center;cursor:not-allowed">Pendaftaran
+                                        Ditutup</span>
                                 <?php else: ?>
                                     <a href="<?= BASE_URL ?>/detail-acara?id=<?= $ev['id'] ?>" class="button primary-button"
                                         style="width:100%;margin-top:12px;text-align:center">Detail &amp; Daftar</a>
