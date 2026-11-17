@@ -2501,3 +2501,279 @@ svg {
     line-height: 24px;
   }
 }
+
+/* ===================== Admin · Penyelenggara & Laporan ===================== */
+
+a.button {
+  text-decoration: none;
+}
+
+/* <dialog> native: lebar 420px seperti spesifikasi dialog admin */
+dialog.dialog {
+  width: 420px;
+  max-width: calc(100vw - 32px);
+  box-sizing: border-box;
+}
+
+/* ---- Penyelenggara: daftar (kiri) + detail (kanan) ---- */
+.split {
+  display: grid;
+  grid-template-columns: minmax(300px, 424px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.split > * {
+  min-width: 0;
+}
+
+.org-row {
+  color: inherit;
+  text-decoration: none;
+}
+
+.org-row:hover {
+  background: #fafaff;
+}
+
+.org-row.is-selected {
+  background: #f6f5ff;
+}
+
+.org-name {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.org-count {
+  width: 72px;
+}
+
+.org-status {
+  width: 136px;
+}
+
+.detail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.detail-title {
+  margin: 0;
+  font-size: 22px;
+  line-height: 30px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  overflow-wrap: anywhere;
+}
+
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.rel-title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.rel-status {
+  width: 170px;
+}
+
+.rel-date {
+  width: 120px;
+}
+
+/* ---- Laporan ---- */
+select.select-input {
+  display: block;
+  width: auto;
+  min-width: 210px;
+  padding: 0 36px 0 14px;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5l5 5 5-5' stroke='%234b5170' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 14px center;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  align-items: start;
+}
+
+.wk-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  height: 140px;
+  margin-top: 24px;
+  padding: 0 8px;
+  border-bottom: 1px solid #e4e4ee;
+}
+
+.wk-group {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 2px;
+}
+
+.wk-bar {
+  display: block;
+  width: 14px;
+  max-width: 45%;
+  min-height: 4px;
+  border-radius: 4px 4px 0 0;
+}
+
+.wk-light {
+  background: #c9c4fb;
+}
+
+.wk-dark {
+  background: #4b34db;
+}
+
+.line-chart {
+  height: 140px;
+  margin-top: 24px;
+  border-bottom: 1px solid #e4e4ee;
+}
+
+.line-chart svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+}
+
+.top-title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.top-owner {
+  width: 400px;
+}
+
+.top-count {
+  width: 140px;
+}
+
+@media (max-width: 900px) {
+  .split,
+  .grid-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .top-owner {
+    width: 200px;
+  }
+}
+
+@media (max-width: 600px) {
+  select.select-input {
+    width: 100%;
+  }
+
+  .head-actions form {
+    flex: 1 1 100%;
+  }
+}
+
+/* "Unduh laporan PDF" memakai dialog cetak browser (Simpan sebagai PDF) */
+@media print {
+  .sidebar,
+  .adm-topbar,
+  .adm-backdrop,
+  .head-actions {
+    display: none !important;
+  }
+
+  .frame {
+    width: auto !important;
+    min-height: 0 !important;
+  }
+
+  .app {
+    display: block;
+    padding-top: 0;
+  }
+
+  .main {
+    padding: 0;
+  }
+
+  .card,
+  .metric {
+    box-shadow: none;
+    border: 1px solid #e4e4ee;
+    break-inside: avoid;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/* ---- Tabel daftar penyelenggara: nama panjang membungkus, kolom selalu sejajar ---- */
+.split .tbl-card {
+  overflow-x: hidden;
+}
+
+.split .tbl-card .tbl-head,
+.split .tbl-card .tbl-row {
+  min-width: 0;
+}
+
+.org-name {
+  overflow-wrap: anywhere;
+}
+
+/* ---- Tabel acara terkait & acara teratas: lebar baris seragam, judul membungkus ---- */
+.rel-title,
+.top-title {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.card:has(.rel-title) .tbl-head,
+.card:has(.rel-title) .tbl-row {
+  min-width: 540px;
+}
+
+.card:has(.top-title) .tbl-head,
+.card:has(.top-title) .tbl-row {
+  min-width: 600px;
+}
+
+@media (max-width: 600px) {
+  .org-count {
+    width: 56px;
+  }
+
+  .org-status {
+    width: 124px;
+  }
+
+  .tbl-head .org-name {
+    overflow-wrap: normal;
+    font-size: 11px;
+    letter-spacing: 0.3px;
+  }
+}
