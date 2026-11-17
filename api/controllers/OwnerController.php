@@ -257,9 +257,9 @@ class OwnerController
                 echo json_encode([
                     'success' => false,
                     'message' => 'Acara hanya dapat disunting saat berstatus DRAF atau DITOLAK. Tarik pengajuan terlebih dahulu.'
-                    ]);
-                    return;
-                    }
+                ]);
+                return;
+            }
 
             $stmt = $this->db->prepare("
                 UPDATE events SET 
@@ -706,24 +706,71 @@ class OwnerController
         }
 
         try {
-            $stmtCheck = $this->db->prepare("SELECT id FROM events WHERE id = :id AND owner_id = :owner_id");
-            $stmtCheck->execute(['id' => $eventId, 'owner_id' => $this->ownerId]);
-            if (!$stmtCheck->fetch()) {
-                http_response_code(403);
-                echo json_encode(['success' => false, 'message' => 'Akses ditolak atau event tidak ditemukan.']);
+            $this->db->beginTransaction();
+
+            // 1. Update event + log jika berhasil (atomic)
+            $stmt = $this->db->prepare("
+                UPDATE events
+                SET status_verifikasi = 'BATAL',
+                    alasan_pembatalan = :alasan,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = :id AND owner_id = :owner_id
+                    AND status_verifikasi NOT IN ('BATAL', 'SELESAI')
+    ");
+            $stmt->execute([
+                'alasan' => $alasan,
+                'id' => $eventId,
+                'owner_id' => $this->ownerId,
+            ]);
+
+            if ($stmt->rowCount() === 0) {
+                $this->db->rollBack();
+                http_response_code(409);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Acara sudah dibatalkan atau sudah selesai, tidak dapat dibatalkan ulang.'
+                ]);
                 return;
             }
 
-            $stmt = $this->db->prepare("
-                UPDATE events SET status_verifikasi = 'BATAL', alasan_pembatalan = :alasan, updated_at = CURRENT_TIMESTAMP WHERE id = :id
-            ");
-            $stmt->execute(['alasan' => $alasan, 'id' => $eventId]);
+            // 2. Batalkan semua tiket aktif
+            $this->db->prepare("
+                UPDATE tickets
+                SET status_tiket = 'BATAL', updated_at = CURRENT_TIMESTAMP
+                WHERE event_id = :event_id
+                    AND status_tiket IN ('AKTIF', 'MENUNGGU_PEMBAYARAN')
+    ")->execute(['event_id' => $eventId]);
 
-            echo json_encode(['success' => true, 'message' => 'Acara berhasil dibatalkan. Peserta akan diberi tahu.']);
+            // 3. Batalkan pembayaran yang masih menunggu
+            $this->db->prepare("
+                UPDATE payments
+                SET status = 'DIBATALKAN', updated_at = CURRENT_TIMESTAMP
+                WHERE status = 'MENUNGGU'
+                    AND ticket_id IN (SELECT id FROM tickets WHERE event_id = :event_id)
+    ")->execute(['event_id' => $eventId]);
+
+            // 4. Log audit
+            $this->db->prepare("
+        INSERT INTO event_submission_logs (event_id, status, catatan)
+        VALUES (:event_id, 'BATAL', :catatan)
+    ")->execute([
+                        'event_id' => $eventId,
+                        'catatan' => "Acara dibatalkan oleh EO. Alasan: {$alasan}",
+                    ]);
+
+            $this->db->commit();
+
+            echo json_encode([
+                'success' => true,
+                'message' => 'Acara berhasil dibatalkan. Seluruh tiket peserta ikut dibatalkan.'
+            ]);
         } catch (PDOException $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             http_response_code(500);
             error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
-            echo json_encode(['success' => false, 'message' => 'Gagal membatalkan acara. Terjadi kesalahan pada server, silakan coba lagi.']);
+            echo json_encode(['success' => false, 'message' => 'Gagal membatalkan acara. Terjadi kesalahan pada server.']);
         }
     }
 
