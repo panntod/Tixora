@@ -29,9 +29,8 @@ $canPublish = $status === 'DISETUJUI';
 
 $actions = '';
 if ($canSubmit) {
-    // Tidak ada tombol ajukan — user harus lewat wizard langkah 4 untuk validasi lengkap.
-    // Tombol "Lanjutkan wizard" di bawah mengarah ke sana.
-    $actions = '';
+    $actions = '<button type="button" id="btn-ajukan" class="button primary-button" style="cursor:pointer">'
+        . ($status === 'DITOLAK' ? 'Ajukan ulang' : 'Ajukan acara') . '</button>';
 } elseif ($canPublish) {
     $actions = '<button type="button" id="btn-terbitkan" class="button primary-button" style="cursor:pointer">Terbitkan acara</button>';
 }
@@ -85,24 +84,15 @@ EO::open($db, $owner, $event, 'pengajuan', $subtitle, $actions, null, 'Pengajuan
                             } ?>
                         </p>
                         <div class="help help-error" id="e-form" style="display:none"></div>
-                        <?php if ($canSubmit): ?>
-                            <div class="alert alert-info" style="margin-top:16px;font-size:14px">
-                                Pengajuan dilakukan lewat wizard untuk memastikan kelengkapan acara sudah terisi.
-                            </div>
-                            <a href="<?= EventHelper::stepUrl(4, $id) ?>" class="button primary-button full-width"
-                            style="margin-top:12px;text-decoration:none;text-align:center">
-                            <?= $status === 'DITOLAK' ? 'Lanjutkan revisi di wizard' : 'Lanjutkan ke wizard untuk ajukan' ?>
-                        </a>
-                        <?php endif; ?>
                         <?php if ($canWithdraw): ?>
                             <button type="button" id="btn-tarik" class="button secondary-button" style="margin-top:16px;cursor:pointer">Tarik pengajuan</button>
-                            <?php endif; ?>
-                        </div>
+                        <?php endif; ?>
+                    </div>
                 </div>
 <?php
 EO::close('<script>
 (function () {
-    const eventId = <?= json_encode($id) ?>;
+    const eventId = ' . json_encode($id) . ';
     async function run(btn, path, confirmText) {
         if (!btn || (confirmText && !confirm(confirmText))) return;
         btn.disabled = true;
@@ -111,8 +101,8 @@ EO::close('<script>
         btn.disabled = false;
         eoShowError(document.getElementById("e-form"), r.message);
     }
-    // btn-ajukan sudah tidak ada di halaman ini; submission lewat wizard.
-    const t = document.getElementById("btn-tarik"), p = document.getElementById("btn-terbitkan");
+    const a = document.getElementById("btn-ajukan"), t = document.getElementById("btn-tarik"), p = document.getElementById("btn-terbitkan");
+    if (a) a.addEventListener("click", () => run(a, "submit-event", "Ajukan acara ini untuk ditinjau admin?"));
     if (t) t.addEventListener("click", () => run(t, "withdraw-event", "Tarik pengajuan dan kembalikan acara ke draf?"));
     if (p) p.addEventListener("click", () => run(p, "publish-event", "Terbitkan acara ini ke portal publik? Setelah terbit, acara akan tampil di Jelajah Acara."));
 })();

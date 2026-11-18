@@ -90,27 +90,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($s <= $m) {
                 $errors['selesai'] = 'Jam selesai harus setelah jam mulai.';
             } else {
-                // NEW: bounds check terhadap waktu acara (hanya single-day event)
-                $eventStartDay = date('Y-m-d', strtotime((string) $event['tanggal_mulai']));
-                $eventEndDay = date('Y-m-d', strtotime((string) $event['tanggal_selesai']));
-
-                if ($eventStartDay === $eventEndDay) {
-                $eventStartMin = (int) date('H', strtotime($event['tanggal_mulai'])) * 60
-                                + (int) date('i', strtotime($event['tanggal_mulai']));
-                $eventEndMin = (int) date('H', strtotime($event['tanggal_selesai'])) * 60
-                                + (int) date('i', strtotime($event['tanggal_selesai']));
-
-                if ($m < $eventStartMin) {
-                    $errors['mulai'] = sprintf('Rundown harus dimulai setelah acara dimulai (%s).', date('H.i', strtotime($event['tanggal_mulai'])));
-                } elseif ($s > $eventEndMin) {
-                    $errors['selesai'] = sprintf('Rundown harus selesai sebelum acara berakhir (%s).', date('H.i', strtotime($event['tanggal_selesai'])));
-                }
-            }
-
-            // Conflict check existing (tidak diubah)
-            if (empty($errors['mulai']) && empty($errors['selesai'])) {
                 foreach ($rows as $r) {
-                    if ($r['id'] === $form['id']) continue;
+                    if ($r['id'] === $form['id']) {
+                        continue;
+                    }
                     $rm = EventHelper::timeToMinutes((string) $r['waktu_mulai']);
                     $rs = EventHelper::timeToMinutes((string) $r['waktu_selesai']);
                     if ($m < $rs && $s > $rm) {
@@ -120,7 +103,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         }
-    }
         if ($form['judul'] === '') {
             $errors['judul'] = 'Nama kegiatan wajib diisi.';
         } elseif (mb_strlen($form['judul']) > 255) {

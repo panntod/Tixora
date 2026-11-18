@@ -4,9 +4,6 @@ declare(strict_types=1);
 require_once defined('ROOT_DIR')
     ? ROOT_DIR . '/api/helpers/ViewHelper.php'
     : __DIR__ . '/../../api/helpers/ViewHelper.php';
-require_once defined('ROOT_DIR')
-    ? ROOT_DIR . '/api/helpers/EventHelper.php'
-    : __DIR__ . '/../../api/helpers/EventHelper.php';
 require_once __DIR__ . '/event-layout.php';
 
 $db = ViewHelper::getDb();
@@ -22,8 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errorMsg = 'Sesi formulir kedaluwarsa. Muat ulang halaman lalu coba lagi.';
     } elseif (!$editable) {
         $errorMsg = 'Acara tidak dapat diedit pada status ini. Tarik pengajuan atau hubungi admin.';
-    } 
-    else {
+    } else {
         $judul          = trim($_POST['judul_event'] ?? '');
         $deskripsi      = trim($_POST['deskripsi'] ?? '');
         $tanggalMulai   = $_POST['tanggal_mulai'] ?? '';
@@ -31,60 +27,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $tempat         = trim($_POST['nama_tempat'] ?? '');
         $kota           = trim($_POST['kota'] ?? '');
         $kategori       = trim($_POST['kategori'] ?? 'Seminar');
-        
-        // Validasi canonical — sama persis dengan wizard step 1
-        $errors = EventHelper::validateInfo([
-            'judul_event'     => $judul,
-            'kategori'        => $kategori,
-            'deskripsi'       => $deskripsi,
-            'tanggal_mulai'   => $tanggalMulai,
-            'tanggal_selesai' => $tanggalSelesai,
-            'nama_tempat'     => $tempat,
-            'kota'            => $kota,
-        ]);
-            
-        if (!empty($errors)) {
-            // Gabungkan pesan error per field menjadi satu alert (minimal diff).
-            // // Untuk UX lebih baik, lihat "Bonus — Error per field" di bawah.
-            $errorMsg = implode(' ', array_values($errors));
-        } else {
-            // Normalisasi ke format TIMESTAMP yang aman untuk PostgreSQL.
-            // Ini juga menerima "2026-12-01T08:00" dari <input type="datetime-local">.
-            $mulaiDb   = date('Y-m-d H:i:s', strtotime($tanggalMulai));
-            $selesaiDb = date('Y-m-d H:i:s', strtotime($tanggalSelesai));
 
-            // Reset alasan_penolakan hanya jika status saat ini DITOLAK.
-            // `CASE WHEN ... THEN NULL ELSE ... END` memastikan DRAF tidak terpengaruh.
+        if (!$judul || !$deskripsi || !$tanggalMulai || !$tanggalSelesai || !$tempat || !$kota) {
+            $errorMsg = 'Semua kolom wajib diisi.';
+        } elseif (strtotime($tanggalSelesai) <= strtotime($tanggalMulai)) {
+            $errorMsg = 'Waktu selesai harus setelah waktu mulai.';
+        } else {
             $db->prepare("
                 UPDATE events SET
-                    judul_event      = :judul,
-                    deskripsi        = :deskripsi,
-                    kategori         = :kategori,
-                    tanggal_mulai    = :tm,
-                    tanggal_selesai  = :ts,
-                    nama_tempat      = :tempat,
-                    kota             = :kota,
-                    alasan_penolakan = CASE
-                                     WHEN status_verifikasi = 'DITOLAK' THEN NULL
-                                     ELSE alasan_penolakan
-                                   END,
-                    updated_at       = CURRENT_TIMESTAMP
+                    judul_event = :judul,
+                    deskripsi = :deskripsi,
+                    kategori = :kategori,
+                    tanggal_mulai = :tm,
+                    tanggal_selesai = :ts,
+                    nama_tempat = :tempat,
+                    kota = :kota,
+                    updated_at = CURRENT_TIMESTAMP
                 WHERE id = :id AND owner_id = :owner_id
-        ")->execute([
-            'judul'     => $judul,
-            'deskripsi' => $deskripsi,
-            'kategori'  => $kategori,
-            'tm'        => $mulaiDb,
-            'ts'        => $selesaiDb,
-            'tempat'    => $tempat,
-            'kota'      => $kota,
-            'id'        => $id,
-            'owner_id'  => $owner['id'],
-        ]);
-        header('Location: ' . EO::url('edit-informasi', $id) . '?saved=1');
-        exit;
+            ")->execute([
+                'judul'    => $judul,
+                'deskripsi'=> $deskripsi,
+                'kategori' => $kategori,
+                'tm'       => $tanggalMulai,
+                'ts'       => $tanggalSelesai,
+                'tempat'   => $tempat,
+                'kota'     => $kota,
+                'id'       => $id,
+                'owner_id' => $owner['id'],
+            ]);
+            header('Location: ' . EO::url('edit-informasi', $id) . '?saved=1');
+            exit;
+        }
     }
-}
 }
 
 $successMsg = isset($_GET['saved']) ? 'Perubahan berhasil disimpan.' : '';
