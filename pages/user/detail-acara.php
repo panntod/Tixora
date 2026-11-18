@@ -13,7 +13,7 @@ $eventId = trim($_GET['id'] ?? '');
 $event = null;
 if (!empty($eventId)) {
     $stmt = $db->prepare("
-        SELECT e.*, u.nama as owner_nama,
+        SELECT e.*, COALESCE(NULLIF(e.nama_penyelenggara, ''), u.nama) as owner_nama,
                (SELECT COUNT(*) FROM tickets t WHERE t.event_id = e.id AND t.status_tiket != 'BATAL') as total_pendaftar
         FROM events e
         JOIN users u ON e.owner_id = u.id

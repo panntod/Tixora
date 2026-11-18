@@ -27,17 +27,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $tempat         = trim($_POST['nama_tempat'] ?? '');
         $kota           = trim($_POST['kota'] ?? '');
         $kategori       = trim($_POST['kategori'] ?? 'Seminar');
+        $penyelenggara  = trim($_POST['nama_penyelenggara'] ?? '');
 
         if (!$judul || !$deskripsi || !$tanggalMulai || !$tanggalSelesai || !$tempat || !$kota) {
             $errorMsg = 'Semua kolom wajib diisi.';
         } elseif (strtotime($tanggalSelesai) <= strtotime($tanggalMulai)) {
             $errorMsg = 'Waktu selesai harus setelah waktu mulai.';
+        } elseif (mb_strlen($penyelenggara) > 255) {
+            $errorMsg = 'Nama penyelenggara maksimal 255 karakter.';
         } else {
             $db->prepare("
                 UPDATE events SET
                     judul_event = :judul,
                     deskripsi = :deskripsi,
                     kategori = :kategori,
+                    nama_penyelenggara = :penyelenggara,
                     tanggal_mulai = :tm,
                     tanggal_selesai = :ts,
                     nama_tempat = :tempat,
@@ -48,6 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'judul'    => $judul,
                 'deskripsi'=> $deskripsi,
                 'kategori' => $kategori,
+                'penyelenggara' => $penyelenggara !== '' ? $penyelenggara : null,
                 'tm'       => $tanggalMulai,
                 'ts'       => $tanggalSelesai,
                 'tempat'   => $tempat,
@@ -112,8 +117,9 @@ EO::open($db, $owner, $event, '', $subtitle, '', 'Edit informasi acara', 'Edit')
                     </div>
                     <div>
                         <label class="field-label">Penyelenggara</label>
-                        <input type="text" class="input" value="<?= EO::e($owner['nama']) ?>" readonly
-                            style="background:#F8F8FC">
+                        <input type="text" name="nama_penyelenggara" class="input" maxlength="255"
+                            value="<?= EO::e(($event['nama_penyelenggara'] ?? '') !== '' ? $event['nama_penyelenggara'] : $owner['nama']) ?>"
+                            <?= $editable ? '' : 'disabled' ?>>
                     </div>
                 </div>
                 <div>

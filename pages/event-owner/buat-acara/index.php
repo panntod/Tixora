@@ -10,13 +10,17 @@ $owner = ViewHelper::requireLogin(AuthHelper::ROLE_EVENT_OWNER);
 // Langkah 1: tanpa ?id = acara baru; dengan ?id = lanjutkan draf (juga acara DITOLAK yang diperbaiki).
 $event = (($_GET['id'] ?? $_POST['id'] ?? '') !== '') ? EventHelper::requireDraft($db, $owner) : null;
 
-$fields = ['judul_event', 'kategori', 'deskripsi', 'tanggal_mulai', 'tanggal_selesai', 'nama_tempat', 'kota'];
+$fields = ['judul_event', 'kategori', 'deskripsi', 'tanggal_mulai', 'tanggal_selesai', 'nama_tempat', 'kota', 'nama_penyelenggara'];
 $val = array_fill_keys($fields, '');
+$val['nama_penyelenggara'] = (string) $owner['nama'];
 $val['kategori'] = 'Seminar';
 $val['kota'] = 'Malang';
 if ($event) {
     foreach ($fields as $f) {
-        $val[$f] = (string) $event[$f];
+        $val[$f] = (string) ($event[$f] ?? '');
+    }
+    if ($val['nama_penyelenggara'] === '') {
+        $val['nama_penyelenggara'] = (string) $owner['nama'];
     }
     // Draf yang hanya berisi nama acara menyimpan waktu sementara (mulai = selesai): tampilkan kosong.
     if ($event['tanggal_mulai'] === $event['tanggal_selesai']) {
@@ -71,12 +75,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'selesai' => date('Y-m-d H:i:s', $selesai),
                     'tempat' => $val['nama_tempat'],
                     'kota' => $val['kota'],
+                    'penyelenggara' => $val['nama_penyelenggara'] !== '' ? mb_substr($val['nama_penyelenggara'], 0, 255) : null,
                 ];
                 try {
                     $db->beginTransaction();
                     if ($event) {
                         $sql = "UPDATE events SET judul_event = :judul, kategori = :kategori, deskripsi = :deskripsi,
-                                    tanggal_mulai = :mulai, tanggal_selesai = :selesai, nama_tempat = :tempat, kota = :kota"
+                                    tanggal_mulai = :mulai, tanggal_selesai = :selesai, nama_tempat = :tempat, kota = :kota, nama_penyelenggara = :penyelenggara"
                             . ($posterPath ? ", banner_url = :banner" : "")
                             . ", updated_at = CURRENT_TIMESTAMP
                                 WHERE id = :id AND owner_id = :owner";
@@ -90,8 +95,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     } else {
                         $stmt = $db->prepare("
                             INSERT INTO events (owner_id, judul_event, deskripsi, kategori, kuota, tanggal_mulai, tanggal_selesai,
-                                                nama_tempat, kota, banner_url, status_verifikasi)
-                            VALUES (:owner, :judul, :deskripsi, :kategori, 0, :mulai, :selesai, :tempat, :kota, :banner, 'DRAF')
+                                                nama_tempat, kota, nama_penyelenggara, banner_url, status_verifikasi)
+                            VALUES (:owner, :judul, :deskripsi, :kategori, 0, :mulai, :selesai, :tempat, :kota, :penyelenggara, :banner, 'DRAF')
                             RETURNING id");
                         $params['owner'] = $owner['id'];
                         $params['banner'] = $posterPath;
@@ -167,8 +172,8 @@ EventHelper::renderTop($db, $owner, 1, $event);
                                     <?php if ($err('kategori')): ?><p class="help help-error"><?= $h($err('kategori')) ?></p><?php endif; ?>
                                 </div>
                                 <div>
-                                    <label class="field-label" for="penyelenggara">Penyelenggara</label>
-                                    <input type="text" id="penyelenggara" class="input" value="<?= $h($owner['nama']) ?>" readonly style="background:#F8F8FC">
+                                    <label class="field-label" for="nama_penyelenggara">Penyelenggara</label>
+                                    <input type="text" id="nama_penyelenggara" name="nama_penyelenggara" class="input" maxlength="255" value="<?= $h($val['nama_penyelenggara']) ?>">
                                 </div>
                             </div>
                             <div>

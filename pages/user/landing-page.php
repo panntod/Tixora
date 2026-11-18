@@ -10,7 +10,7 @@ PaymentHelper::expireOverdue($db);
 
 // Ambil event yang berstatus TERBIT
 $stmt = $db->query("
-    SELECT e.*, u.nama as owner_nama,
+    SELECT e.*, COALESCE(NULLIF(e.nama_penyelenggara, ''), u.nama) as owner_nama,
            (SELECT COUNT(*) FROM tickets t WHERE t.event_id = e.id AND t.status_tiket != 'BATAL') as total_pendaftar,
            COALESCE((SELECT MIN(c.harga) FROM ticket_categories c WHERE c.event_id = e.id), 0) as harga_mulai
     FROM events e
