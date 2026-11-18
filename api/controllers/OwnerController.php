@@ -323,8 +323,40 @@ class OwnerController
             echo json_encode(['success' => false, 'message' => 'Harga tiket tidak valid (0 untuk tiket gratis).']);
             return;
         }
+
+        $validDate = static function (?string $d): bool {
+            return $d === null || $d === '' || (preg_match('/^\d{4}-\d{2}-\d{2}$/', $d) && strtotime($d) !== false);
+        };
+
+        if (!$validDate($mulaiJual)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Format tanggal mulai jual tidak valid (YYYY-MM-DD).']);
+            return;
+        }
+        if (!$validDate($berakhir)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Format tanggal berakhir jual tidak valid (YYYY-MM-DD).']);
+            return;
+        }
+        if ($mulaiJual && $berakhir && $berakhir < $mulaiJual) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Tanggal berakhir jual harus setelah tanggal mulai.']);
+            return;
+        }
+
         require_once __DIR__ . '/../helpers/PaymentHelper.php';
         PaymentHelper::ensureSchema($this->db);
+
+        $hasDates = (int) $this->db->query("
+        SELECT COUNT(*) FROM information_schema.columns
+        WHERE table_name = 'ticket_categories' AND column_name IN ('mulai_dijual', 'berakhir_dijual')
+        ")->fetchColumn();
+        if ($hasDates < 2) {
+            $sql = file_get_contents(__DIR__ . '/../migrations/005_jadwal_penjualan_tiket.sql');
+            if ($sql !== false) {
+                $this->db->exec($sql);
+            }
+        }
 
         try {
             $stmt = $this->db->prepare("
@@ -332,12 +364,21 @@ class OwnerController
                 VALUES (:event_id, :nama_kategori, :kuota, :wajib_ktm, :harga)
                 RETURNING id
             ");
+            $stmt = $this->db->prepare("
+    INSERT INTO ticket_categories
+        (event_id, nama_kategori, kuota, wajib_ktm, harga, mulai_dijual, berakhir_dijual)
+    VALUES
+        (:event_id, :nama_kategori, :kuota, :wajib_ktm, :harga, :mulai_jual, :berakhir)
+    RETURNING id
+");
             $stmt->execute([
                 'event_id' => $eventId,
                 'nama_kategori' => $namaKategori,
                 'kuota' => $kuota,
                 'harga' => $harga,
-                'wajib_ktm' => $wajibKtm ? 'true' : 'false'
+                'wajib_ktm' => $wajibKtm ? 'true' : 'false',
+                'mulai_jual' => ($mulaiJual === '' || $mulaiJual === null) ? null : $mulaiJual,
+                'berakhir' => ($berakhir === '' || $berakhir === null) ? null : $berakhir,
             ]);
 
             http_response_code(201);
