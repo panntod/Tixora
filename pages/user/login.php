@@ -37,7 +37,9 @@ if (($_GET['info'] ?? '') === 'wajib-login') {
     $infoMessage = 'Silakan login terlebih dahulu untuk mendaftar acara. Belum punya akun? Daftar akun lebih dulu.';
 }
 
-if (isset($_GET['registered'])) {
+if (isset($_GET['diajukan'])) {
+    $successMessage = 'Pengajuan akun penyelenggara berhasil dikirim. Anda dapat masuk setelah admin menyetujui akun Anda.';
+} elseif (isset($_GET['registered'])) {
     $successMessage = 'Registrasi berhasil! Silakan masuk menggunakan akun Anda.';
 } elseif (isset($_GET['reset'])) {
     $successMessage = 'Kata sandi berhasil diubah. Silakan masuk dengan kata sandi baru.';
@@ -78,6 +80,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['login_failed'] = 0;
             }
             $errorMessage = 'Surel atau kata sandi salah. Coba lagi.';
+        } elseif (($user['status_pengajuan'] ?? null) === 'MENUNGGU') {
+            $errorMessage = 'Pengajuan akun Anda sedang ditinjau admin. Anda dapat masuk setelah akun disetujui.';
+        } elseif (($user['status_pengajuan'] ?? null) === 'DITOLAK') {
+            $errorMessage = 'Pengajuan akun Anda ditolak. Alasan: ' . ($user['alasan_penolakan_akun'] ?? 'Tidak memenuhi persyaratan.');
         } elseif (isset($user['is_active']) && !$user['is_active']) {
             $errorMessage = 'Akun Anda ditangguhkan. Alasan: ' . ($user['alasan_suspensi'] ?? 'Kebijakan Admin.');
         } else {

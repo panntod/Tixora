@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../config/Database.php';
 require_once __DIR__ . '/../helpers/AuthHelper.php';
+require_once __DIR__ . '/../helpers/AdminNotificationHelper.php';
 
 /**
  * Controller Modul Admin (Pengelola Sistem Tixora)
@@ -465,35 +466,24 @@ class AdminController
 
     /**
      * 8. Pusat Notifikasi Admin
+     * Query opsional: ?filter=semua|perlu-tindakan|sistem. Logika sama dengan halaman /admin/notifikasi.
      */
     public function getAdminNotifications(): void
     {
         try {
-            $pendingCount = (int) $this->db->query("SELECT COUNT(*) FROM events WHERE status_verifikasi = 'MENUNGGU_TINJAUAN'")->fetchColumn();
+            $filter = $_GET['filter'] ?? 'semua';
+            if (!is_string($filter) || !in_array($filter, AdminNotificationHelper::FILTERS, true)) {
+                $filter = 'semua';
+            }
 
-            $notifications = [
-                [
-                    'id' => 'notif-1',
-                    'kategori' => 'PERLU_TINJAUAN',
-                    'pesan' => "Terdapat {$pendingCount} acara baru menanti tinjauan dan verifikasi admin.",
-                    'waktu' => 'Hari ini',
-                    'dibaca' => false
-                ],
-                [
-                    'id' => 'notif-2',
-                    'kategori' => 'SISTEM',
-                    'pesan' => 'Pemeriksaan integritas basis data platform Tixora berjalan normal.',
-                    'waktu' => 'Kemarin',
-                    'dibaca' => true
-                ]
-            ];
+            $feed = AdminNotificationHelper::feed($this->db, (string) ($_SESSION['user']['id'] ?? ''));
 
             echo json_encode([
                 'success' => true,
                 'message' => 'Daftar notifikasi berhasil diambil.',
                 'data' => [
-                    'belum_dibaca_count' => count(array_filter($notifications, fn($n) => !$n['dibaca'])),
-                    'notifikasi' => $notifications
+                    'belum_dibaca_count' => $feed['belum_dibaca'],
+                    'notifikasi' => AdminNotificationHelper::filter($feed['items'], $filter)
                 ]
             ]);
         } catch (PDOException $e) {
@@ -504,13 +494,21 @@ class AdminController
     }
 
     /**
-     * 9. Tandai Semua Notifikasi Dibaca
+     * 9. Tandai Semua Notifikasi Dibaca (per admin)
      */
     public function markAllNotificationsAsRead(): void
     {
-        echo json_encode([
-            'success' => true,
-            'message' => 'Semua notifikasi berhasil ditandai sebagai dibaca.'
-        ]);
+        try {
+            AdminNotificationHelper::markAllRead($this->db, (string) ($_SESSION['user']['id'] ?? ''));
+
+            echo json_encode([
+                'success' => true,
+                'message' => 'Semua notifikasi berhasil ditandai sebagai dibaca.'
+            ]);
+        } catch (PDOException $e) {
+            http_response_code(500);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Gagal menandai notifikasi. Terjadi kesalahan pada server, silakan coba lagi.']);
+        }
     }
-}
+}   

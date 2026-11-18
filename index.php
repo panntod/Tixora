@@ -513,7 +513,10 @@ $routes = [
         'admin/penyelenggara.php',
 
     // Communication
-    // -
+    'admin/notifikasi' =>
+        'admin/notifikasi.php',
+    'admin/permohonan-akun' =>
+        'admin/permohonan-akun.php',
 
     // Reports
     'admin/laporan' =>

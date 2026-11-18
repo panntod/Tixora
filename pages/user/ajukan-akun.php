@@ -41,7 +41,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // session_regenerate_id(true);
             // unset($_SESSION['login_failed'], $_SESSION['login_locked_until'], $_SESSION['after_login'], $_SESSION['tujuan_login']);
             // $_SESSION['user'] = $result['user'];
-            header('Location: ' . BASE_URL . '/login?registered=1&tujuan=acara');
+            // Akun menunggu persetujuan admin; belum bisa masuk.
+            header('Location: ' . BASE_URL . '/login?diajukan=1');
             exit;
         }
         $errorMessage = (string) $result['error'];

@@ -102,3 +102,26 @@ Catatan penggunaan:
 - Kamera browser hanya jalan di **HTTPS atau `http://localhost`**. Di HP lewat IP LAN (http) pakai *Unggah foto QR* atau kolom kode.
 - Browser tanpa `BarcodeDetector` (mis. Chrome desktop Windows/Linux) memuat pustaka jsQR dari CDN. Untuk **presentasi offline**, unduh `jsQR.min.js` (jsQR 1.4.0) dan simpan sebagai `assets/jsQR.min.js`.
 - Tidak ada perubahan skema database.
+
+## Notifikasi Admin
+
+Route: `/admin/notifikasi` (menu **Notifikasi** di sidebar admin). API: `GET /api/admin/notifications?filter=semua|perlu-tindakan|sistem` dan `POST /api/admin/notifications-read`.
+
+Daftar notifikasi **tidak disimpan**; ia diturunkan dari data yang sudah ada sehingga selalu sinkron dan tidak perlu "hook" di setiap tempat kejadian:
+
+| Kategori | Sumber | Tautan |
+| --- | --- | --- |
+| Perlu tindakan | Ringkasan antrean (jumlah acara `MENUNGGU_TINJAUAN`, titik jingga bila pengajuan terlama >= 3 hari) dan tiap pengajuan / pengajuan ulang di `event_submission_logs` (30 hari terakhir). Filter **Perlu tindakan** hanya menampilkan yang masih menunggu tinjauan. | Tinjauan acara / Antrean acara |
+| Sistem | Penyelenggara baru bergabung (30 hari terakhir) dan laporan mingguan (terbit Senin 06.00, periode Senin-Minggu sebelumnya). | Penyelenggara / Laporan |
+
+Status baca disimpan per admin di tabel `admin_notification_state` (satu baris per admin: kapan terakhir menekan **Tandai semua dibaca**). Notifikasi yang waktunya lebih baru dari penanda itu dihitung belum dibaca. Logika ada di `api/helpers/AdminNotificationHelper.php` dan dipakai bersama oleh halaman dan API.
+
+`api/migrations/011_admin_notification_state.sql` hanya menambah tabel (idempotent). Halaman membuat tabel otomatis bila belum ada (`AdminNotificationHelper::ensureSchema`); `php bin/migrate.php` juga aman dijalankan. Tabel dan data lain tidak diubah.
+
+## Pengajuan Akun Penyelenggara
+
+Route: `/admin/permohonan-akun` (diakses dari notifikasi "N pengajuan akun penyelenggara menunggu" di `/admin/notifikasi`).
+
+Penyelenggara yang mendaftar lewat form publik kini berstatus **MENUNGGU** dan baru bisa masuk setelah admin menyetujui. Admin memutuskan lewat tombol **Tindak** (setujui, atau tolak dengan alasan wajib; pengajuan yang ditolak boleh disetujui ulang). Login mengembalikan pesan 403 yang jelas untuk status MENUNGGU dan DITOLAK.
+
+Migrasi `api/migrations/012_pengajuan_akun_penyelenggara.sql` hanya **menambah** kolom di `users`: `status_pengajuan`, `diajukan_pada`, `ditinjau_oleh`, `ditinjau_pada`, `alasan_penolakan_akun`. Akun tanpa status (admin, peserta) tidak terpengaruh, dan penyelenggara yang sudah ada otomatis ditandai DISETUJUI sehingga tetap bisa masuk. Kolom dibuat otomatis saat registrasi penyelenggara atau halaman dibuka (`AccountApplicationHelper::ensureSchema`); `php bin/migrate.php` juga aman dijalankan.

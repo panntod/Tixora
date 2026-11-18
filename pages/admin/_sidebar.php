@@ -4,7 +4,7 @@
  *
  * Variabel yang harus ada di scope pemanggil:
  *   - $admin        (array) — dari ViewHelper::requireLogin(AuthHelper::ROLE_ADMIN)
- *   - $activePage   (string) — 'dashboard' | 'antrean' | 'pengguna' | 'penyelenggara' | 'laporan'
+ *   - $activePage   (string) — 'dashboard' | 'antrean' | 'pengguna' | 'penyelenggara' | 'laporan' | 'notifikasi'
  *   - $menungguCount (int) — jumlah event MENUNGGU_TINJAUAN (untuk badge notifikasi)
  */
 declare(strict_types=1);
@@ -34,6 +34,9 @@ $menungguCount = (int)($menungguCount ?? 0);
 
     <a class="side-item <?= $activePage === 'laporan' ? 'side-item-active' : '' ?>"
        href="<?= BASE_URL ?>/admin/laporan">Laporan</a>
+
+    <a class="side-item <?= $activePage === 'notifikasi' ? 'side-item-active' : '' ?>"
+       href="<?= BASE_URL ?>/admin/notifikasi">Notifikasi</a>
 
     <a class="side-item" href="<?= BASE_URL ?>/jelajah-acara">Jelajah Acara</a>
 

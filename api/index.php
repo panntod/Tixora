@@ -157,6 +157,10 @@ switch ($endpoint) {
             $adminController->getAllUsers();
         } elseif ($action === 'suspend-user' && !empty($param) && in_array($_SERVER['REQUEST_METHOD'], ['PATCH', 'POST'])) {
             $adminController->suspendUser($param);
+        } elseif ($action === 'notifications' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+            $adminController->getAdminNotifications();
+        } elseif ($action === 'notifications-read' && in_array($_SERVER['REQUEST_METHOD'], ['PATCH', 'POST'])) {
+            $adminController->markAllNotificationsAsRead();
         } else {
             http_response_code(404);
             echo json_encode(['success' => false, 'message' => 'Endpoint Admin tidak ditemukan.']);

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../config/Database.php';
 require_once __DIR__ . '/../helpers/AuthHelper.php';
+require_once __DIR__ . '/../helpers/AccountApplicationHelper.php';
 
 /**
  * Controller Autentikasi untuk Manajemen Registrasi, Login, dan Logout
@@ -75,11 +76,22 @@ class AuthController
         // Enkripsi password menggunakan Bcrypt
         $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
 
+        // Penyelenggara harus disetujui admin dulu sebelum bisa masuk (migrasi 012).
+        $perluPersetujuan = ($role['id'] === AuthHelper::ROLE_EVENT_OWNER);
+
         try {
-            $stmt = $this->db->prepare("
-                INSERT INTO users (nama, email, password, role_id) 
-                VALUES (:nama, :email, :password, :role_id)
-            ");
+            if ($perluPersetujuan) {
+                AccountApplicationHelper::ensureSchema($this->db);
+                $stmt = $this->db->prepare("
+                    INSERT INTO users (nama, email, password, role_id, status_pengajuan, diajukan_pada)
+                    VALUES (:nama, :email, :password, :role_id, 'MENUNGGU', CURRENT_TIMESTAMP)
+                ");
+            } else {
+                $stmt = $this->db->prepare("
+                    INSERT INTO users (nama, email, password, role_id) 
+                    VALUES (:nama, :email, :password, :role_id)
+                ");
+            }
             $stmt->execute([
                 'nama' => $nama,
                 'email' => $email,
@@ -90,7 +102,10 @@ class AuthController
             http_response_code(201);
             echo json_encode([
                 'success' => true,
-                'message' => 'Registrasi berhasil! Silakan masuk menggunakan akun Anda.'
+                'message' => $perluPersetujuan
+                    ? 'Pengajuan akun penyelenggara berhasil dikirim. Anda dapat masuk setelah admin menyetujui akun Anda.'
+                    : 'Registrasi berhasil! Silakan masuk menggunakan akun Anda.',
+                'data' => ['perlu_persetujuan' => $perluPersetujuan]
             ]);
         } catch (PDOException $e) {
             if ($e->getCode() === '23505') { // unique_violation: email didaftarkan bersamaan
@@ -150,6 +165,25 @@ class AuthController
         if (!$user || !$passwordOk) {
             http_response_code(401);
             echo json_encode(['success' => false, 'message' => 'Email atau password salah.']);
+            return;
+        }
+
+        // Pengajuan akun penyelenggara harus disetujui admin dulu (migrasi 012).
+        $statusPengajuan = $user['status_pengajuan'] ?? null;
+        if ($statusPengajuan === AccountApplicationHelper::MENUNGGU) {
+            http_response_code(403);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Pengajuan akun Anda sedang ditinjau admin. Anda dapat masuk setelah akun disetujui.'
+            ]);
+            return;
+        }
+        if ($statusPengajuan === AccountApplicationHelper::DITOLAK) {
+            http_response_code(403);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Pengajuan akun Anda ditolak. Alasan: ' . ($user['alasan_penolakan_akun'] ?? 'Tidak memenuhi persyaratan.')
+            ]);
             return;
         }
 

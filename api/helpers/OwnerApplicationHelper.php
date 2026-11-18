@@ -2,10 +2,12 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/AuthHelper.php';
+require_once __DIR__ . '/AccountApplicationHelper.php';
 
 /**
- * Pendaftaran Event Owner sederhana (tanpa persetujuan Admin).
- * Form "Ajukan Akun" langsung membuat user ber-role EVENT_OWNER.
+ * Pengajuan akun Event Owner.
+ * Form "Ajukan Akun" membuat user ber-role EVENT_OWNER dengan status_pengajuan MENUNGGU;
+ * akun baru bisa masuk setelah admin menyetujui (/admin/permohonan-akun).
  */
 final class OwnerApplicationHelper
 {
@@ -68,9 +70,10 @@ final class OwnerApplicationHelper
         }
 
         try {
+            AccountApplicationHelper::ensureSchema($db);
             $ins = $db->prepare("
-                INSERT INTO users (nama, email, password, no_whatsapp, institusi, role_id)
-                VALUES (:nama, :email, :password, :wa, :institusi, :role_id)
+                INSERT INTO users (nama, email, password, no_whatsapp, institusi, role_id, status_pengajuan, diajukan_pada)
+                VALUES (:nama, :email, :password, :wa, :institusi, :role_id, 'MENUNGGU', CURRENT_TIMESTAMP)
                 RETURNING id
             ");
             $ins->execute([
