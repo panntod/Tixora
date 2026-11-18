@@ -205,7 +205,7 @@ $kelengkapan = [
 
 // ---- Riwayat tinjauan (gabungan pengajuan + keputusan admin), terbaru di atas ----
 $riwayat = [];
-$organizer = $event['owner_institusi'] ?: $event['owner_nama'];
+$organizer = ($event['nama_penyelenggara'] ?? '') !== '' ? $event['nama_penyelenggara'] : $event['owner_nama'];
 $n = 0;
 foreach ($subLogs as $l) {
     if ($l['status'] === 'DRAF') {
@@ -321,7 +321,7 @@ $rentang = adm_rentang($event['tanggal_mulai'], $event['tanggal_selesai']);
                             <dl class="definition">
                                 <div>
                                     <dt>PENYELENGGARA</dt>
-                                    <dd><?= adm_h($event['owner_institusi'] ?: $event['owner_nama']) ?><?= $event['owner_institusi'] ? ' · ' . adm_h($event['owner_nama']) : '' ?></dd>
+                                    <dd><?= adm_h($organizer) ?><?= $organizer !== $event['owner_nama'] ? ' · ' . adm_h($event['owner_nama']) : '' ?></dd>
                                 </div>
                                 <div>
                                     <dt>KATEGORI</dt>

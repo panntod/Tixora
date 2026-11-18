@@ -281,7 +281,7 @@ if (in_array($saved, ['approve', 'reject'], true) && preg_match($uuidRe, $savedU
                             <div class="pa-kv"><span>Nama</span><b data-f="nama"></b></div>
                             <div class="pa-kv"><span>Surel</span><b data-f="email"></b></div>
                             <div class="pa-kv"><span>WhatsApp</span><b data-f="wa"></b></div>
-                            <div class="pa-kv"><span>Institusi</span><b data-f="institusi"></b></div>
+                            <div class="pa-kv"><span>Catatan</span><b data-f="institusi"></b></div>
                             <div class="pa-kv"><span>Mengajukan</span><b data-f="tgl"></b></div>
                             <div class="pa-kv"><span>Status</span><b data-f="status-label"></b></div>
                         </div>

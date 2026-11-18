@@ -221,14 +221,14 @@ foreach ($titik as $i => $v) {
 // === ACARA DENGAN PENDAFTAR TERBANYAK (pendaftaran pada periode) ===
 $stmtTop = $db->prepare("
     SELECT e.id, e.judul_event,
-           COALESCE(NULLIF(u.institusi, ''), u.nama) AS penyelenggara,
+           COALESCE(NULLIF(e.nama_penyelenggara, ''), u.nama) AS penyelenggara,
            COUNT(t.id) AS pendaftar
     FROM events e
     JOIN users u ON u.id = e.owner_id
     JOIN tickets t ON t.event_id = e.id
                   AND t.status_tiket != 'BATAL'
                   AND t.waktu_daftar >= :s AND t.waktu_daftar <= :e
-    GROUP BY e.id, e.judul_event, u.id, u.institusi, u.nama
+    GROUP BY e.id, e.judul_event, e.nama_penyelenggara, u.id, u.nama
     ORDER BY pendaftar DESC, e.judul_event ASC
     LIMIT 5
 ");

@@ -31,7 +31,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $result = OwnerApplicationHelper::register(
             $db,
             (string) ($_POST['nama_penyelenggara'] ?? ''),
-            (string) ($_POST['catatan'] ?? ''),
             (string) ($_POST['kontak'] ?? ''),
             (string) ($_POST['email'] ?? ''),
             (string) ($_POST['password'] ?? '')
@@ -89,12 +88,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <input type="text" id="nama_penyelenggara" name="nama_penyelenggara" class="input"
                                 placeholder="Masukkan nama penyelenggara/komunitas" required minlength="3" maxlength="255"
                                 value="<?= htmlspecialchars($_POST['nama_penyelenggara'] ?? '') ?>">
-                        </div>
-
-                        <div>
-                            <label class="field-label tx-style-113f846dc6" for="catatan">Notes</label>
-                            <input type="text" id="catatan" name="catatan" class="input" placeholder="Notes.."
-                                maxlength="255" value="<?= htmlspecialchars($_POST['catatan'] ?? '') ?>">
                         </div>
 
                         <div>

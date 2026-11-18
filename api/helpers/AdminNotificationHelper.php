@@ -127,7 +127,7 @@ final class AdminNotificationHelper
             ];
 
             $stmtAkun = $db->query("
-                SELECT id, nama, COALESCE(NULLIF(institusi, ''), email) AS asal, diajukan_pada
+                SELECT id, nama, email AS asal, diajukan_pada
                 FROM users
                 WHERE status_pengajuan = 'MENUNGGU' AND diajukan_pada IS NOT NULL
                 ORDER BY diajukan_pada DESC
@@ -150,7 +150,7 @@ final class AdminNotificationHelper
         // 2. Pengajuan / pengajuan ulang acara.
         $stmtSub = $db->query(sprintf("
             SELECT l.id, l.created_at, e.id AS event_id, e.judul_event, e.status_verifikasi,
-                   COALESCE(NULLIF(u.institusi, ''), u.nama) AS owner_tampil,
+                   COALESCE(NULLIF(e.nama_penyelenggara, ''), u.nama) AS owner_tampil,
                    (SELECT COUNT(*) FROM event_submission_logs p
                      WHERE p.event_id = l.event_id AND p.status = 'MENUNGGU_TINJAUAN'
                        AND p.created_at <= l.created_at) AS urutan,
@@ -196,7 +196,7 @@ final class AdminNotificationHelper
 
         // 3. Sistem: penyelenggara baru bergabung.
         $stmtOwner = $db->prepare(sprintf("
-            SELECT id, nama, COALESCE(NULLIF(institusi, ''), nama) AS nama_tampil,
+            SELECT id, nama, nama AS nama_tampil,
                    COALESCE(ditinjau_pada, created_at) AS bergabung
             FROM users
             WHERE role_id = :role

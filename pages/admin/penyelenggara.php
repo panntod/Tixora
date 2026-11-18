@@ -54,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // === DAFTAR PENYELENGGARA ===
 $stmt = $db->prepare("
     SELECT u.id, u.nama, u.email, u.no_whatsapp, u.institusi, u.is_active, u.alasan_suspensi, u.created_at,
-        COALESCE(NULLIF(u.institusi, ''), u.nama) AS nama_tampil,
+        u.nama AS nama_tampil,
         (SELECT COUNT(*) FROM events e WHERE e.owner_id = u.id) AS total_event,
         (SELECT COUNT(*) FROM tickets t
            JOIN events e ON e.id = t.event_id

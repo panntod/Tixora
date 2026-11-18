@@ -38,19 +38,15 @@ final class OwnerApplicationHelper
      *
      * @return array{ok:bool,error:?string,user?:array}
      */
-    public static function register(PDO $db, string $nama, string $catatan, string $kontakRaw, string $emailRaw, string $password): array
+    public static function register(PDO $db, string $nama, string $kontakRaw, string $emailRaw, string $password): array
     {
         $nama = trim(preg_replace('/\s+/u', ' ', $nama) ?? '');
-        $catatan = trim($catatan);
         $kontak = self::normalizePhone($kontakRaw);
         $email = filter_var(trim($emailRaw), FILTER_VALIDATE_EMAIL);
 
         $len = mb_strlen($nama);
         if ($len < 3 || $len > 255) {
             return ['ok' => false, 'error' => 'Nama penyelenggara/komunitas wajib diisi (3–255 karakter).'];
-        }
-        if (mb_strlen($catatan) > 255) {
-            return ['ok' => false, 'error' => 'Notes maksimal 255 karakter.'];
         }
         if ($kontak === null) {
             return ['ok' => false, 'error' => 'Kontak harus berupa nomor WhatsApp Indonesia yang valid, contoh: +62 897-9777-9879.'];
@@ -72,8 +68,8 @@ final class OwnerApplicationHelper
         try {
             AccountApplicationHelper::ensureSchema($db);
             $ins = $db->prepare("
-                INSERT INTO users (nama, email, password, no_whatsapp, institusi, role_id, status_pengajuan, diajukan_pada)
-                VALUES (:nama, :email, :password, :wa, :institusi, :role_id, 'MENUNGGU', CURRENT_TIMESTAMP)
+                INSERT INTO users (nama, email, password, no_whatsapp, role_id, status_pengajuan, diajukan_pada)
+                VALUES (:nama, :email, :password, :wa, :role_id, 'MENUNGGU', CURRENT_TIMESTAMP)
                 RETURNING id
             ");
             $ins->execute([
@@ -81,7 +77,6 @@ final class OwnerApplicationHelper
                 'email'     => $email,
                 'password'  => password_hash($password, PASSWORD_BCRYPT),
                 'wa'        => $kontak,
-                'institusi' => $catatan !== '' ? $catatan : null, // Notes disimpan di kolom institusi
                 'role_id'   => AuthHelper::ROLE_EVENT_OWNER,
             ]);
             $id = $ins->fetchColumn();
