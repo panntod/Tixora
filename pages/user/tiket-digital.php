@@ -170,16 +170,12 @@ $kickerDate = strtoupper(date('D · d M Y', strtotime($ticket['tanggal_mulai']))
             </div>
 
             <div class="stack gap-10 tx-style-1b0f4999d2" style="margin-top:20px">
-                <button onclick="window.print()" class="button button-large primary-button full-width"
+                <button type="button" id="btn-unduh-png" class="button button-large primary-button full-width"
                     style="cursor:pointer">
-                    Cetak / Simpan Tiket (PDF)
+                    Unduh Tiket (PNG)
                 </button>
-                <a href="<?= BASE_URL ?>/tiket-saya" class="button button-large secondary-button full-width"
-                    style="text-align:center;text-decoration:none">
-                    Kembali ke Tiket Saya
-                </a>
             </div>
-            <p class="help tx-style-1294536864" style="text-align:center;margin-top:12px">Kode QR bersifat pribadi dan
+            <p id="ticket-note" class="help tx-style-1294536864" style="text-align:center;margin-top:12px">Kode QR bersifat pribadi dan
                 unik per peserta. Jangan dibagikan kepada orang lain.</p>
         </main>
         <footer class="footer">
@@ -205,6 +201,221 @@ $kickerDate = strtoupper(date('D · d M Y', strtotime($ticket['tanggal_mulai']))
             label: 'QR Code <?= htmlspecialchars($ticket['kode_tiket'], ENT_QUOTES) ?>'
         });
         <?php endif; ?>
+    </script>
+    <script>
+        // Unduh tiket sebagai PNG: kartu digambar langsung di <canvas> dari isi halaman (tanpa library tambahan).
+        (function () {
+            var btn = document.getElementById('btn-unduh-png');
+            if (!btn) { return; }
+            var qrUrl = <?= json_encode($qrUrl, JSON_UNESCAPED_SLASHES) ?>;
+            if (qrUrl === '' || typeof TixoraQR === 'undefined') { btn.disabled = true; return; }
+
+            var S = 3, PAD = 24, W = 400, BANNER_H = Math.round(W * 200 / 390), IN = 16;
+            var FONT = getComputedStyle(document.body).fontFamily || 'Arial, Helvetica, sans-serif';
+            var BG = '#FAFAFC', INK = '#0E1128', MUTED = '#5F6483', LINE = '#E4E4EE';
+
+            function txt(el) { return el ? el.textContent.replace(/\s+/g, ' ').trim() : ''; }
+
+            function setFont(ctx, size, weight, spacing) {
+                ctx.font = weight + ' ' + size + 'px ' + FONT;
+                if ('letterSpacing' in ctx) { ctx.letterSpacing = (spacing || 0) + 'px'; }
+            }
+
+            function wrap(ctx, text, maxW) {
+                var words = String(text).split(' '), lines = [], line = '';
+                words.forEach(function (w) {
+                    var test = line ? line + ' ' + w : w;
+                    if (ctx.measureText(test).width <= maxW || !line) { line = test; }
+                    else { lines.push(line); line = w; }
+                });
+                if (line) { lines.push(line); }
+                return lines.length ? lines : [''];
+            }
+
+            function path(ctx, x, y, w, h, r) {
+                var tl = r[0], tr = r[1], br = r[2], bl = r[3];
+                ctx.beginPath();
+                ctx.moveTo(x + tl, y);
+                ctx.lineTo(x + w - tr, y); ctx.arcTo(x + w, y, x + w, y + tr, tr);
+                ctx.lineTo(x + w, y + h - br); ctx.arcTo(x + w, y + h, x + w - br, y + h, br);
+                ctx.lineTo(x + bl, y + h); ctx.arcTo(x, y + h, x, y + h - bl, bl);
+                ctx.lineTo(x, y + tl); ctx.arcTo(x, y, x + tl, y, tl);
+                ctx.closePath();
+            }
+
+            function collect() {
+                var badge = document.querySelector('.ticket-stub .badge');
+                var bs = badge ? getComputedStyle(badge) : null;
+                var defs = [];
+                document.querySelectorAll('.ticket-stub dl.definition > div').forEach(function (d) {
+                    defs.push({ label: txt(d.querySelector('dt')), value: txt(d.querySelector('dd')), wide: d.classList.contains('wide') });
+                });
+                return {
+                    badge: txt(badge),
+                    badgeBg: bs ? bs.backgroundColor : '#E8F6EC',
+                    badgeFg: bs ? bs.color : '#15803D',
+                    code: txt(document.querySelector('.ticket-stub .ticket-id')),
+                    caption: txt(document.querySelector('.ticket-stub .qr-box .help')),
+                    note: txt(document.getElementById('ticket-note')),
+                    defs: defs,
+                    banner: document.querySelector('.ticket-fluid > img')
+                };
+            }
+
+            function draw(d, withBanner) {
+                var m = document.createElement('canvas').getContext('2d');
+                var BOX = 200, QR_BOX_H = IN + BOX + 8 + 18 + IN;
+
+                // ---- ukur dulu (tinggi dinamis karena teks bisa membungkus) ----
+                var rows = [], i = 0;
+                while (i < d.defs.length) {
+                    var a = d.defs[i];
+                    if (a.wide) { rows.push([a]); i += 1; } else { rows.push(d.defs[i + 1] && !d.defs[i + 1].wide ? [a, d.defs[i + 1]] : [a]); i += rows[rows.length - 1].length; }
+                }
+                var innerW = W - IN * 2, colW = (innerW - 12) / 2;
+                setFont(m, 14, 'bold', 0);
+                var layout = rows.map(function (r) {
+                    var cells = r.map(function (c) {
+                        var lines = wrap(m, c.value, r.length === 1 ? innerW : colW);
+                        return { c: c, lines: lines, h: 18 + 2 + 21 * lines.length };
+                    });
+                    return { cells: cells, h: Math.max.apply(null, cells.map(function (x) { return x.h; })) };
+                });
+                var defH = layout.reduce(function (s, r) { return s + r.h; }, 0) + 16 * Math.max(0, layout.length - 1);
+                setFont(m, 12, 'normal', 0);
+                var noteLines = d.note ? wrap(m, d.note, W) : [];
+                var stubH = 20 + 22 + 16 + QR_BOX_H + 16 + defH + 20;
+                var cardH = BANNER_H + stubH;
+                var totalW = W + PAD * 2;
+                var totalH = PAD + cardH + (noteLines.length ? 12 + noteLines.length * 18 : 0) + PAD;
+
+                var canvas = document.createElement('canvas');
+                canvas.width = totalW * S; canvas.height = Math.ceil(totalH * S);
+                var ctx = canvas.getContext('2d');
+                ctx.scale(S, S);
+                ctx.textBaseline = 'alphabetic';
+                ctx.fillStyle = BG; ctx.fillRect(0, 0, totalW, totalH);
+
+                // ---- kartu ----
+                var X = PAD, Y = PAD;
+                ctx.save();
+                ctx.shadowColor = 'rgba(14,17,40,0.14)'; ctx.shadowBlur = 24; ctx.shadowOffsetY = 8;
+                ctx.fillStyle = '#fff'; path(ctx, X, Y, W, cardH, [16, 16, 16, 16]); ctx.fill();
+                ctx.restore();
+
+                // banner
+                ctx.save();
+                path(ctx, X, Y, W, BANNER_H, [16, 16, 0, 0]); ctx.clip();
+                var img = d.banner, ok = withBanner && img && img.complete && img.naturalWidth > 0;
+                if (ok) {
+                    var sc = Math.max(W / img.naturalWidth, BANNER_H / img.naturalHeight);
+                    var dw = img.naturalWidth * sc, dh = img.naturalHeight * sc;
+                    ctx.drawImage(img, X, Y + (BANNER_H - dh) / 2, dw, dh);   // object-fit: cover, posisi kiri-tengah
+                } else {
+                    ctx.fillStyle = INK; ctx.fillRect(X, Y, W, BANNER_H);
+                    ctx.fillStyle = '#fff'; setFont(ctx, 22, 'bold', 0);
+                    wrap(ctx, d.defs.length ? d.defs[0].value : '', W - 48).slice(0, 4).forEach(function (l, k) {
+                        ctx.fillText(l, X + 24, Y + 64 + k * 28);
+                    });
+                }
+                ctx.restore();
+
+                // garis sobekan + takik
+                var sy = Y + BANNER_H;
+                ctx.save();
+                ctx.strokeStyle = LINE; ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
+                ctx.beginPath(); ctx.moveTo(X + 10, sy + 1); ctx.lineTo(X + W - 10, sy + 1); ctx.stroke();
+                ctx.restore();
+                ctx.fillStyle = BG;
+                ctx.beginPath(); ctx.arc(X, sy, 10, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(X + W, sy, 10, 0, Math.PI * 2); ctx.fill();
+
+                // ---- badan tiket ----
+                var cy = sy + 20;
+                setFont(ctx, 12, 'bold', 0);
+                var bw = 9 + 6 + 6 + ctx.measureText(d.badge).width + 9;
+                ctx.fillStyle = d.badgeBg; path(ctx, X + IN, cy, bw, 22, [11, 11, 11, 11]); ctx.fill();
+                ctx.fillStyle = d.badgeFg;
+                ctx.beginPath(); ctx.arc(X + IN + 9 + 3, cy + 11, 3, 0, Math.PI * 2); ctx.fill();
+                ctx.fillText(d.badge, X + IN + 9 + 6 + 6, cy + 15);
+
+                setFont(ctx, 12, 'bold', 0.7);
+                ctx.fillStyle = MUTED; ctx.textAlign = 'right';
+                ctx.fillText(d.code, X + W - IN, cy + 15);
+                ctx.textAlign = 'left';
+
+                // kotak QR
+                var by = cy + 22 + 16;
+                ctx.lineWidth = 1; ctx.strokeStyle = LINE; ctx.fillStyle = '#fff';
+                path(ctx, X + IN + 0.5, by + 0.5, innerW - 1, QR_BOX_H - 1, [12, 12, 12, 12]); ctx.fill(); ctx.stroke();
+
+                var qx = X + W / 2 - BOX / 2, qy = by + IN;
+                var mat = TixoraQR.matrix(qrUrl), n = mat.length, quiet = 4;
+                var ds = Math.floor(BOX * S / (n + quiet * 2));          // px perangkat per modul (bilangan bulat => tajam)
+                var qrPx = ds * (n + quiet * 2);
+                var ox = Math.round(qx * S + (BOX * S - qrPx) / 2), oy = Math.round(qy * S + (BOX * S - qrPx) / 2);
+                ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.fillStyle = '#fff'; ctx.fillRect(ox, oy, qrPx, qrPx);
+                ctx.fillStyle = INK;
+                for (var yy = 0; yy < n; yy++) for (var xx = 0; xx < n; xx++) {
+                    if (mat[yy][xx]) { ctx.fillRect(ox + (xx + quiet) * ds, oy + (yy + quiet) * ds, ds, ds); }
+                }
+                ctx.restore();
+
+                setFont(ctx, 12, 'normal', 0);
+                ctx.fillStyle = MUTED; ctx.textAlign = 'center';
+                ctx.fillText(d.caption, X + W / 2, qy + BOX + 8 + 13);
+                ctx.textAlign = 'left';
+
+                // definisi (ACARA, PESERTA, KATEGORI, WAKTU, LOKASI)
+                var dy = by + QR_BOX_H + 16;
+                layout.forEach(function (r) {
+                    r.cells.forEach(function (cell, k) {
+                        var cx = X + IN + (r.cells.length === 1 ? 0 : k * (colW + 12));
+                        setFont(ctx, 12, 'bold', 0.7); ctx.fillStyle = MUTED;
+                        ctx.fillText(cell.c.label, cx, dy + 13);
+                        setFont(ctx, 14, 'bold', 0); ctx.fillStyle = INK;
+                        cell.lines.forEach(function (l, li) { ctx.fillText(l, cx, dy + 18 + 2 + 15 + li * 21); });
+                    });
+                    dy += r.h + 16;
+                });
+
+                // catatan di bawah kartu
+                setFont(ctx, 12, 'normal', 0); ctx.fillStyle = MUTED; ctx.textAlign = 'center';
+                noteLines.forEach(function (l, k) { ctx.fillText(l, X + W / 2, Y + cardH + 12 + 13 + k * 18); });
+
+                return canvas;
+            }
+
+            function save(canvas, name, done) {
+                canvas.toBlob(function (blob) {
+                    if (!blob) { done(false); return; }
+                    var url = URL.createObjectURL(blob);
+                    var a = document.createElement('a');
+                    a.href = url; a.download = name;
+                    document.body.appendChild(a); a.click(); a.remove();
+                    setTimeout(function () { URL.revokeObjectURL(url); }, 5000);
+                    done(true);
+                }, 'image/png');
+            }
+
+            btn.addEventListener('click', function () {
+                var label = btn.textContent;
+                btn.disabled = true; btn.textContent = 'Menyiapkan…';
+                var ready = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+                ready.then(function () {
+                    var d = collect();
+                    var name = 'Tiket-' + (d.code || 'TIXORA').replace(/[^A-Za-z0-9_-]+/g, '') + '.png';
+                    var canvas;
+                    try { canvas = draw(d, true); canvas.getContext('2d').getImageData(0, 0, 1, 1); }
+                    catch (e) { canvas = draw(d, false); }   // banner dari domain lain membuat canvas "tainted": ulangi tanpa foto banner
+                    save(canvas, name, function (ok) {
+                        btn.disabled = false; btn.textContent = ok ? label : 'Gagal, coba lagi';
+                        if (!ok) { setTimeout(function () { btn.textContent = label; }, 2500); }
+                    });
+                }).catch(function () { btn.disabled = false; btn.textContent = label; });
+            });
+        })();
     </script>
 </body>
 
