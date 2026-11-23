@@ -107,6 +107,66 @@ class ViewHelper {
         <?php
     }
 
+    /** URL absolut situs (untuk tautan bagikan dan meta Open Graph). */
+    public static function absoluteUrl(string $path = ''): string {
+        $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+        $host = (string) ($_SERVER['HTTP_HOST'] ?? 'localhost');
+        if (!preg_match('/^[A-Za-z0-9.\-]+(:\d+)?$/', $host)) {
+            $host = 'localhost';
+        }
+        return ($https ? 'https' : 'http') . '://' . $host . BASE_URL . $path;
+    }
+
+    /** Waktu lokal WIB dari database ke format kalender UTC, mis. "20261130T020000Z". */
+    public static function toCalendarUtc(string $local): string {
+        try {
+            $d = new DateTime($local, new DateTimeZone('Asia/Jakarta'));
+        } catch (Throwable $e) {
+            return '';
+        }
+        return $d->setTimezone(new DateTimeZone('UTC'))->format('Ymd\THis\Z');
+    }
+
+    /** Atribut data-* untuk tombol .js-ics (unduh pengingat kalender). */
+    public static function calendarAttrs(array $ev, string $url, string $uid): string {
+        $h = static fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
+        return ' data-title="' . $h($ev['judul_event']) . '"'
+            . ' data-start="' . $h(self::toCalendarUtc((string) $ev['tanggal_mulai'])) . '"'
+            . ' data-end="' . $h(self::toCalendarUtc((string) $ev['tanggal_selesai'])) . '"'
+            . ' data-location="' . $h($ev['nama_tempat'] . ', ' . $ev['kota']) . '"'
+            . ' data-desc="' . $h('Info dan tiket: ' . $url) . '"'
+            . ' data-url="' . $h($url) . '"'
+            . ' data-uid="' . $h($uid) . '"';
+    }
+
+    /**
+     * Popup setelah pemesanan tiket berhasil; tombol utamanya menuju halaman Tiket Saya.
+     * Hanya tampil sekali per tab (sessionStorage). Memerlukan assets/event-actions.js.
+     */
+    public static function renderBookingSuccess(array $ev, string $title): void {
+        $h = static fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
+        $eventUrl = self::absoluteUrl('/detail-acara?id=' . rawurlencode((string) $ev['event_id']));
+        ?>
+        <div class="modal-backdrop" id="booking-modal" role="dialog" aria-modal="true" aria-labelledby="booking-modal-title" data-key="<?= $h($ev['ticket_id']) ?>">
+            <div class="modal-card">
+                <div class="success-icon"><svg width="28" height="28" viewBox="0 0 16 16" aria-hidden="true">
+                        <path d="M3.5 8.5l3 3 6-6.5" stroke="#15803D" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg></div>
+                <h2 class="modal-title" id="booking-modal-title"><?= $h($title) ?></h2>
+                <p class="modal-text"><b><?= $h($ev['judul_event']) ?></b> &middot; <?= $h($ev['jenis_tiket']) ?></p>
+                <p class="modal-text slate">E-ticket Anda tersimpan di halaman Tiket Saya.</p>
+                <div class="modal-actions">
+                    <a href="<?= BASE_URL ?>/tiket-saya" class="button button-large primary-button" style="text-decoration:none">Buka Tiket Saya</a>
+                    <button type="button" class="button secondary-button js-ics" style="cursor:pointer"<?= self::calendarAttrs($ev, $eventUrl, (string) $ev['event_id']) ?>>Tambah pengingat ke kalender</button>
+                    <button type="button" class="modal-close" data-close>Tutup</button>
+                </div>
+            </div>
+        </div>
+        <script src="<?= BASE_URL ?>/assets/event-actions.js"></script>
+        <?php
+    }
+
     /** True jika aplikasi diakses dari mesin yang sama (pengembangan lokal). */
     public static function isLocalRequest(): bool {
         return in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1'], true);

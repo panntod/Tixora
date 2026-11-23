@@ -45,10 +45,11 @@ if (($_GET['export'] ?? '') === 'csv') {
     $out = fopen('php://output', 'w');
     fwrite($out, "\xEF\xBB\xBF");
     $safe = static fn($v) => is_string($v) && $v !== '' && strpbrk($v[0], "=+-@\t\r") !== false ? "'" . $v : $v;
-    fputcsv($out, ['Nama', 'Surel', 'WhatsApp', 'Institusi', 'Kategori', 'No. tiket', 'Status', 'Waktu daftar']);
+    // Pemisah titik koma: dibuka rapi per kolom di Excel dengan pengaturan regional Indonesia.
+    fputcsv($out, ['Nama', 'Surel', 'WhatsApp', 'Institusi', 'Kategori', 'No. tiket', 'Status', 'Waktu daftar'], ';');
     foreach ($stmt as $r) {
         fputcsv($out, array_map($safe, [$r['nama'], $r['email'], $r['no_whatsapp'], $r['institusi'], $r['jenis_tiket'],
-            $r['kode_tiket'], EO::ticketBadge($r['status_tiket'])[1], $r['waktu_daftar']]));
+            $r['kode_tiket'], EO::ticketBadge($r['status_tiket'])[1], $r['waktu_daftar']]), ';');
     }
     exit;
 }
@@ -81,7 +82,7 @@ $link = static fn(array $over = []) => EO::url('peserta', $id, array_filter(
     static fn($v) => $v !== '' && $v !== null
 ));
 
-$actions = '<a href="' . EO::e($link(['export' => 'csv'])) . '" class="button secondary-button" style="text-decoration:none;cursor:pointer">Ekspor CSV</a>';
+$actions = '<a href="' . EO::e($link(['export' => 'csv'])) . '" class="button secondary-button" style="text-decoration:none;cursor:pointer" title="Unduh daftar peserta (sesuai filter) untuk dibuka di Excel">Ekspor ke Excel</a>';
 $subtitle = '<span class="slate" style="font-size:16px">' . $stats['pendaftar'] . ' pendaftar</span>';
 
 EO::open($db, $owner, $event, 'peserta', $subtitle, $actions, 'Peserta', 'Peserta');

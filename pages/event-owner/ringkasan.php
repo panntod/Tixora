@@ -35,7 +35,9 @@ $actions = ($isPublished
         ? '<a href="' . BASE_URL . '/detail-acara?id=' . EO::e($id) . '" class="button secondary-button" style="text-decoration:none;cursor:pointer">Lihat halaman publik</a>'
             . '<a href="' . EO::url('scan-tiket', $id) . '" class="button secondary-button" style="text-decoration:none;cursor:pointer">Scan tiket</a>'
         : '')
-    . '<a href="' . EO::url('edit-informasi', $id) . '" class="button primary-button" style="text-decoration:none;cursor:pointer">Edit informasi</a>';
+    . (in_array($event['status_verifikasi'], ['DRAF', 'DITOLAK'], true)
+        ? '<a href="' . EO::url('edit-informasi', $id) . '" class="button primary-button" style="text-decoration:none;cursor:pointer">Edit informasi acara</a>'
+        : '<a href="' . EO::url('edit-informasi', $id) . '" class="button secondary-button" style="text-decoration:none;cursor:pointer" title="Acara pada status ini tidak dapat diedit">Lihat informasi acara</a>');
 
 $subtitle = EO::badge(EO::eventBadge($event['status_verifikasi'])) . ' &nbsp;<span class="slate" style="font-size:14px">'
     . EO::e(EO::tanggal($event['tanggal_mulai'], true)) . ' · ' . EO::e($event['nama_tempat']) . ', ' . EO::e($event['kota']) . '</span>';

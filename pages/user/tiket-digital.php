@@ -110,10 +110,8 @@ $kickerDate = strtoupper(date('D · d M Y', strtotime($ticket['tanggal_mulai']))
         </header>
 
         <main class="tx-style-d84e93a035 ticket-page-main">
-            <?php if ($isSuccess): ?>
-                <div class="alert alert-success" style="margin-bottom:20px;text-align:center">
-                    🎉 Pendaftaran Berhasil! E-Ticket Anda telah aktif dan siap digunakan.
-                </div>
+            <?php if ($isSuccess && $ticket['status_tiket'] === 'AKTIF'): ?>
+                <?php ViewHelper::renderBookingSuccess($ticket + ['ticket_id' => $ticket['id']], 'Pendaftaran berhasil!'); ?>
             <?php endif; ?>
 
             <div class="ticket ticket-fluid tx-style-d944635d3c">

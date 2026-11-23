@@ -112,7 +112,7 @@ $totalSemua = array_sum($rawCounts);
                     </a>
                 </div>
 
-                <div class="tbl-card">
+                <div class="tbl-card tbl-stack">
                     <div class="tbl-head">
                         <div class="tbl-cell" style="flex:3">ACARA</div>
                         <div class="tbl-cell" style="flex:1.2">TANGGAL</div>
@@ -134,7 +134,7 @@ $totalSemua = array_sum($rawCounts);
                                 <?php if (in_array($ev['status_verifikasi'], ['DRAF', 'DITOLAK'], true)): ?>
                                     <a href="<?= BASE_URL ?>/event-owner/buat-acara?id=<?= EO::e($ev['id']) ?>"
                                         class="button secondary-button small-button"
-                                        style="text-decoration:none;cursor:pointer"><?= $ev['status_verifikasi'] === 'DRAF' ? 'Lanjutkan' : 'Perbaiki' ?></a>
+                                        style="text-decoration:none;cursor:pointer"><?= $ev['status_verifikasi'] === 'DRAF' ? 'Edit &amp; lanjutkan' : 'Perbaiki' ?></a>
                                 <?php endif; ?>
                                 <?php if (in_array($ev['status_verifikasi'], ['TERBIT', 'PUBLISHED'], true)): ?>
                                     <a href="<?= EO::url('scan-tiket', $ev['id']) ?>"

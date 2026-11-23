@@ -70,6 +70,25 @@ foreach ($ticketCategories as $c) {
 }
 $dateFormatted = date('d M Y · H:i', strtotime($event['tanggal_mulai'])) . '–' . date('H:i', strtotime($event['tanggal_selesai'])) . ' WIB';
 $kickerDate = strtoupper(date('d M Y', strtotime($event['tanggal_mulai'])));
+
+// Tautan bagikan, meta Open Graph (pratinjau di WhatsApp/media sosial), dan pengingat kalender
+$shareUrl = ViewHelper::absoluteUrl('/detail-acara?id=' . rawurlencode((string) $event['id']));
+$shareText = $event['judul_event'] . ' - ' . date('d M Y', strtotime($event['tanggal_mulai']))
+    . ' di ' . $event['nama_tempat'] . ', ' . $event['kota'] . '. Daftar di Tixora:';
+$ogDesc = mb_strimwidth(trim((string) preg_replace('/\s+/', ' ', (string) $event['deskripsi'])), 0, 160, '...');
+$ogImage = null;
+if (BannerHelper::variant($event) === null) {
+    $bannerPath = trim((string) $event['banner_url']);
+    $ogImage = preg_match('#^https?://#i', $bannerPath) ? $bannerPath : ViewHelper::absoluteUrl('/' . ltrim($bannerPath, '/'));
+}
+$waUrl = 'https://wa.me/?text=' . rawurlencode($shareText . ' ' . $shareUrl);
+$fbUrl = 'https://www.facebook.com/sharer/sharer.php?u=' . rawurlencode($shareUrl);
+$xUrl = 'https://twitter.com/intent/tweet?text=' . rawurlencode($shareText) . '&url=' . rawurlencode($shareUrl);
+$gcalUrl = 'https://calendar.google.com/calendar/render?action=TEMPLATE'
+    . '&text=' . rawurlencode((string) $event['judul_event'])
+    . '&dates=' . ViewHelper::toCalendarUtc((string) $event['tanggal_mulai']) . '/' . ViewHelper::toCalendarUtc((string) $event['tanggal_selesai'])
+    . '&details=' . rawurlencode('Info dan tiket: ' . $shareUrl)
+    . '&location=' . rawurlencode($event['nama_tempat'] . ', ' . $event['kota']);
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -78,6 +97,13 @@ $kickerDate = strtoupper(date('d M Y', strtotime($event['tanggal_mulai'])));
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>TIXORA — <?= htmlspecialchars($event['judul_event']) ?></title>
+    <meta name="description" content="<?= htmlspecialchars($ogDesc) ?>">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="TIXORA">
+    <meta property="og:title" content="<?= htmlspecialchars($event['judul_event']) ?>">
+    <meta property="og:description" content="<?= htmlspecialchars($ogDesc) ?>">
+    <meta property="og:url" content="<?= htmlspecialchars($shareUrl) ?>">
+    <?php if ($ogImage): ?><meta property="og:image" content="<?= htmlspecialchars($ogImage) ?>"><?php endif; ?>
     <link rel="stylesheet" href="<?= BASE_URL ?>/user/styles.css">
     <script>
         function formatRupiah(n) {
@@ -132,7 +158,10 @@ $kickerDate = strtoupper(date('d M Y', strtotime($event['tanggal_mulai'])));
                     </div>
 
                     <div id="tab-tentang" class="tab-content">
-                        <p class="tx-style-251e645222"><?= nl2br(htmlspecialchars($event['deskripsi'])) ?></p>
+                        <?php foreach (preg_split('/(?:\R[ \t]*){2,}/', trim((string) $event['deskripsi'])) as $para): ?>
+                            <?php if (trim($para) === '') { continue; } ?>
+                            <p class="tx-style-251e645222 desc-para"><?= nl2br(htmlspecialchars(trim($para))) ?></p>
+                        <?php endforeach; ?>
                     </div>
 
                     <div id="tab-rundown" class="tab-content" style="display:none">
@@ -255,6 +284,28 @@ $kickerDate = strtoupper(date('d M Y', strtotime($event['tanggal_mulai'])));
                         berbayar aktif setelah pembayaran berhasil; kursi ditahan
                         <?= PaymentHelper::PAYMENT_WINDOW_HOURS ?> jam selama menunggu pembayaran.
                     </p>
+
+                    <div class="share-box">
+                        <h3 class="share-title">Bagikan acara</h3>
+                        <div class="share-row">
+                            <a href="<?= htmlspecialchars($waUrl) ?>" target="_blank" rel="noopener" class="button secondary-button small-button" style="text-decoration:none">WhatsApp</a>
+                            <a href="<?= htmlspecialchars($fbUrl) ?>" target="_blank" rel="noopener" class="button secondary-button small-button" style="text-decoration:none">Facebook</a>
+                            <a href="<?= htmlspecialchars($xUrl) ?>" target="_blank" rel="noopener" class="button secondary-button small-button" style="text-decoration:none">X</a>
+                            <button type="button" class="button secondary-button small-button" style="cursor:pointer" data-share-copy data-url="<?= htmlspecialchars($shareUrl) ?>">Salin tautan</button>
+                            <button type="button" class="button secondary-button small-button" style="cursor:pointer" data-share-native hidden
+                                data-url="<?= htmlspecialchars($shareUrl) ?>" data-title="<?= htmlspecialchars($event['judul_event']) ?>" data-text="<?= htmlspecialchars($shareText) ?>">Lainnya…</button>
+                        </div>
+                        <p class="help" id="share-note" role="status" aria-live="polite"></p>
+
+                        <?php if ($eventTerbuka): ?>
+                            <h3 class="share-title">Pengingat jadwal</h3>
+                            <div class="share-row">
+                                <a href="<?= htmlspecialchars($gcalUrl) ?>" target="_blank" rel="noopener" class="button secondary-button small-button" style="text-decoration:none">Google Kalender</a>
+                                <button type="button" class="button secondary-button small-button js-ics" style="cursor:pointer"<?= ViewHelper::calendarAttrs($event, $shareUrl, (string) $event['id']) ?>>Unduh .ics</button>
+                            </div>
+                            <p class="help">File .ics (Apple, Outlook, dan kalender lain) menyertakan pengingat 1 hari dan 1 jam sebelum acara dimulai.</p>
+                        <?php endif; ?>
+                    </div>
                 </aside>
             </div>
         </main>
@@ -276,6 +327,7 @@ $kickerDate = strtoupper(date('d M Y', strtotime($event['tanggal_mulai'])));
         </footer>
     </div>
     <script src="<?= BASE_URL ?>/assets/default-banner.js"></script>
+    <script src="<?= BASE_URL ?>/assets/event-actions.js"></script>
 </body>
 
 </html>

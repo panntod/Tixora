@@ -31,14 +31,16 @@ if ($orderId !== '') {
         'kode_tiket' => $order['kode_tiket'],
         'judul_event' => $order['judul_event'],
         'jenis_tiket' => $order['jenis_tiket'],
+        'event_id' => $order['event_id'],
         'tanggal_mulai' => $order['tanggal_mulai'],
+        'tanggal_selesai' => $order['tanggal_selesai'],
         'nama_tempat' => $order['nama_tempat'],
         'kota' => $order['kota'],
     ];
 } elseif (PaymentHelper::isUuid($ticketId)) {
     // Konfirmasi pendaftaran tiket gratis
     $stmt = $db->prepare("
-        SELECT t.id, t.kode_tiket, t.jenis_tiket, e.judul_event, e.tanggal_mulai, e.nama_tempat, e.kota
+        SELECT t.id, t.event_id, t.kode_tiket, t.jenis_tiket, e.judul_event, e.tanggal_mulai, e.tanggal_selesai, e.nama_tempat, e.kota
         FROM tickets t JOIN events e ON e.id = t.event_id
         WHERE t.id = :id AND t.user_id = :uid AND t.status_tiket = 'AKTIF'
     ");
@@ -53,7 +55,9 @@ if ($orderId !== '') {
             'kode_tiket' => $t['kode_tiket'],
             'judul_event' => $t['judul_event'],
             'jenis_tiket' => $t['jenis_tiket'],
+            'event_id' => $t['event_id'],
             'tanggal_mulai' => $t['tanggal_mulai'],
+            'tanggal_selesai' => $t['tanggal_selesai'],
             'nama_tempat' => $t['nama_tempat'],
             'kota' => $t['kota'],
         ];
@@ -83,6 +87,7 @@ $waktuTempat = $hariId[(int)date('w', $ts)] . ', ' . date('d M Y', $ts) . ' · '
 <body>
     <div class="frame tx-style-cd722f105b">
         <?php ViewHelper::renderNavbar('tiket'); ?>
+        <?php ViewHelper::renderBookingSuccess($data, $data['total'] === 'Gratis' ? 'Pendaftaran berhasil!' : 'Pembayaran berhasil!'); ?>
         <main class="tx-style-a9cba441f2">
             <div class="card tx-style-06dd30d274">
                 <div class="success-icon"><svg width="28" height="28" viewBox="0 0 16 16" aria-hidden="true">
@@ -111,7 +116,8 @@ $waktuTempat = $hariId[(int)date('w', $ts)] . ', ' . date('d M Y', $ts) . ' · '
                 </dl>
                 <div class="alert alert-info tx-style-8e56756bee">Tunjukkan kode QR pada tiket saat registrasi ulang di lokasi.</div>
                 <div class="row tx-style-03c4bb6fce">
-                    <a href="<?= BASE_URL ?>/tiket-digital?id=<?= htmlspecialchars($data['ticket_id']) ?>" class="button button-large primary-button" style="text-decoration:none">Lihat tiket saya</a>
+                    <a href="<?= BASE_URL ?>/tiket-digital?id=<?= htmlspecialchars($data['ticket_id']) ?>" class="button button-large primary-button" style="text-decoration:none">Lihat e-ticket</a>
+                    <a href="<?= BASE_URL ?>/tiket-saya" class="button button-large secondary-button" style="text-decoration:none">Buka Tiket Saya</a>
                     <a href="<?= BASE_URL ?>/jelajah-acara" class="button button-large secondary-button" style="text-decoration:none">Jelajahi acara lain</a>
                 </div>
             </div>

@@ -235,7 +235,7 @@ final class EventHelper
         }
         $info = @getimagesize((string) $file['tmp_name']);
         if (!$info || !in_array($info[2], [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_WEBP], true)) {
-            return 'Poster harus berupa gambar JPG atau PNG.';
+            return 'Poster harus berupa gambar JPG, PNG, atau WebP.';
         }
         $ratio = $info[0] / max(1, $info[1]);
         if ($ratio < 1.6 || $ratio > 1.96) {

@@ -189,12 +189,21 @@ EventHelper::renderTop($db, $owner, 1, $event);
                         <?php if ($poster): ?>
                             <img src="<?= $h($poster) ?>" alt="Poster saat ini" style="display:block;width:100%;max-width:360px;aspect-ratio:16/9;object-fit:cover;border-radius:8px;margin-bottom:12px">
                         <?php endif; ?>
+                        <ul class="poster-guide">
+                            <li>Format <b>JPG, PNG, atau WebP</b>, ukuran maksimal <b>2 MB</b>.</li>
+                            <li>Rasio <b>16:9</b>. Ukuran ideal <b>1280 &times; 720 px</b> (minimal 800 &times; 450 px agar tidak buram).</li>
+                            <li>Letakkan teks dan logo penting di bagian tengah; tepi gambar bisa terpotong di kartu dan banner acara.</li>
+                            <li>Tanpa unggahan, Tixora memakai banner bawaan.</li>
+                        </ul>
                         <div class="dropzone<?= $cls('poster') ?>" style="<?= $err('poster') ? 'border-color:#B91C1C' : '' ?>">
                             <b id="poster-judul" style="display:block"><?= $poster ? 'Ganti poster acara' : 'Unggah poster acara' ?></b>
-                            <span class="slate" id="poster-info" style="display:block;margin-bottom:10px">JPG atau PNG, rasio 16:9, maks. 2 MB</span>
+                            <span class="slate" id="poster-info" style="display:block;margin-bottom:10px">JPG, PNG, atau WebP &middot; 16:9 &middot; maks. 2 MB</span>
                             <input type="file" id="poster" name="poster" accept="image/jpeg,image/png,image/webp" style="display:none">
                             <label for="poster" class="button secondary-button small-button" style="cursor:pointer">Pilih berkas</label>
                         </div>
+                        <p class="help help-error" id="poster-error" style="display:none" role="alert"></p>
+                        <p class="help" id="poster-warn" style="display:none;color:#92400e"></p>
+                        <img id="poster-preview" alt="Pratinjau poster baru" style="display:none;width:100%;max-width:360px;aspect-ratio:16/9;object-fit:cover;border-radius:8px;margin-top:12px">
                         <?php if ($err('poster')): ?><p class="help help-error"><?= $h($err('poster')) ?></p><?php endif; ?>
                     </div>
 
@@ -240,11 +249,47 @@ EventHelper::renderTop($db, $owner, 1, $event);
                 <script>
                     (function () {
                         var input = document.getElementById('poster');
+                        var errEl = document.getElementById('poster-error');
+                        var warnEl = document.getElementById('poster-warn');
+                        var prev = document.getElementById('poster-preview');
+                        function reset() {
+                            errEl.style.display = warnEl.style.display = prev.style.display = 'none';
+                            errEl.textContent = warnEl.textContent = '';
+                        }
+                        function reject(msg) {
+                            input.value = '';
+                            errEl.textContent = msg;
+                            errEl.style.display = 'block';
+                            prev.style.display = 'none';
+                            document.getElementById('poster-judul').textContent = 'Pilih poster lain';
+                        }
                         input.addEventListener('change', function () {
+                            reset();
                             var f = input.files[0];
                             if (!f) return;
                             document.getElementById('poster-judul').textContent = f.name;
-                            document.getElementById('poster-info').textContent = (f.size / 1048576).toFixed(2) + ' MB' + (f.size > 2097152 ? ' — melebihi batas 2 MB' : '');
+                            document.getElementById('poster-info').textContent = (f.size / 1048576).toFixed(2) + ' MB';
+                            if (['image/jpeg', 'image/png', 'image/webp'].indexOf(f.type) === -1) { reject('Poster harus berupa gambar JPG, PNG, atau WebP.'); return; }
+                            if (f.size > 2097152) { reject('Ukuran poster ' + (f.size / 1048576).toFixed(2) + ' MB, melebihi batas 2 MB.'); return; }
+                            var url = URL.createObjectURL(f);
+                            var img = new Image();
+                            img.onload = function () {
+                                var ratio = img.width / Math.max(1, img.height);
+                                if (ratio < 1.6 || ratio > 1.96) {
+                                    reject('Rasio gambar ' + img.width + ' × ' + img.height + ' px belum 16:9. Pangkas gambar (contoh 1280 × 720 px).');
+                                } else {
+                                    prev.src = url;
+                                    prev.style.display = 'block';
+                                    if (img.width < 800) {
+                                        warnEl.textContent = 'Resolusi ' + img.width + ' × ' + img.height + ' px cukup rendah dan bisa tampak buram. Disarankan 1280 × 720 px.';
+                                        warnEl.style.display = 'block';
+                                    }
+                                    return;
+                                }
+                                URL.revokeObjectURL(url);
+                            };
+                            img.onerror = function () { reject('Berkas tidak dapat dibaca sebagai gambar.'); URL.revokeObjectURL(url); };
+                            img.src = url;
                         });
                     })();
                 </script>

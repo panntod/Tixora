@@ -73,7 +73,7 @@ $subtitle = EO::badge(EO::eventBadge($event['status_verifikasi']))
     . ($editable ? 'Dapat diedit' : 'Tidak dapat diedit pada status ini')
     . '</span>';
 
-EO::open($db, $owner, $event, '', $subtitle, '', 'Edit informasi acara', 'Edit');
+EO::open($db, $owner, $event, '', $subtitle, '', $editable ? 'Edit informasi acara' : 'Informasi acara', $editable ? 'Edit' : 'Informasi');
 ?>
 <div class="stack gap-24" style="width:880px">
     <?php if ($successMsg): ?>

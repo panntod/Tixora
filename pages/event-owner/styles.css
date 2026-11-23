@@ -135,23 +135,27 @@ body {
 }
 
 .badge-success {
-  background: #e8f6ec;
-  color: #15803d;
+  background: #d1fae5;
+  color: #065f46;
+  box-shadow: inset 0 0 0 1px #6ee7b7;
 }
 
 .badge-warning {
-  background: #fef3e2;
-  color: #b45309;
+  background: #fef3c7;
+  color: #92400e;
+  box-shadow: inset 0 0 0 1px #fcd34d;
 }
 
 .badge-info {
-  background: #e8f0fe;
-  color: #1d4ed8;
+  background: #dbeafe;
+  color: #1e40af;
+  box-shadow: inset 0 0 0 1px #93c5fd;
 }
 
 .badge-error {
-  background: #fdecec;
-  color: #b91c1c;
+  background: #fee2e2;
+  color: #991b1b;
+  box-shadow: inset 0 0 0 1px #fca5a5;
 }
 
 .badge-neutral {
@@ -2732,5 +2736,46 @@ select.input {
   .scan-result.is-loading .scan-result-icon svg,
   .scan-recent li.is-new {
     animation: none;
+  }
+}
+
+/* Panduan unggah poster */
+.poster-guide {
+  margin: 0 0 14px;
+  padding-left: 20px;
+  font-size: 13px;
+  line-height: 20px;
+  color: #4b5170;
+}
+.poster-guide li + li {
+  margin-top: 4px;
+}
+
+/* Ponsel: baris tabel acara menjadi kartu agar tombol aksi (Edit, Kelola) langsung terlihat */
+@media (max-width: 560px) {
+  .tbl-stack .tbl-head {
+    display: none;
+  }
+  .tbl-stack .tbl-row {
+    min-width: 0;
+    flex-wrap: wrap;
+    gap: 6px 0;
+    padding: 14px 4px;
+  }
+  .tbl-stack .tbl-cell {
+    flex: 1 1 100% !important;
+    min-width: 0;
+  }
+  .tbl-stack .tbl-cell.tbl-right {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .tbl-stack .tbl-cell.tbl-right .button {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-height: 40px;
   }
 }

@@ -136,23 +136,27 @@ body {
 }
 
 .badge-success {
-  background: #e8f6ec;
-  color: #15803d;
+  background: #d1fae5;
+  color: #065f46;
+  box-shadow: inset 0 0 0 1px #6ee7b7;
 }
 
 .badge-warning {
-  background: #fef3e2;
-  color: #b45309;
+  background: #fef3c7;
+  color: #92400e;
+  box-shadow: inset 0 0 0 1px #fcd34d;
 }
 
 .badge-info {
-  background: #e8f0fe;
-  color: #1d4ed8;
+  background: #dbeafe;
+  color: #1e40af;
+  box-shadow: inset 0 0 0 1px #93c5fd;
 }
 
 .badge-error {
-  background: #fdecec;
-  color: #b91c1c;
+  background: #fee2e2;
+  color: #991b1b;
+  box-shadow: inset 0 0 0 1px #fca5a5;
 }
 
 .badge-neutral {
