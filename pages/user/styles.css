@@ -3306,3 +3306,26 @@ img {
 .modal-close:focus-visible {
   color: #4b34db;
 }
+
+/* Tombol ikon bagikan & pengingat */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  box-sizing: border-box;
+  padding: 0;
+  border: 1px solid #d4d4e2;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #0e1128;
+  text-decoration: none;
+  cursor: pointer;
+}
+.icon-btn:hover,
+.icon-btn:focus-visible {
+  border-color: #4b34db;
+  color: #4b34db;
+  background: #f5f3ff;
+}

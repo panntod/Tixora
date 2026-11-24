@@ -288,22 +288,32 @@ $gcalUrl = 'https://calendar.google.com/calendar/render?action=TEMPLATE'
                     <div class="share-box">
                         <h3 class="share-title">Bagikan acara</h3>
                         <div class="share-row">
-                            <a href="<?= htmlspecialchars($waUrl) ?>" target="_blank" rel="noopener" class="button secondary-button small-button" style="text-decoration:none">WhatsApp</a>
-                            <a href="<?= htmlspecialchars($fbUrl) ?>" target="_blank" rel="noopener" class="button secondary-button small-button" style="text-decoration:none">Facebook</a>
-                            <a href="<?= htmlspecialchars($xUrl) ?>" target="_blank" rel="noopener" class="button secondary-button small-button" style="text-decoration:none">X</a>
-                            <button type="button" class="button secondary-button small-button" style="cursor:pointer" data-share-copy data-url="<?= htmlspecialchars($shareUrl) ?>">Salin tautan</button>
-                            <button type="button" class="button secondary-button small-button" style="cursor:pointer" data-share-native hidden
-                                data-url="<?= htmlspecialchars($shareUrl) ?>" data-title="<?= htmlspecialchars($event['judul_event']) ?>" data-text="<?= htmlspecialchars($shareText) ?>">Lainnya…</button>
+                            <a href="<?= htmlspecialchars($waUrl) ?>" target="_blank" rel="noopener" class="icon-btn" title="Bagikan ke WhatsApp" aria-label="Bagikan ke WhatsApp">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.04 2a9.9 9.9 0 0 0-8.5 14.9L2 22l5.25-1.38A9.9 9.9 0 1 0 12.04 2zm0 1.8a8.1 8.1 0 1 1-4.13 15.07l-.3-.18-3.1.82.83-3.02-.2-.31A8.1 8.1 0 0 1 12.04 3.8zM8.6 7.6c-.16 0-.42.06-.64.3-.22.25-.84.82-.84 2s.86 2.32.98 2.48c.12.16 1.67 2.66 4.12 3.62 2.04.8 2.45.64 2.9.6.44-.04 1.42-.58 1.62-1.14.2-.56.2-1.04.14-1.14-.06-.1-.22-.16-.46-.28-.24-.12-1.42-.7-1.64-.78-.22-.08-.38-.12-.54.12-.16.24-.62.78-.76.94-.14.16-.28.18-.52.06-.24-.12-1.02-.38-1.94-1.2-.72-.64-1.2-1.42-1.34-1.66-.14-.24-.02-.37.1-.49.1-.1.24-.28.36-.42.12-.14.16-.24.24-.4.08-.16.04-.3-.02-.42-.06-.12-.54-1.3-.74-1.78-.2-.46-.4-.4-.54-.4z"/></svg>
+                            </a>
+                            <a href="<?= htmlspecialchars($fbUrl) ?>" target="_blank" rel="noopener" class="icon-btn" title="Bagikan ke Facebook" aria-label="Bagikan ke Facebook">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.5 22v-8.2h2.8l.5-3.3h-3.3V8.4c0-.9.4-1.7 1.8-1.7h1.6V3.9S15.6 3.6 14.3 3.6c-2.7 0-4.4 1.6-4.4 4.5v2.4H7v3.3h2.9V22h3.6z"/></svg>
+                            </a>
+                            <a href="<?= htmlspecialchars($xUrl) ?>" target="_blank" rel="noopener" class="icon-btn" title="Bagikan ke X" aria-label="Bagikan ke X">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.75 3h3.07l-6.7 7.66L22 21h-6.17l-4.83-6.32L5.47 21H2.4l7.17-8.2L2 3h6.33l4.37 5.78L17.75 3zm-1.08 16.17h1.7L7.4 4.74H5.58l11.09 14.43z"/></svg>
+                            </a>
+                            <button type="button" class="icon-btn" data-share-copy data-url="<?= htmlspecialchars($shareUrl) ?>" title="Salin tautan" aria-label="Salin tautan acara">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.5-1.5"/></svg>
+                            </button>
+                            <button type="button" class="icon-btn" data-share-native hidden title="Bagikan lewat aplikasi lain" aria-label="Bagikan lewat aplikasi lain"
+                                data-url="<?= htmlspecialchars($shareUrl) ?>" data-title="<?= htmlspecialchars($event['judul_event']) ?>" data-text="<?= htmlspecialchars($shareText) ?>">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
+                            </button>
                         </div>
                         <p class="help" id="share-note" role="status" aria-live="polite"></p>
 
                         <?php if ($eventTerbuka): ?>
                             <h3 class="share-title">Pengingat jadwal</h3>
                             <div class="share-row">
-                                <a href="<?= htmlspecialchars($gcalUrl) ?>" target="_blank" rel="noopener" class="button secondary-button small-button" style="text-decoration:none">Google Kalender</a>
-                                <button type="button" class="button secondary-button small-button js-ics" style="cursor:pointer"<?= ViewHelper::calendarAttrs($event, $shareUrl, (string) $event['id']) ?>>Unduh .ics</button>
+                                <a href="<?= htmlspecialchars($gcalUrl) ?>" target="_blank" rel="noopener" class="icon-btn" title="Tambahkan ke Google Kalender" aria-label="Tambahkan ke Google Kalender">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                                </a>
                             </div>
-                            <p class="help">File .ics (Apple, Outlook, dan kalender lain) menyertakan pengingat 1 hari dan 1 jam sebelum acara dimulai.</p>
                         <?php endif; ?>
                     </div>
                 </aside>
