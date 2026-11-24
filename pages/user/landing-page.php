@@ -9,17 +9,18 @@ PaymentHelper::ensureSchema($db);
 PaymentHelper::expireOverdue($db);
 
 // Ambil event yang berstatus TERBIT
-$stmt = $db->query("
+$baseSql = "
     SELECT e.*, COALESCE(NULLIF(e.nama_penyelenggara, ''), u.nama) as owner_nama,
            (SELECT COUNT(*) FROM tickets t WHERE t.event_id = e.id AND t.status_tiket != 'BATAL') as total_pendaftar,
            COALESCE((SELECT MIN(c.harga) FROM ticket_categories c WHERE c.event_id = e.id), 0) as harga_mulai
     FROM events e
     JOIN users u ON e.owner_id = u.id
     WHERE e.status_verifikasi = 'TERBIT'
-    ORDER BY (e.tanggal_selesai <= NOW()) ASC, e.tanggal_mulai ASC
-    LIMIT 8
-");
-$events = $stmt->fetchAll();
+";
+// Acara berjalan/akan datang lebih dulu; acara yang sudah ditutup maksimal 3 terbaru, di bagian akhir.
+$open = $db->query($baseSql . " AND e.tanggal_selesai > NOW() ORDER BY e.tanggal_mulai ASC LIMIT 8")->fetchAll();
+$closed = $db->query($baseSql . " AND e.tanggal_selesai <= NOW() ORDER BY e.tanggal_selesai DESC LIMIT 3")->fetchAll();
+$events = array_slice(array_merge($open, $closed), 0, 8);
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -127,7 +128,9 @@ $events = $stmt->fetchAll();
                                         <?php else: ?>
                                             <b class="event-card-price price-free">Gratis</b>
                                         <?php endif; ?>
-                                        <span class="event-card-left">Sisa <?= $sisaKuota ?> kursi</span>
+                                        <?php if (!$ditutup): ?>
+                                            <span class="event-card-left">Sisa <?= $sisaKuota ?> kursi</span>
+                                        <?php endif; ?>
                                     </div>
                                     <?php if ($ditutup): ?>
                                         <span class="button disabled-button closed-button" aria-disabled="true"

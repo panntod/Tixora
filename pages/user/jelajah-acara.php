@@ -32,15 +32,14 @@ if (!empty($search)) {
     $params['search'] = "%{$search}%";
 }
 
-if ($sortBy === 'terdekat') {
-    $sql .= " ORDER BY (e.tanggal_selesai <= NOW()) ASC, e.tanggal_mulai ASC";
-} else {
-    $sql .= " ORDER BY (e.tanggal_selesai <= NOW()) ASC, e.created_at DESC";
-}
-
-$stmt = $db->prepare($sql);
-$stmt->execute($params);
-$events = $stmt->fetchAll();
+// Acara yang masih berjalan/akan datang ditampilkan semua; acara yang sudah ditutup
+// dibatasi 3 terbaru saja agar tidak menumpuk, dan diletakkan di bagian akhir.
+$orderOpen = ($sortBy === 'terdekat') ? 'e.tanggal_mulai ASC' : 'e.created_at DESC';
+$stmtOpen = $db->prepare($sql . " AND e.tanggal_selesai > NOW() ORDER BY $orderOpen");
+$stmtOpen->execute($params);
+$stmtClosed = $db->prepare($sql . " AND e.tanggal_selesai <= NOW() ORDER BY e.tanggal_selesai DESC LIMIT 3");
+$stmtClosed->execute($params);
+$events = array_merge($stmtOpen->fetchAll(), $stmtClosed->fetchAll());
 $totalCount = count($events);
 
 $categories = ['Semua', 'Seminar', 'Workshop', 'Konferensi', 'Kompetisi'];
@@ -127,7 +126,9 @@ $categories = ['Semua', 'Seminar', 'Workshop', 'Konferensi', 'Kompetisi'];
                                     <?php else: ?>
                                         <b class="event-card-price price-free">Gratis</b>
                                     <?php endif; ?>
-                                    <span class="event-card-left">Sisa <?= $sisaKuota ?> kursi</span>
+                                    <?php if (!$ditutup): ?>
+                                        <span class="event-card-left">Sisa <?= $sisaKuota ?> kursi</span>
+                                    <?php endif; ?>
                                 </div>
                                 <?php if ($ditutup): ?>
                                     <span class="button disabled-button closed-button" aria-disabled="true"
