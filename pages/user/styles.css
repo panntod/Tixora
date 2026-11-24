@@ -3329,3 +3329,45 @@ img {
   color: #4b34db;
   background: #f5f3ff;
 }
+
+/* ---------- Ponsel: kategori & kartu acara memanjang ke kanan (carousel) ---------- */
+@media (max-width: 640px) {
+  div.chips-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  div.chips-row::-webkit-scrollbar {
+    display: none;
+  }
+  div.chips-row > .chip {
+    flex: none;
+    white-space: nowrap;
+  }
+
+  div.event-grid {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 16px;
+    overflow-x: auto;
+    padding: 4px 2px 16px;
+    scroll-snap-type: x mandatory;
+    scroll-padding-left: 2px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  div.event-grid::-webkit-scrollbar {
+    display: none;
+  }
+  div.event-grid > .event-card {
+    flex: 0 0 78%;
+    max-width: 320px;
+    min-width: 0;
+    scroll-snap-align: start;
+  }
+  div.event-grid > :not(.event-card) {
+    flex: 0 0 100%;
+  }
+}
