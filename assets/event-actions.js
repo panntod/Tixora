@@ -112,12 +112,9 @@
         if (!seen) {
             modal.classList.add('is-open');
             try { sessionStorage.setItem(key, '1'); } catch (e) { /* abaikan */ }
-            var first = modal.querySelector('.primary-button');
-            if (first) first.focus();
+            setTimeout(close, 4000); // notifikasi tertutup otomatis
         }
-        modal.addEventListener('click', function (e) {
-            if (e.target === modal || (e.target.closest && e.target.closest('[data-close]'))) close();
-        });
+        modal.addEventListener('click', close);
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape') close();
         });

@@ -146,7 +146,6 @@ class ViewHelper {
      */
     public static function renderBookingSuccess(array $ev, string $title): void {
         $h = static fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
-        $eventUrl = self::absoluteUrl('/detail-acara?id=' . rawurlencode((string) $ev['event_id']));
         ?>
         <div class="modal-backdrop" id="booking-modal" role="dialog" aria-modal="true" aria-labelledby="booking-modal-title" data-key="<?= $h($ev['ticket_id']) ?>">
             <div class="modal-card">
@@ -156,11 +155,7 @@ class ViewHelper {
                 <h2 class="modal-title" id="booking-modal-title"><?= $h($title) ?></h2>
                 <p class="modal-text"><b><?= $h($ev['judul_event']) ?></b> &middot; <?= $h($ev['jenis_tiket']) ?></p>
                 <p class="modal-text slate">E-ticket Anda tersimpan di halaman Tiket Saya.</p>
-                <div class="modal-actions">
-                    <a href="<?= BASE_URL ?>/tiket-saya" class="button button-large primary-button" style="text-decoration:none">Buka Tiket Saya</a>
-                    <button type="button" class="button secondary-button js-ics" style="cursor:pointer"<?= self::calendarAttrs($ev, $eventUrl, (string) $ev['event_id']) ?>>Tambah pengingat ke kalender</button>
-                    <button type="button" class="modal-close" data-close>Tutup</button>
-                </div>
+                <p class="modal-hint">Ketuk di mana saja untuk menutup</p>
             </div>
         </div>
         <script src="<?= BASE_URL ?>/assets/event-actions.js"></script>

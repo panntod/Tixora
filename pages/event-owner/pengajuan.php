@@ -69,7 +69,7 @@ EO::open($db, $owner, $event, 'pengajuan', $subtitle, $actions, null, 'Pengajuan
                         <div style="margin:0 0 12px"><?= EO::badge(EO::eventBadge($status)) ?></div>
                         <?php if ($canPublish): ?>
                             <div class="alert alert-success" style="margin-bottom:12px;font-size:14px">
-                                Acara sudah <b>disetujui admin</b>. Klik <b>Terbitkan acara</b> untuk menampilkannya di portal publik.
+                                <span>Acara sudah <b>disetujui admin</b>. Klik <b>Terbitkan acara</b> untuk menampilkannya di portal publik.</span>
                             </div>
                         <?php endif; ?>
                         <p class="slate" style="font-size:14px;line-height:21px">

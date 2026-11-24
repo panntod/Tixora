@@ -3371,3 +3371,10 @@ img {
     flex: 0 0 100%;
   }
 }
+
+.modal-hint {
+  margin: 14px 0 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: #8a8fa8;
+}
