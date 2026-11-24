@@ -215,6 +215,44 @@ final class EventHelper
         return $h * 60 + $m;
     }
 
+    /**
+     * Jam bawaan formulir kegiatan rundown, mengikuti informasi acara:
+     * - Mulai   : jam selesai kegiatan terakhir; bila belum ada kegiatan, jam mulai acara.
+     * - Selesai : jam selesai acara (bila acara berlangsung di hari yang sama dan setelah jam mulai),
+     *             selain itu mulai + 1 jam.
+     * Format "JJ.MM".
+     *
+     * @param array<string,mixed> $event baris tabel events
+     * @param array<int,array<string,mixed>> $rows kegiatan rundown yang sudah ada
+     * @return array{0:string,1:string}
+     */
+    public static function rundownDefaults(array $event, array $rows): array
+    {
+        $fmt = static fn(int $m): string => sprintf('%02d.%02d', intdiv($m, 60), $m % 60);
+        $evStart = strtotime((string) ($event['tanggal_mulai'] ?? ''));
+        $evEnd = strtotime((string) ($event['tanggal_selesai'] ?? ''));
+
+        $startMin = $evStart ? ((int) date('G', $evStart)) * 60 + (int) date('i', $evStart) : 8 * 60;
+        foreach ($rows as $r) {
+            $startMin = max($startMin, self::timeToMinutes((string) $r['waktu_selesai']));
+        }
+        if (!$rows && !$evStart) {
+            $startMin = 8 * 60;
+        }
+        $startMin = min($startMin, 22 * 60 + 59);
+
+        $endMin = $startMin + 60;
+        if ($evStart && $evEnd && date('Y-m-d', $evStart) === date('Y-m-d', $evEnd)) {
+            $eventEndMin = ((int) date('G', $evEnd)) * 60 + (int) date('i', $evEnd);
+            if ($eventEndMin > $startMin) {
+                $endMin = $eventEndMin;
+            }
+        }
+        $endMin = min($endMin, 23 * 60 + 59);
+
+        return [$fmt($startMin), $fmt($endMin)];
+    }
+
     // -------------------------------------------------------------- poster
 
     /** Validasi poster tanpa menyimpan. Mengembalikan pesan error atau null (juga null bila tidak ada berkas). */

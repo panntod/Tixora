@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once defined('ROOT_DIR') ? ROOT_DIR . '/api/helpers/ViewHelper.php' : __DIR__ . '/../../api/helpers/ViewHelper.php';
+require_once defined('ROOT_DIR') ? ROOT_DIR . '/api/helpers/EventHelper.php' : __DIR__ . '/../../api/helpers/EventHelper.php';
 require_once __DIR__ . '/event-layout.php';
 
 $db = ViewHelper::getDb();
@@ -25,6 +26,8 @@ $actions = '<a href="#form-kegiatan" class="button primary-button" style="text-d
 $subtitle = '<span class="slate" style="font-size:16px">Kegiatan diurutkan otomatis berdasarkan jam mulai · ' . count($rundowns) . ' kegiatan</span>';
 
 EO::open($db, $owner, $event, 'rundown', $subtitle, $actions, 'Rundown acara', 'Rundown');
+
+[$defMulai, $defSelesai] = EventHelper::rundownDefaults($event, $rundowns);
 
 $jsRundown = array_map(static fn($r) => [
     'judul' => $r['judul_sesi'], 'mulai' => $r['waktu_mulai'], 'selesai' => $r['waktu_selesai'],
@@ -63,11 +66,11 @@ $jsRundown = array_map(static fn($r) => [
                             <div class="two-fields">
                                 <div>
                                     <label class="field-label" for="f-mulai">Mulai</label>
-                                    <input class="input" id="f-mulai" type="text" placeholder="08.00" maxlength="5" style="width:100%">
+                                    <input class="input" id="f-mulai" type="text" placeholder="08.00" maxlength="5" style="width:100%" value="<?= EO::e($defMulai) ?>">
                                 </div>
                                 <div>
                                     <label class="field-label" for="f-selesai">Selesai</label>
-                                    <input class="input" id="f-selesai" type="text" placeholder="09.00" maxlength="5" style="width:100%">
+                                    <input class="input" id="f-selesai" type="text" placeholder="09.00" maxlength="5" style="width:100%" value="<?= EO::e($defSelesai) ?>">
                                 </div>
                             </div>
                             <div class="help help-error" id="e-waktu" style="display:none;margin-top:-8px"></div>

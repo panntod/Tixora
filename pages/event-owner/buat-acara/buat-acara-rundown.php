@@ -148,14 +148,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Kegiatan baru: jam mulai default = jam selesai kegiatan terakhir, durasi 1 jam.
+// Kegiatan baru: jam terisi otomatis mengikuti informasi acara (lihat EventHelper::rundownDefaults).
 if ($form['id'] === '' && $form['mulai'] === '' && $form['selesai'] === '') {
-    $last = $rows ? end($rows) : null;
-    $startMin = $last ? EventHelper::timeToMinutes((string) $last['waktu_selesai']) : 8 * 60;
-    $startMin = min($startMin, 22 * 60 + 59);
-    $form['mulai'] = sprintf('%02d.%02d', intdiv($startMin, 60), $startMin % 60);
-    $endMin = min($startMin + 60, 23 * 60 + 59);
-    $form['selesai'] = sprintf('%02d.%02d', intdiv($endMin, 60), $endMin % 60);
+    [$form['mulai'], $form['selesai']] = EventHelper::rundownDefaults($event, $rows);
 }
 
 $h = [EventHelper::class, 'h'];
