@@ -248,9 +248,9 @@ EventHelper::renderTop($db, $owner, 3, $event);
                                     <?php endforeach; ?>
                                 </select>
                                 <?php $msg('pic'); ?>
-                                <?php if (!$committees): ?>
-                                    <p class="help">Belum ada panitia. <a href="<?= BASE_URL ?>/event-owner/panitia?id=<?= $h($eventId) ?>" target="_blank" rel="noopener" style="color:#4b34db">Tambah panitia</a> untuk memilih PIC (opsional).</p>
-                                <?php endif; ?>
+                                <p class="help">
+                                    <?= $committees ? '' : 'Belum ada panitia. ' ?><a href="<?= BASE_URL ?>/event-owner/panitia?id=<?= $h($eventId) ?>&amp;dari=rundown" style="color:#4b34db"><?= $committees ? '+ Tambah panitia lain' : 'Tambah panitia' ?></a><?= $committees ? '' : ' untuk memilih PIC (opsional)' ?>. Setelah disimpan, Anda kembali ke halaman ini.
+                                </p>
                             </div>
                             <button type="submit" class="button primary-button full-width"><?= $editing ? 'Simpan perubahan' : 'Simpan kegiatan' ?></button>
                             <?php if ($editing): ?>

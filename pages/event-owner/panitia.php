@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once defined('ROOT_DIR') ? ROOT_DIR . '/api/helpers/ViewHelper.php' : __DIR__ . '/../../api/helpers/ViewHelper.php';
+require_once defined('ROOT_DIR') ? ROOT_DIR . '/api/helpers/EventHelper.php' : __DIR__ . '/../../api/helpers/EventHelper.php';
 require_once __DIR__ . '/event-layout.php';
 
 $db = ViewHelper::getDb();
@@ -12,6 +13,12 @@ $id = $event['id'];
 $stmt = $db->prepare('SELECT nama_panitia, posisi_jabatan, divisi, kontak, surel FROM committees WHERE event_id = :id ORDER BY created_at ASC');
 $stmt->execute(['id' => $id]);
 $members = $stmt->fetchAll();
+
+// Datang dari langkah Rundown pada wizard buat acara: setelah menyimpan anggota, kembali ke sana.
+$backUrl = '';
+if (($_GET['dari'] ?? '') === 'rundown' && in_array($event['status_verifikasi'], ['DRAF', 'DITOLAK'], true)) {
+    $backUrl = EventHelper::stepUrl(3, (string) $id);
+}
 
 $subtitle = '<span class="slate" style="font-size:16px">' . count($members) . ' anggota</span>';
 EO::open($db, $owner, $event, 'panitia', $subtitle, '', 'Kepanitiaan', 'Panitia');
@@ -40,6 +47,9 @@ EO::open($db, $owner, $event, 'panitia', $subtitle, '', 'Kepanitiaan', 'Panitia'
 
                     <div class="card" style="width:424px;flex:none;box-sizing:border-box">
                         <h2 class="card-title">Tambah anggota</h2>
+                        <?php if ($backUrl): ?>
+                            <p class="help" style="margin:-8px 0 16px">Setelah disimpan, Anda otomatis kembali ke langkah Rundown. <a href="<?= EO::e($backUrl) ?>" style="color:#4b34db">Kembali tanpa menambah</a></p>
+                        <?php endif; ?>
                         <form id="form-panitia" class="stack gap-16" novalidate>
                             <div>
                                 <label class="field-label" for="f-nama">Nama lengkap</label>
@@ -74,6 +84,7 @@ EO::open($db, $owner, $event, 'panitia', $subtitle, '', 'Kepanitiaan', 'Panitia'
 EO::close('<script>
 (function () {
     const eventId = ' . json_encode($id) . ';
+    const backUrl = ' . json_encode($backUrl) . ';
     const g = (i) => document.getElementById(i);
     g("form-panitia").addEventListener("submit", async (ev) => {
         ev.preventDefault();
@@ -89,7 +100,7 @@ EO::close('<script>
         if (!ok) return;
         g("btn-simpan").disabled = true;
         const r = await eoApi("committee/" + eventId, "POST", { nama_panitia: v("nama"), posisi_jabatan: v("peran"), divisi: v("divisi") || "Inti", kontak: v("wa"), surel: v("surel") });
-        if (r.ok) { location.reload(); return; }
+        if (r.ok) { if (backUrl) { location.href = backUrl; } else { location.reload(); } return; }
         g("btn-simpan").disabled = false;
         eoShowError(g("e-form"), r.message);
     });
