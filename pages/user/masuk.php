@@ -23,8 +23,8 @@
                     <h2 class="card-title tx-style-1169661891">Masuk</h2>
                     <p class="slate tx-style-5db37930f2">Akses tiket dan riwayat
                         pendaftaran Anda.</p>
-                    <div class="alert alert-error">Surel atau kata sandi salah. Coba lagi.</div>
-                    <div><label class="field-label">Surel</label>
+                    <div class="alert alert-error">Email atau kata sandi salah. Coba lagi.</div>
+                    <div><label class="field-label">Email</label>
                         <div class="input"><span class="">alya@email.com</span></div>
                     </div>
                     <div><label class="field-label">Kata sandi</label>

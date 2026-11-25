@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($lockedUntil > time()) {
         $errorMessage = 'Terlalu banyak percobaan gagal. Coba lagi dalam ' . ($lockedUntil - time()) . ' detik.';
     } elseif (!$email || !$password) {
-        $errorMessage = 'Surel dan kata sandi wajib diisi.';
+        $errorMessage = 'Email dan kata sandi wajib diisi.';
     } else {
         $stmt = $db->prepare("
             SELECT u.* 
@@ -79,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['login_locked_until'] = time() + LOGIN_LOCK_SECONDS;
                 $_SESSION['login_failed'] = 0;
             }
-            $errorMessage = 'Surel atau kata sandi salah. Coba lagi.';
+            $errorMessage = 'Email atau kata sandi salah. Coba lagi.';
         } elseif (($user['status_pengajuan'] ?? null) === 'MENUNGGU') {
             $errorMessage = 'Pengajuan akun Anda sedang ditinjau admin. Anda dapat masuk setelah akun disetujui.';
         } elseif (($user['status_pengajuan'] ?? null) === 'DITOLAK') {
@@ -163,7 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <form method="POST" action="" class="stack gap-16">
                     <?= ViewHelper::csrfField() ?>
                     <div>
-                        <label class="field-label tx-style-113f846dc6">Surel</label>
+                        <label class="field-label tx-style-113f846dc6">Email</label>
                         <input type="email" name="email" class="input" placeholder="nama@email.com" required
                             value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
                     </div>

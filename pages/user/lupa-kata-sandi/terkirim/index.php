@@ -24,8 +24,8 @@ unset($_SESSION['reset_link']);
 
         <main class="tx-style-29d2027ab1">
             <div class="card stack gap-16">
-                <h2 class="card-title tx-style-1169661891">Periksa surel Anda</h2>
-                <p class="slate tx-style-5db37930f2">Jika surel tersebut terdaftar, tautan untuk mengatur ulang kata
+                <h2 class="card-title tx-style-1169661891">Periksa email Anda</h2>
+                <p class="slate tx-style-5db37930f2">Jika email tersebut terdaftar, tautan untuk mengatur ulang kata
                     sandi telah dibuat dan berlaku 60 menit.</p>
 
                 <?php if ($devLink): ?>

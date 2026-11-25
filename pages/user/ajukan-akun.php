@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
 
                         <div>
-                            <label class="field-label tx-style-113f846dc6" for="email">Surel (untuk masuk)</label>
+                            <label class="field-label tx-style-113f846dc6" for="email">Email (untuk masuk)</label>
                             <input type="email" id="email" name="email" class="input" placeholder="nama@email.com"
                                 required value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
                         </div>

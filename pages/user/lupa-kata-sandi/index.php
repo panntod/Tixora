@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!ViewHelper::checkCsrf()) {
         $errorMessage = 'Sesi formulir kedaluwarsa. Muat ulang halaman lalu coba lagi.';
     } elseif (!$email) {
-        $errorMessage = 'Format surel tidak valid. Contoh: nama@email.com';
+        $errorMessage = 'Format email tidak valid. Contoh: nama@email.com';
     } else {
         $stmt = $db->prepare("SELECT id, nama FROM users WHERE email = :email AND is_active = TRUE");
         $stmt->execute(['email' => $email]);
@@ -60,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // Respons selalu sama agar tidak membocorkan surel mana yang terdaftar.
+        // Respons selalu sama agar tidak membocorkan email mana yang terdaftar.
         header('Location: ' . BASE_URL . '/lupa-kata-sandi/terkirim');
         exit;
     }
@@ -83,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <main class="tx-style-29d2027ab1">
             <div class="card stack gap-16">
                 <h2 class="card-title tx-style-1169661891">Lupa kata sandi</h2>
-                <p class="slate tx-style-5db37930f2">Masukkan surel akun Anda. Kami akan membuat tautan untuk mengatur ulang kata sandi.</p>
+                <p class="slate tx-style-5db37930f2">Masukkan email akun Anda. Kami akan membuat tautan untuk mengatur ulang kata sandi.</p>
 
                 <?php if ($errorMessage): ?>
                     <div class="alert alert-error"><?= htmlspecialchars($errorMessage) ?></div>
@@ -92,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <form method="POST" action="" class="stack gap-16">
                     <?= ViewHelper::csrfField() ?>
                     <div>
-                        <label class="field-label">Surel</label>
+                        <label class="field-label">Email</label>
                         <input type="email" name="email" class="input" placeholder="nama@email.com" required value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
                     </div>
                     <button type="submit" class="button button-large primary-button full-width">Kirim tautan atur ulang</button>

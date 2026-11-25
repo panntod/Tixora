@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!ViewHelper::checkCsrf()) {
         $errorMessage = 'Sesi formulir kedaluwarsa. Muat ulang halaman lalu coba lagi.';
     } elseif (!$nama || !$email || strlen($password) < 8) {
-        $errorMessage = 'Nama, surel yang valid, dan kata sandi minimal 8 karakter wajib diisi.';
+        $errorMessage = 'Nama, email yang valid, dan kata sandi minimal 8 karakter wajib diisi.';
     } else {
         // Cek keberadaan role
         $stmtRole = $db->prepare("SELECT id FROM roles WHERE id = :id");
@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmtCheck = $db->prepare("SELECT id FROM users WHERE email = :email");
             $stmtCheck->execute(['email' => $email]);
             if ($stmtCheck->fetch()) {
-                $errorMessage = 'Surel tersebut sudah terdaftar di sistem. Silakan masuk.';
+                $errorMessage = 'Email tersebut sudah terdaftar di sistem. Silakan masuk.';
             } else {
                 $hashed = password_hash($password, PASSWORD_BCRYPT);
                 $stmtInsert = $db->prepare("
@@ -84,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
 
                     <div>
-                        <label class="field-label tx-style-113f846dc6">Surel</label>
+                        <label class="field-label tx-style-113f846dc6">Email</label>
                         <input type="email" name="email" class="input" placeholder="nama@email.com" required value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
                     </div>
 
