@@ -17,10 +17,8 @@ $baseSql = "
     JOIN users u ON e.owner_id = u.id
     WHERE e.status_verifikasi = 'TERBIT'
 ";
-// Acara berjalan/akan datang lebih dulu; acara yang sudah ditutup maksimal 3 terbaru, di bagian akhir.
-$open = $db->query($baseSql . " AND e.tanggal_selesai > NOW() ORDER BY e.tanggal_mulai ASC LIMIT 8")->fetchAll();
-$closed = $db->query($baseSql . " AND e.tanggal_selesai <= NOW() ORDER BY e.tanggal_selesai DESC LIMIT 3")->fetchAll();
-$events = array_slice(array_merge($open, $closed), 0, 8);
+// Acara yang sudah ditutup hanya tampil 1 hari setelah pendaftaran ditutup; acara berjalan tampil lebih dulu.
+$events = $db->query($baseSql . " AND e.tanggal_selesai > NOW() - INTERVAL '1 day' ORDER BY (e.tanggal_selesai <= NOW()) ASC, e.tanggal_mulai ASC LIMIT 4")->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="id">

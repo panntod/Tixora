@@ -32,14 +32,12 @@ if (!empty($search)) {
     $params['search'] = "%{$search}%";
 }
 
-// Acara yang masih berjalan/akan datang ditampilkan semua; acara yang sudah ditutup
-// dibatasi 3 terbaru saja agar tidak menumpuk, dan diletakkan di bagian akhir.
+// Acara yang sudah ditutup hanya ditampilkan 1 hari setelah pendaftaran ditutup (waktu selesai acara),
+// setelah itu otomatis hilang dari halaman agar tidak menumpuk. Acara yang masih berjalan tampil lebih dulu.
 $orderOpen = ($sortBy === 'terdekat') ? 'e.tanggal_mulai ASC' : 'e.created_at DESC';
-$stmtOpen = $db->prepare($sql . " AND e.tanggal_selesai > NOW() ORDER BY $orderOpen");
-$stmtOpen->execute($params);
-$stmtClosed = $db->prepare($sql . " AND e.tanggal_selesai <= NOW() ORDER BY e.tanggal_selesai DESC LIMIT 3");
-$stmtClosed->execute($params);
-$events = array_merge($stmtOpen->fetchAll(), $stmtClosed->fetchAll());
+$stmt = $db->prepare($sql . " AND e.tanggal_selesai > NOW() - INTERVAL '1 day' ORDER BY (e.tanggal_selesai <= NOW()) ASC, $orderOpen");
+$stmt->execute($params);
+$events = $stmt->fetchAll();
 $totalCount = count($events);
 
 $categories = ['Semua', 'Seminar', 'Workshop', 'Konferensi', 'Kompetisi'];
