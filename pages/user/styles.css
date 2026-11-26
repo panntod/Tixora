@@ -3378,3 +3378,131 @@ img {
   line-height: 18px;
   color: #8a8fa8;
 }
+/* ---------- Navbar ponsel: menu jadi sidebar (laci dari kiri, seperti panel Event Owner) ---------- */
+.nav-toggle,
+.nav-drawer-head,
+.nav-backdrop {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .navbar .container {
+    flex-wrap: nowrap;
+  }
+
+  .navbar .container > div:first-child {
+    display: flex !important;
+    align-items: center;
+    gap: 8px !important;
+  }
+
+  .nav-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    margin-left: -8px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #0e1128;
+    cursor: pointer;
+  }
+  .nav-toggle:hover,
+  .nav-toggle:focus-visible {
+    background: #f1f0ff;
+  }
+
+  .navbar .logo {
+    order: 0;
+  }
+
+  .nav-actions {
+    order: 0;
+    margin-left: auto;
+  }
+
+  .navbar .nav-links {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 60;
+    order: 0;
+    flex: none;
+    flex-direction: column;
+    gap: 0;
+    width: 272px;
+    max-width: 84vw;
+    height: 100vh;
+    height: 100dvh;
+    padding: 0;
+    overflow-y: auto;
+    white-space: normal;
+    background: #ffffff;
+    border-top: 0;
+    display: flex;
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition: transform 0.22s ease, visibility 0.22s;
+  }
+
+  body.nav-open .navbar .nav-links {
+    transform: none;
+    visibility: visible;
+    box-shadow: 0 0 32px rgba(14, 17, 40, 0.25);
+  }
+
+  .nav-drawer-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-bottom: 1px solid #e4e4ee;
+  }
+  .nav-drawer-head .logo-img {
+    height: 28px;
+  }
+  .nav-close {
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    font-size: 26px;
+    line-height: 1;
+    color: #4b5170;
+    cursor: pointer;
+  }
+  .nav-close:hover,
+  .nav-close:focus-visible {
+    background: #f1f0ff;
+  }
+
+  .navbar .nav-links a {
+    display: block;
+    padding: 14px 20px;
+    border-bottom: 1px solid #f1f1f7;
+    font-size: 15px;
+  }
+
+  .nav-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    background: rgba(14, 17, 40, 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s ease;
+  }
+  body.nav-open .nav-backdrop {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  body.nav-open {
+    overflow: hidden;
+  }
+}

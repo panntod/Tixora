@@ -69,6 +69,12 @@ class Database {
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false, // Prepared statement asli di sisi server
             ]);
+            // Samakan zona waktu sesi database dengan aplikasi (WIB). Tanpa ini, server database
+            // cloud (mis. Neon) berzona UTC sehingga NOW()/CURRENT_TIMESTAMP tersimpan 7 jam lebih awal.
+            $tz = getenv('APP_TIMEZONE') ?: 'Asia/Jakarta';
+            if (preg_match('/^[A-Za-z_\/+\-0-9]+$/', $tz)) {
+                $this->connection->exec("SET TIME ZONE '{$tz}'");
+            }
         } catch (PDOException $e) {
             // Detail (host, user, nama DB) hanya ke log server, tidak ke klien.
             error_log('[TIXORA] Koneksi basis data gagal: ' . $e->getMessage());

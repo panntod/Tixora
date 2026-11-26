@@ -39,6 +39,9 @@ declare(strict_types=1);
 |--------------------------------------------------------------------------
 */
 
+// Zona waktu aplikasi (WIB), tidak bergantung pada pengaturan php.ini server hosting.
+date_default_timezone_set(getenv('APP_TIMEZONE') ?: 'Asia/Jakarta');
+
 define('ROOT_DIR', __DIR__);
 define('PAGES_DIR', ROOT_DIR . '/pages/');
 define('ASSETS_DIR', ROOT_DIR . '/assets/');

@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+// Zona waktu aplikasi (WIB), tidak bergantung pada pengaturan php.ini server hosting.
+date_default_timezone_set(getenv('APP_TIMEZONE') ?: 'Asia/Jakarta');
+
 // Konfigurasi Header CORS & Response JSON
 // CORS dibatasi: hanya origin yang sama dengan host aplikasi ini yang boleh memakai API
 // dengan cookie session. (Sebelumnya "*", yang membuka API untuk situs mana pun.)

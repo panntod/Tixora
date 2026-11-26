@@ -173,10 +173,17 @@ class ViewHelper {
         <header class="navbar">
             <div class="container" style="display:flex;align-items:center;justify-content:space-between;height:63px">
                 <div style="display:flex;align-items:center;gap:32px">
+                    <button type="button" class="nav-toggle" id="nav-toggle" aria-label="Buka menu" aria-expanded="false" aria-controls="nav-links">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+                    </button>
                     <a href="<?= BASE_URL ?>/" class="logo" style="text-decoration:none">
                         <img class="logo-img" src="<?= BASE_URL ?>/assets/logo.png" alt="Logo TIXORA">
                     </a>
-                    <nav class="nav-links">
+                    <nav class="nav-links" id="nav-links" aria-label="Menu utama">
+                        <div class="nav-drawer-head">
+                            <img class="logo-img" src="<?= BASE_URL ?>/assets/logo.png" alt="Logo TIXORA">
+                            <button type="button" class="nav-close" id="nav-close" aria-label="Tutup menu">&times;</button>
+                        </div>
                         <a href="<?= BASE_URL ?>/jelajah-acara" style="color:<?= $active === 'jelajah' ? '#4B34DB' : '#4B5170' ?>;text-decoration:none">Jelajahi acara</a>
                         <?php if ($user && $user['role'] === AuthHelper::ROLE_USER): ?>
                             <a href="<?= BASE_URL ?>/tiket-saya" style="color:<?= $active === 'tiket' ? '#4B34DB' : '#4B5170' ?>;text-decoration:none">Tiket Saya</a>
@@ -216,6 +223,28 @@ class ViewHelper {
                 </div>
             </div>
         </header>
+        <div class="nav-backdrop" id="nav-backdrop"></div>
+        <script>
+        (function () {
+            var btn = document.getElementById('nav-toggle');
+            var menu = document.getElementById('nav-links');
+            var backdrop = document.getElementById('nav-backdrop');
+            var closeBtn = document.getElementById('nav-close');
+            if (!btn || !menu) return;
+            function setOpen(open) {
+                document.body.classList.toggle('nav-open', open);
+                btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                if (open && closeBtn) closeBtn.focus();
+                if (!open && document.activeElement === closeBtn) btn.focus();
+            }
+            btn.addEventListener('click', function () { setOpen(true); });
+            if (closeBtn) closeBtn.addEventListener('click', function () { setOpen(false); });
+            if (backdrop) backdrop.addEventListener('click', function () { setOpen(false); });
+            menu.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('a')) setOpen(false); });
+            document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setOpen(false); });
+            window.addEventListener('resize', function () { if (window.innerWidth > 768) setOpen(false); });
+        })();
+        </script>
         <?php
     }
 }
