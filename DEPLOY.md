@@ -133,3 +133,29 @@ Panduan lengkap untuk mempublikasikan Docker Image TIXORA ke Docker Hub dan mend
 - Jika password database lokal pernah ikut ter-commit/terbagikan, **ganti password-nya**.
 - Akun demo (`password123`) berasal dari seed migrasi 001. Setelah demo/presentasi, ubah atau hapus akun tersebut.
 - Migrasi tercatat di tabel `schema_migrations`, jadi tidak diulang di setiap restart. `000_reset_dev.sql` tidak pernah dijalankan otomatis.
+
+---
+
+## ✉️ Pengaturan Email (SMTP) untuk Lupa Kata Sandi
+
+Server container (Back4App) tidak memiliki mail server, jadi TIXORA mengirim email lewat **SMTP**. Tambahkan environment variable berikut di dashboard Back4App (atau di file `.env` untuk lokal):
+
+| Variable | Contoh | Keterangan |
+|---|---|---|
+| `SMTP_HOST` | `smtp.gmail.com` | **Wajib.** Tanpa ini email tidak terkirim |
+| `SMTP_PORT` | `587` | 587 untuk STARTTLS, 465 untuk SSL |
+| `SMTP_ENCRYPTION` | `tls` | `tls` (STARTTLS), `ssl`, atau `none` |
+| `SMTP_USERNAME` | `emailanda@gmail.com` | Akun SMTP |
+| `SMTP_PASSWORD` | `abcd efgh ijkl mnop` | Untuk Gmail gunakan **App Password** (akun harus mengaktifkan verifikasi 2 langkah), bukan kata sandi login |
+| `MAIL_FROM_ADDRESS` | `emailanda@gmail.com` | Alamat pengirim |
+| `MAIL_FROM_NAME` | `TIXORA` | Nama pengirim |
+
+Alternatif gratis selain Gmail: Brevo (`smtp-relay.brevo.com`, port 587), Mailtrap, atau Resend (SMTP).
+
+Uji koneksi email dari terminal (setelah variable terisi):
+
+```bash
+docker compose exec app php bin/test-email.php alamat-tujuan@gmail.com
+```
+
+Jika gagal, pesan error SMTP akan tampil di terminal dan tercatat di log server (`[TIXORA][mail]`).

@@ -26,7 +26,8 @@ unset($_SESSION['reset_link']);
             <div class="card stack gap-16">
                 <h2 class="card-title tx-style-1169661891">Periksa email Anda</h2>
                 <p class="slate tx-style-5db37930f2">Jika email tersebut terdaftar, tautan untuk mengatur ulang kata
-                    sandi telah dibuat dan berlaku 60 menit.</p>
+                    sandi telah dikirim dan berlaku 60 menit. Belum menerima? Periksa folder spam, atau coba lagi
+                    beberapa menit kemudian (maksimal 3 permintaan per jam).</p>
 
                 <?php if ($devLink): ?>
                     <div class="alert alert-warning" style="word-break:break-all">

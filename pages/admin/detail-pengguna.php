@@ -76,27 +76,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
         $db->commit();
 
-        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-        $link = $scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost')
-            . BASE_URL . '/atur-ulang-kata-sandi?token=' . $token;
+        $link = ViewHelper::absoluteUrl('/atur-ulang-kata-sandi?token=' . $token);
 
-        if (ViewHelper::isLocalRequest()) {
+        if (ViewHelper::isLocalRequest() && !MailHelper::isConfigured()) {
             $_SESSION['admin_reset_link'] = $link;
+            $sent = true;
         } else {
-            @mail(
-                $user['email'],
-                'Atur ulang kata sandi TIXORA (diminta admin)',
-                "Halo {$user['nama']},\n\nAdmin telah membuat tautan reset password untuk Anda:\n{$link}\n\nTautan berlaku 60 menit.",
-                'Content-Type: text/plain; charset=UTF-8'
-            );
+            $sent = MailHelper::sendPasswordReset($user['email'], (string) $user['nama'], $link, 60, true);
         }
-        header('Location: ' . BASE_URL . '/admin/detail-pengguna?id=' . urlencode($userId) . '&reset=1');
+        header('Location: ' . BASE_URL . '/admin/detail-pengguna?id=' . urlencode($userId) . '&reset=' . ($sent ? '1' : 'gagal'));
         exit;
     }
 }
 
 if (isset($_GET['saved'])) $successMsg = 'Perubahan tersimpan.';
-if (isset($_GET['reset'])) $successMsg = 'Tautan reset kata sandi telah dibuat.';
+if (($_GET['reset'] ?? '') === 'gagal') {
+    $errorMsg = 'Tautan reset dibuat, tetapi email gagal terkirim. Periksa konfigurasi SMTP (SMTP_HOST, SMTP_USERNAME, SMTP_PASSWORD) dan log server.';
+} elseif (isset($_GET['reset'])) {
+    $successMsg = 'Tautan reset kata sandi telah dibuat dan dikirim ke email pengguna.';
+}
 
 $devResetLink = $_SESSION['admin_reset_link'] ?? null;
 unset($_SESSION['admin_reset_link']);

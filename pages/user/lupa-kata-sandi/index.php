@@ -21,12 +21,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (!$email) {
         $errorMessage = 'Format email tidak valid. Contoh: nama@email.com';
     } else {
-        $stmt = $db->prepare("SELECT id, nama FROM users WHERE email = :email AND is_active = TRUE");
+        $stmt = $db->prepare("SELECT id, nama FROM users WHERE LOWER(email) = LOWER(:email) AND is_active = TRUE");
         $stmt->execute(['email' => $email]);
         $user = $stmt->fetch();
 
         $_SESSION['reset_link'] = null;
-        if ($user) {
+        $pendingMail = null;
+
+        // Batasi permintaan agar tidak dipakai untuk membanjiri email pengguna:
+        // maks. 3 per email dan 10 per alamat IP setiap 60 menit. Respons ke pengguna tetap sama.
+        $allowedEmail = MailHelper::throttle($db, strtolower($email), 'password_reset', 3, 60);
+        $allowedIp = MailHelper::throttle($db, MailHelper::clientIp(), 'password_reset_ip', 10, 60);
+
+        if ($user && $allowedEmail && $allowedIp) {
             $token = bin2hex(random_bytes(32));
 
             $db->beginTransaction();
@@ -43,25 +50,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
             $db->commit();
 
-            $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-            $link = $scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . BASE_URL . '/atur-ulang-kata-sandi?token=' . $token;
+            // absoluteUrl() memperhitungkan HTTPS di belakang proxy (X-Forwarded-Proto).
+            $link = ViewHelper::absoluteUrl('/atur-ulang-kata-sandi?token=' . $token);
 
-            if (ViewHelper::isLocalRequest()) {
-                // Mode pengembangan lokal: belum ada server email, tautan ditampilkan di halaman berikutnya.
+            if (ViewHelper::isLocalRequest() && !MailHelper::isConfigured()) {
+                // Lokal tanpa SMTP: tautan ditampilkan di halaman berikutnya.
                 $_SESSION['reset_link'] = $link;
             } else {
-                // Produksi: kirim lewat mail() (butuh konfigurasi SMTP/sendmail di server).
-                @mail(
-                    $email,
-                    'Atur ulang kata sandi TIXORA',
-                    "Halo {$user['nama']},\n\nKlik tautan berikut untuk mengatur ulang kata sandi (berlaku " . RESET_TOKEN_MINUTES . " menit):\n{$link}\n\nAbaikan email ini jika Anda tidak memintanya.",
-                    'Content-Type: text/plain; charset=UTF-8'
-                );
+                $pendingMail = ['to' => $email, 'nama' => (string) $user['nama'], 'link' => $link];
             }
         }
 
         // Respons selalu sama agar tidak membocorkan email mana yang terdaftar.
-        header('Location: ' . BASE_URL . '/lupa-kata-sandi/terkirim');
+        // Redirect dikirim lebih dulu; email dikirim di latar belakang agar halaman tidak menunggu SMTP.
+        MailHelper::redirectThenContinue(BASE_URL . '/lupa-kata-sandi/terkirim');
+        if ($pendingMail) {
+            MailHelper::sendPasswordReset($pendingMail['to'], $pendingMail['nama'], $pendingMail['link'], RESET_TOKEN_MINUTES);
+        }
         exit;
     }
 }

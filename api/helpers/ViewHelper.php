@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../config/Database.php';
 require_once __DIR__ . '/AuthHelper.php';
 require_once __DIR__ . '/PaymentHelper.php';
+require_once __DIR__ . '/MailHelper.php';
 
 // Resolusi base path untuk instalasi di root domain maupun subfolder.
 if (!defined('BASE_URL')) {
