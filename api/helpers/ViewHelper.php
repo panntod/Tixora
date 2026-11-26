@@ -182,11 +182,12 @@ class ViewHelper {
                     <nav class="nav-links" id="nav-links" aria-label="Menu utama">
                         <div class="nav-drawer-head">
                             <img class="logo-img" src="<?= BASE_URL ?>/assets/logo.png" alt="Logo TIXORA">
-                            <button type="button" class="nav-close" id="nav-close" aria-label="Tutup menu">&times;</button>
                         </div>
-                        <a href="<?= BASE_URL ?>/jelajah-acara" style="color:<?= $active === 'jelajah' ? '#4B34DB' : '#4B5170' ?>;text-decoration:none">Jelajahi acara</a>
+                        <a href="<?= BASE_URL ?>/" class="<?= $active === 'beranda' ? 'is-active' : '' ?>" style="color:<?= $active === 'beranda' ? '#4B34DB' : '#4B5170' ?>;text-decoration:none">Beranda</a>
+                        <a href="<?= BASE_URL ?>/jelajah-acara" class="<?= $active === 'jelajah' ? 'is-active' : '' ?>" style="color:<?= $active === 'jelajah' ? '#4B34DB' : '#4B5170' ?>;text-decoration:none">Jelajahi acara</a>
                         <?php if ($user && $user['role'] === AuthHelper::ROLE_USER): ?>
-                            <a href="<?= BASE_URL ?>/tiket-saya" style="color:<?= $active === 'tiket' ? '#4B34DB' : '#4B5170' ?>;text-decoration:none">Tiket Saya</a>
+                            <a href="<?= BASE_URL ?>/tiket-saya" class="<?= $active === 'tiket' ? 'is-active' : '' ?>" style="color:<?= $active === 'tiket' ? '#4B34DB' : '#4B5170' ?>;text-decoration:none">Tiket Saya</a>
+                            <a href="<?= BASE_URL ?>/akun" class="nav-drawer-only <?= $active === 'akun' ? 'is-active' : '' ?>" style="text-decoration:none">Akun Saya</a>
                         <?php endif; ?>
                         <?php if ($user && $user['role'] === AuthHelper::ROLE_EVENT_OWNER): ?>
                             <a href="<?= BASE_URL ?>/event-owner" style="color:#4B34DB;text-decoration:none">Panel Event Owner</a>
@@ -194,10 +195,17 @@ class ViewHelper {
                         <?php if ($user && $user['role'] === AuthHelper::ROLE_ADMIN): ?>
                             <a href="<?= BASE_URL ?>/admin" style="color:#4B34DB;text-decoration:none">Panel Admin</a>
                         <?php endif; ?>
+                        <?php if ($user): ?>
+                            <a href="<?= BASE_URL ?>/logout" class="nav-drawer-only nav-logout" style="text-decoration:none">Keluar</a>
+                            <div class="nav-drawer-only nav-drawer-user">
+                                <b><?= htmlspecialchars((string) ($user['nama'] ?? '')) ?></b>
+                               
+                            </div>
+                        <?php endif; ?>
                     </nav>
                 </div>
 
-                <div class="nav-actions" style="display:flex;align-items:center;gap:12px">
+                <div class="nav-actions<?= $user ? ' nav-actions-auth' : '' ?>" style="display:flex;align-items:center;gap:12px">
                     <?php if ($user): ?>
                         <?php $initials = strtoupper(mb_substr($user['nama'] ?? 'User', 0, 2)); ?>
                         <div class="user-menu" style="display:flex;align-items:center;gap:12px">
@@ -229,16 +237,12 @@ class ViewHelper {
             var btn = document.getElementById('nav-toggle');
             var menu = document.getElementById('nav-links');
             var backdrop = document.getElementById('nav-backdrop');
-            var closeBtn = document.getElementById('nav-close');
             if (!btn || !menu) return;
             function setOpen(open) {
                 document.body.classList.toggle('nav-open', open);
                 btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-                if (open && closeBtn) closeBtn.focus();
-                if (!open && document.activeElement === closeBtn) btn.focus();
             }
             btn.addEventListener('click', function () { setOpen(true); });
-            if (closeBtn) closeBtn.addEventListener('click', function () { setOpen(false); });
             if (backdrop) backdrop.addEventListener('click', function () { setOpen(false); });
             menu.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('a')) setOpen(false); });
             document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setOpen(false); });
