@@ -3474,9 +3474,9 @@ img {
     padding: 12px 16px;
     border: 0;
     border-radius: 12px;
-    font-size: 14px;
+    font-size: 16px;
     line-height: 24px;
-    font-weight: 600;
+    font-weight: 700;
     color: #4b5170 !important;
   }
   .navbar .nav-links a.is-active {
@@ -3505,7 +3505,6 @@ img {
     font-size: 14px;
     line-height: 21px;
     color: #0e1128;
-    font-weight: 600;
   }
 
   .nav-backdrop {

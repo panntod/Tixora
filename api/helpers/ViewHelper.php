@@ -183,7 +183,6 @@ class ViewHelper {
                         <div class="nav-drawer-head">
                             <img class="logo-img" src="<?= BASE_URL ?>/assets/logo.png" alt="Logo TIXORA">
                         </div>
-                        <a href="<?= BASE_URL ?>/" class="<?= $active === 'beranda' ? 'is-active' : '' ?>" style="color:<?= $active === 'beranda' ? '#4B34DB' : '#4B5170' ?>;text-decoration:none">Beranda</a>
                         <a href="<?= BASE_URL ?>/jelajah-acara" class="<?= $active === 'jelajah' ? 'is-active' : '' ?>" style="color:<?= $active === 'jelajah' ? '#4B34DB' : '#4B5170' ?>;text-decoration:none">Jelajahi acara</a>
                         <?php if ($user && $user['role'] === AuthHelper::ROLE_USER): ?>
                             <a href="<?= BASE_URL ?>/tiket-saya" class="<?= $active === 'tiket' ? 'is-active' : '' ?>" style="color:<?= $active === 'tiket' ? '#4B34DB' : '#4B5170' ?>;text-decoration:none">Tiket Saya</a>
@@ -199,7 +198,7 @@ class ViewHelper {
                             <a href="<?= BASE_URL ?>/logout" class="nav-drawer-only nav-logout" style="text-decoration:none">Keluar</a>
                             <div class="nav-drawer-only nav-drawer-user">
                                 <b><?= htmlspecialchars((string) ($user['nama'] ?? '')) ?></b>
-                               
+                                <?= htmlspecialchars((string) ($user['email'] ?? '')) ?>
                             </div>
                         <?php endif; ?>
                     </nav>
