@@ -160,7 +160,12 @@ $totalSemua = array_sum($rawCounts);
     </div>
     <script>
         document.querySelectorAll('.js-ajukan').forEach((btn) => btn.addEventListener('click', async () => {
-            if (!confirm('Ajukan acara ini untuk ditinjau admin?')) return;
+            const ok = await eoConfirm({
+                title: 'Ajukan acara untuk ditinjau?',
+                text: 'Acara akan berstatus Menunggu tinjauan dan tidak dapat diedit sampai admin memberi keputusan.',
+                confirmLabel: 'Ya, ajukan'
+            });
+            if (!ok) return;
             btn.disabled = true;
             try {
                 const res = await fetch('<?= BASE_URL ?>/api/owner/submit-event/' + btn.dataset.id, { method: 'PATCH', credentials: 'same-origin' });

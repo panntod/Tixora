@@ -64,7 +64,10 @@ EventHelper::renderTop($db, $owner, 4, $event);
                     <div class="alert alert-error" style="width:880px;margin-bottom:16px"><?= $h($topError) ?></div>
                 <?php endif; ?>
 
-                <form method="POST" action="<?= EventHelper::stepUrl(4, $eventId) ?>">
+                <form method="POST" action="<?= EventHelper::stepUrl(4, $eventId) ?>"
+                    data-dlg-title="Ajukan acara untuk ditinjau?"
+                    data-dlg-text="Acara akan berstatus Menunggu tinjauan dan tidak dapat diedit sampai admin memberi keputusan."
+                    data-dlg-confirm="Ya, ajukan">
                     <?= ViewHelper::csrfField() ?>
                     <input type="hidden" name="aksi" value="ajukan">
 

@@ -2780,3 +2780,41 @@ select.input {
     min-height: 40px;
   }
 }
+
+/* Dialog konfirmasi (eoConfirm) */
+.dlg-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(14, 17, 40, 0.45);
+}
+.dlg-backdrop .dialog {
+  width: 420px;
+  max-width: 100%;
+  box-sizing: border-box;
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+}
+.dlg-backdrop textarea.input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 96px;
+  margin-top: 6px;
+  padding: 10px 12px;
+  font: inherit;
+  resize: vertical;
+}
+.dlg-backdrop .help-error {
+  margin: 6px 0 0;
+}
+.dlg-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 16px;
+}

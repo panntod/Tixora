@@ -162,11 +162,13 @@ $script = '';
 if ($selected && in_array($selected['status_tiket'], ['AKTIF', 'MENUNGGU_PEMBAYARAN'], true)) {
     $script = '<script>
 document.getElementById("btn-batal").addEventListener("click", async (e) => {
-    if (!confirm("Batalkan tiket ' . EO::e(addslashes($selected['kode_tiket'])) . '? Tindakan ini tidak dapat dibatalkan.")) return;
-    e.target.disabled = true;
+    const btn = e.currentTarget;
+    const ok = await eoConfirm({ title: "Batalkan tiket ' . EO::e(addslashes($selected['kode_tiket'])) . '?", text: "Tiket peserta ini akan dibatalkan. Tindakan ini tidak dapat dibatalkan.", confirmLabel: "Batalkan tiket", tone: "danger" });
+    if (!ok) return;
+    btn.disabled = true;
     const r = await eoApi("cancel-ticket/' . EO::e($selected['id']) . '", "PATCH");
     if (r.ok) { location.reload(); return; }
-    e.target.disabled = false;
+    btn.disabled = false;
     eoShowError(document.getElementById("e-form"), r.message);
 });
 </script>';

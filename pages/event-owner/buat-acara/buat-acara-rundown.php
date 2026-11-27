@@ -204,7 +204,7 @@ EventHelper::renderTop($db, $owner, 3, $event);
                                     . ($n === $last ? ' disabled' : '') . ' title="Tukar ke bawah (jam mengikuti posisi)" aria-label="Turunkan">' . $turun . '</button>') ?>
                                 <a class="button ghost-button small-button" href="<?= $self ?>&amp;edit=<?= $h($r['id']) ?>">Edit</a>
                                 <?= $aksiForm('hapus', '<button type="submit" class="button ghost-button small-button" style="color:#B91C1C">Hapus</button>',
-                                    ' onsubmit="return confirm(\'Hapus kegiatan ini?\');"') ?>
+                                    ' data-dlg-title="Hapus kegiatan ini?" data-dlg-text="' . $h('"' . $r['judul_sesi'] . '" akan dihapus dari rundown. Tindakan ini tidak dapat dibatalkan.') . '" data-dlg-confirm="Hapus" data-dlg-tone="danger"') ?>
                             </div>
                         <?php endforeach; ?>
                         <?php if (!$rows): ?>

@@ -63,6 +63,13 @@ EO::open($db, $owner, $event, 'pengajuan', $subtitle, $actions, null, 'Pengajuan
                                 <p class="slate" style="font-size:14px">Belum ada riwayat pengajuan.</p>
                             <?php endif; ?>
                         </div>
+                        <?php if (in_array($status, ['DISETUJUI', 'TERBIT', 'PUBLISHED'], true)): ?>
+                            <div class="card" style="box-shadow:inset 0 0 0 1px #F3B6B6;box-sizing:border-box">
+                                <h2 class="card-title">Zona berbahaya</h2>
+                                <p class="slate" style="font-size:14px;line-height:21px;margin:0 0 16px">Membatalkan acara menghentikan penjualan dan membatalkan semua tiket yang sudah terjual. Tindakan ini tidak dapat dibatalkan.</p>
+                                <button type="button" id="btn-batalkan" class="button danger-outline-button" style="cursor:pointer">Batalkan acara</button>
+                            </div>
+                        <?php endif; ?>
                     </div>
                     <div class="card col-narrow" style="box-sizing:border-box">
                         <h2 class="card-title">Status pengajuan</h2>
@@ -93,17 +100,38 @@ EO::open($db, $owner, $event, 'pengajuan', $subtitle, $actions, null, 'Pengajuan
 EO::close('<script>
 (function () {
     const eventId = ' . json_encode($id) . ';
-    async function run(btn, path, confirmText) {
-        if (!btn || (confirmText && !confirm(confirmText))) return;
+    async function run(btn, path, dlg) {
+        if (!btn) return;
+        const ok = await eoConfirm(dlg);
+        if (!ok) return;
         btn.disabled = true;
-        const r = await eoApi(path + "/" + eventId, "PATCH");
+        const r = await eoApi(path + "/" + eventId, "PATCH", dlg.reason ? { alasan_pembatalan: ok.reason } : undefined);
         if (r.ok) { location.reload(); return; }
         btn.disabled = false;
         eoShowError(document.getElementById("e-form"), r.message);
     }
-    const a = document.getElementById("btn-ajukan"), t = document.getElementById("btn-tarik"), p = document.getElementById("btn-terbitkan");
-    if (a) a.addEventListener("click", () => run(a, "submit-event", "Ajukan acara ini untuk ditinjau admin?"));
-    if (t) t.addEventListener("click", () => run(t, "withdraw-event", "Tarik pengajuan dan kembalikan acara ke draf?"));
-    if (p) p.addEventListener("click", () => run(p, "publish-event", "Terbitkan acara ini ke portal publik? Setelah terbit, acara akan tampil di Jelajah Acara."));
+    const a = document.getElementById("btn-ajukan"), t = document.getElementById("btn-tarik"), p = document.getElementById("btn-terbitkan"), c = document.getElementById("btn-batalkan");
+    if (a) a.addEventListener("click", () => run(a, "submit-event", {
+        title: "Ajukan acara untuk ditinjau?",
+        text: "Acara akan berstatus Menunggu tinjauan dan tidak dapat diedit sampai admin memberi keputusan.",
+        confirmLabel: "Ya, ajukan"
+    }));
+    if (t) t.addEventListener("click", () => run(t, "withdraw-event", {
+        title: "Tarik pengajuan?",
+        text: "Acara dikembalikan ke draf dan dapat diedit lagi. Anda bisa mengajukannya kembali kapan saja.",
+        confirmLabel: "Ya, tarik pengajuan"
+    }));
+    if (p) p.addEventListener("click", () => run(p, "publish-event", {
+        title: "Terbitkan acara ini?",
+        text: "Acara tampil di halaman jelajah dan penjualan tiket dibuka. Setelah terbit, acara tidak dapat dihapus.",
+        confirmLabel: "Ya, terbitkan"
+    }));
+    if (c) c.addEventListener("click", () => run(c, "cancel-event", {
+        title: "Batalkan acara ini?",
+        text: "Penjualan dihentikan dan semua tiket peserta dibatalkan. Tindakan ini tidak dapat dibatalkan.",
+        confirmLabel: "Batalkan acara",
+        tone: "danger",
+        reason: { label: "Alasan pembatalan (wajib)", min: 20, error: "Alasan wajib diisi, minimal 20 karakter.", placeholder: "Jelaskan alasan pembatalan acara" }
+    }));
 })();
 </script>');
