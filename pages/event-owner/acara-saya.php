@@ -75,6 +75,8 @@ $totalSemua = array_sum($rawCounts);
 
                 <?php if (isset($_GET['draf'])): ?>
                     <div class="alert alert-success" style="margin-bottom:16px">Draf acara tersimpan. Lanjutkan kapan saja lewat tombol "Lanjutkan".</div>
+                <?php elseif (isset($_GET['dihapus'])): ?>
+                    <div class="alert alert-success" style="margin-bottom:16px">Draf acara berhasil dihapus.</div>
                 <?php elseif (isset($_GET['diajukan'])): ?>
                     <div class="alert alert-info" style="margin-bottom:16px"><span>Acara berhasil diajukan dan kini berstatus <b>Menunggu tinjauan</b>. Admin akan memberi keputusan.</span></div>
                 <?php endif; ?>

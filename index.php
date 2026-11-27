@@ -477,6 +477,13 @@ $routes = [
     'event-owner/pengajuan' =>
         'event-owner/pengajuan.php',
 
+    // Pengaturan acara (publikasi, batalkan, hapus draf) & pengaturan akun Event Owner
+    'event-owner/pengaturan-acara' =>
+        'event-owner/pengaturan-acara.php',
+
+    'event-owner/pengaturan' =>
+        'event-owner/pengaturan.php',
+
     // Analytics
     'event-owner/analitik' =>
         'event-owner/analitik.php',

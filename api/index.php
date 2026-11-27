@@ -128,6 +128,12 @@ switch ($endpoint) {
             $ownerController->manageRundown($param);
         } elseif ($action === 'committee' && !empty($param) && in_array($_SERVER['REQUEST_METHOD'], ['POST', 'PATCH'], true)) {
             $ownerController->managePanitia($param);
+        } elseif ($action === 'committee-update' && !empty($param) && in_array($_SERVER['REQUEST_METHOD'], ['POST', 'PATCH'], true)) {
+            $ownerController->updatePanitia($param);
+        } elseif ($action === 'committee-delete' && !empty($param) && in_array($_SERVER['REQUEST_METHOD'], ['POST', 'DELETE'], true)) {
+            $ownerController->deletePanitia($param);
+        } elseif ($action === 'delete-event' && !empty($param) && in_array($_SERVER['REQUEST_METHOD'], ['POST', 'DELETE'], true)) {
+            $ownerController->deleteEventDraft($param);
         } elseif ($action === 'rab' && !empty($param) && in_array($_SERVER['REQUEST_METHOD'], ['POST', 'PATCH'], true)) {
             $ownerController->manageRabItem($param);
         } elseif ($action === 'cancel-ticket' && !empty($param) && in_array($_SERVER['REQUEST_METHOD'], ['POST', 'PATCH'], true)) {

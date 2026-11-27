@@ -499,6 +499,112 @@ class OwnerController
         }
     }
 
+    /** Anggota panitia milik acara Event Owner yang login, atau null. */
+    private function findOwnedCommittee(string $committeeId): ?array
+    {
+        if (!preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $committeeId)) {
+            return null;
+        }
+        $stmt = $this->db->prepare("
+            SELECT c.id FROM committees c
+            JOIN events e ON e.id = c.event_id
+            WHERE c.id = :id AND e.owner_id = :owner_id
+        ");
+        $stmt->execute(['id' => $committeeId, 'owner_id' => $this->ownerId]);
+        $row = $stmt->fetch();
+        return $row ?: null;
+    }
+
+    /**
+     * Ubah data anggota panitia (PATCH /api/owner/committee-update/{id}).
+     */
+    public function updatePanitia(string $committeeId): void
+    {
+        if (!$this->findOwnedCommittee($committeeId)) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Anggota panitia tidak ditemukan atau akses ditolak.']);
+            return;
+        }
+        $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+        $nama = trim($input['nama_panitia'] ?? $input['nama'] ?? '');
+        $posisi = trim($input['posisi_jabatan'] ?? $input['peran'] ?? '');
+        $divisi = trim($input['divisi'] ?? 'Inti');
+        $kontak = trim($input['kontak'] ?? '');
+        $surel = trim($input['surel'] ?? '');
+
+        if ($nama === '' || $posisi === '') {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Nama panitia dan posisi jabatan wajib diisi.']);
+            return;
+        }
+
+        try {
+            $this->db->prepare("
+                UPDATE committees
+                SET nama_panitia = :nama, posisi_jabatan = :posisi, divisi = :divisi,
+                    kontak = :kontak, surel = :surel, updated_at = CURRENT_TIMESTAMP
+                WHERE id = :id
+            ")->execute([
+                'nama' => $nama, 'posisi' => $posisi, 'divisi' => $divisi !== '' ? $divisi : 'Inti',
+                'kontak' => $kontak, 'surel' => $surel, 'id' => $committeeId,
+            ]);
+            echo json_encode(['success' => true, 'message' => 'Data anggota panitia diperbarui.']);
+        } catch (PDOException $e) {
+            http_response_code(500);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Gagal memperbarui anggota panitia. Silakan coba lagi.']);
+        }
+    }
+
+    /**
+     * Hapus anggota panitia (DELETE /api/owner/committee-delete/{id}).
+     * PIC pada rundown otomatis dikosongkan (FK ON DELETE SET NULL).
+     */
+    public function deletePanitia(string $committeeId): void
+    {
+        if (!$this->findOwnedCommittee($committeeId)) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Anggota panitia tidak ditemukan atau akses ditolak.']);
+            return;
+        }
+        try {
+            $this->db->prepare('DELETE FROM committees WHERE id = :id')->execute(['id' => $committeeId]);
+            echo json_encode(['success' => true, 'message' => 'Anggota panitia dihapus.']);
+        } catch (PDOException $e) {
+            http_response_code(500);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Gagal menghapus anggota panitia. Silakan coba lagi.']);
+        }
+    }
+
+    /**
+     * Hapus acara berstatus DRAF (DELETE /api/owner/delete-event/{id}).
+     * Data turunan (tiket kategori, rundown, RAB, panitia, log) ikut terhapus lewat ON DELETE CASCADE.
+     */
+    public function deleteEventDraft(string $eventId): void
+    {
+        if (!$this->assertOwnsEvent($eventId)) {
+            return;
+        }
+        try {
+            $stmt = $this->db->prepare("
+                DELETE FROM events
+                WHERE id = :id AND owner_id = :owner_id AND status_verifikasi = 'DRAF'
+            ");
+            $stmt->execute(['id' => $eventId, 'owner_id' => $this->ownerId]);
+            if ($stmt->rowCount() === 0) {
+                http_response_code(409);
+                echo json_encode(['success' => false, 'message' => 'Hanya acara berstatus Draf yang dapat dihapus.']);
+                return;
+            }
+            echo json_encode(['success' => true, 'message' => 'Draf acara dihapus.']);
+        } catch (PDOException $e) {
+            http_response_code(409);
+            error_log('[TIXORA] ' . __METHOD__ . ': ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Acara tidak dapat dihapus karena masih memiliki data terkait.']);
+        }
+    }
+
     /**
      * 8. Kelola RAB / Anggaran Biaya (/event-owner/rab)
      */

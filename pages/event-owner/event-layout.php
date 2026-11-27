@@ -24,6 +24,7 @@ final class EO
         'panitia' => 'Panitia',
         'analitik' => 'Analitik',
         'pengajuan' => 'Pengajuan',
+        'pengaturan-acara' => 'Pengaturan',
     ];
 
     public static function e(mixed $value): string
@@ -143,6 +144,7 @@ final class EO
             'dasbor' => ['Dasbor', BASE_URL . '/event-owner'],
             'acara-saya' => ['Acara saya', BASE_URL . '/event-owner/acara-saya'],
             'buat-acara' => ['Buat acara', BASE_URL . '/event-owner/buat-acara'],
+            'pengaturan' => ['Pengaturan', BASE_URL . '/event-owner/pengaturan'],
             'jelajah' => ['Jelajah Acara', BASE_URL . '/jelajah-acara'],
         ];
         $html = '<aside class="sidebar"><div class="logo"><img class="logo-img" src="' . BASE_URL
