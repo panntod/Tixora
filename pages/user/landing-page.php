@@ -18,7 +18,7 @@ $baseSql = "
     WHERE e.status_verifikasi = 'TERBIT'
 ";
 // Acara yang sudah ditutup hanya tampil 1 hari setelah pendaftaran ditutup; acara berjalan tampil lebih dulu.
-$events = $db->query($baseSql . " AND e.tanggal_selesai > NOW() - INTERVAL '1 day' ORDER BY (e.tanggal_selesai <= NOW()) ASC, e.tanggal_mulai ASC LIMIT 4")->fetchAll();
+$events = $db->query($baseSql . " AND e.tanggal_selesai > NOW() - INTERVAL '1 day' ORDER BY (e.tanggal_selesai <= NOW()) ASC, e.tanggal_mulai ASC LIMIT 8")->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -98,11 +98,17 @@ $events = $db->query($baseSql . " AND e.tanggal_selesai > NOW() - INTERVAL '1 da
                         <h2 class="section-title">Acara pilihan minggu ini</h2>
                         <p class="section-subtitle">Daftar sekarang sebelum kuota habis.</p>
                     </div>
-                    <a href="<?= BASE_URL ?>/jelajah-acara" class="link-text"
-                        style="color:#4B34DB;font-weight:700">Lihat semua acara &rarr;</a>
                 </div>
 
-                <div class="event-grid tx-style-7044f63f91">
+                <?php if (!empty($events)): ?>
+                    <div class="chips-row chips-wrap" id="home-chips" role="group" aria-label="Kategori acara" style="margin:0 0 20px">
+                        <?php foreach (['Semua', 'Seminar', 'Workshop', 'Konferensi', 'Kompetisi'] as $i => $cat): ?>
+                            <button type="button" class="chip<?= $i === 0 ? ' chip-active' : '' ?>" data-cat="<?= $cat ?>" aria-pressed="<?= $i === 0 ? 'true' : 'false' ?>"><?= $cat ?></button>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+
+                <div class="event-grid event-carousel tx-style-7044f63f91">
                     <?php if (!empty($events)): ?>
                         <?php foreach ($events as $idx => $ev): ?>
                             <?php
@@ -110,7 +116,7 @@ $events = $db->query($baseSql . " AND e.tanggal_selesai > NOW() - INTERVAL '1 da
                             $dateStr = date('d M Y', strtotime($ev['tanggal_mulai']));
                             $ditutup = ViewHelper::isEventClosed($ev);
                             ?>
-                            <article class="event-card tx-style-30e741d98e<?= $ditutup ? ' event-card-closed' : '' ?>">
+                            <article class="event-card tx-style-30e741d98e<?= $ditutup ? ' event-card-closed' : '' ?>" data-kategori="<?= htmlspecialchars((string) $ev['kategori']) ?>">
                                 <?= BannerHelper::render($ev, 'card') ?>
                                 <div class="event-card-body">
                                     <?php if ($ditutup): ?>
@@ -145,6 +151,13 @@ $events = $db->query($baseSql . " AND e.tanggal_selesai > NOW() - INTERVAL '1 da
                             <p class="slate">Belum ada acara yang dipublikasikan saat ini.</p>
                         </div>
                     <?php endif; ?>
+                    <div class="tx-style-8771fb4e0a" id="home-empty" style="display:none">
+                        <p class="slate">Belum ada acara untuk kategori ini.</p>
+                    </div>
+                </div>
+
+                <div class="section-cta">
+                    <a href="<?= BASE_URL ?>/jelajah-acara" class="see-all-btn">Lihat Semua</a>
                 </div>
             </div>
         </section>
@@ -241,6 +254,33 @@ $events = $db->query($baseSql . " AND e.tanggal_selesai > NOW() - INTERVAL '1 da
         </footer>
     </div>
     <script src="<?= BASE_URL ?>/assets/default-banner.js"></script>
+    <script>
+        // Filter kategori pada kartu acara beranda
+        (function () {
+            var chips = document.querySelectorAll('#home-chips .chip');
+            var grid = document.querySelector('.event-carousel');
+            if (!chips.length || !grid) return;
+            var cards = grid.querySelectorAll('.event-card');
+            var empty = document.getElementById('home-empty');
+            chips.forEach(function (chip) {
+                chip.addEventListener('click', function () {
+                    var cat = chip.getAttribute('data-cat');
+                    chips.forEach(function (c) {
+                        c.classList.toggle('chip-active', c === chip);
+                        c.setAttribute('aria-pressed', c === chip ? 'true' : 'false');
+                    });
+                    var shown = 0;
+                    cards.forEach(function (card) {
+                        var ok = cat === 'Semua' || (card.getAttribute('data-kategori') || '').toLowerCase() === cat.toLowerCase();
+                        card.style.display = ok ? '' : 'none';
+                        if (ok) shown++;
+                    });
+                    if (empty) empty.style.display = shown ? 'none' : '';
+                    grid.scrollLeft = 0;
+                });
+            });
+        })();
+    </script>
 </body>
 
 </html>

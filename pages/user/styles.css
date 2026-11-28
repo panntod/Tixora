@@ -3330,7 +3330,7 @@ img {
   background: #f5f3ff;
 }
 
-/* ---------- Ponsel: kategori & kartu acara memanjang ke kanan (carousel) ---------- */
+/* ---------- Ponsel: kategori memanjang ke kanan; kartu acara carousel hanya di beranda ---------- */
 @media (max-width: 640px) {
   div.chips-row {
     flex-wrap: nowrap;
@@ -3347,7 +3347,7 @@ img {
     white-space: nowrap;
   }
 
-  div.event-grid {
+  div.event-grid.event-carousel {
     display: flex;
     flex-wrap: nowrap;
     gap: 16px;
@@ -3358,16 +3358,16 @@ img {
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
   }
-  div.event-grid::-webkit-scrollbar {
+  div.event-grid.event-carousel::-webkit-scrollbar {
     display: none;
   }
-  div.event-grid > .event-card {
+  div.event-grid.event-carousel > .event-card {
     flex: 0 0 78%;
     max-width: 320px;
     min-width: 0;
     scroll-snap-align: start;
   }
-  div.event-grid > :not(.event-card) {
+  div.event-grid.event-carousel > :not(.event-card) {
     flex: 0 0 100%;
   }
 }
@@ -3524,4 +3524,51 @@ img {
   body.nav-open {
     overflow: hidden;
   }
+}
+
+/* Tombol "Lihat Semua" di bawah kartu acara beranda */
+.section-cta {
+  margin-top: 24px;
+}
+.see-all-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 16px 24px;
+  border-radius: 999px;
+  background: #f1f0ff;
+  color: #4b34db;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+.see-all-btn:hover,
+.see-all-btn:focus-visible {
+  background: #e4e0ff;
+  color: #3c29b8;
+}
+
+/* Chip kategori berupa <button> */
+button.chip {
+  appearance: none;
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
+}
+button.chip:hover {
+  box-shadow: inset 0 0 0 1px #4b34db;
+  color: #4b34db;
+}
+button.chip.chip-active:hover {
+  box-shadow: none;
+  color: #ffffff;
+}
+
+/* Chip kategori beranda: membungkus di desktop; di ponsel jadi satu baris yang bisa digeser (aturan div.chips-row) */
+.chips-wrap {
+  flex-wrap: wrap;
 }
