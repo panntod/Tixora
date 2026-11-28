@@ -128,15 +128,6 @@ final class EO
         exit;
     }
 
-    /** Institusi owner untuk ditampilkan di sidebar (fallback ke email). */
-    private static function ownerSubtitle(PDO $db, array $owner): string
-    {
-        $stmt = $db->prepare('SELECT institusi FROM users WHERE id = :id');
-        $stmt->execute(['id' => $owner['id']]);
-        $institusi = trim((string) $stmt->fetchColumn());
-        return $institusi !== '' ? $institusi : (string) ($owner['email'] ?? '');
-    }
-
     /** Sidebar yang sama untuk semua halaman Acara saya. */
     public static function sidebar(PDO $db, array $owner, string $active = 'acara-saya'): string
     {
@@ -155,7 +146,7 @@ final class EO
         }
         $html .= '<a href="' . BASE_URL . '/logout" class="side-item" style="text-decoration:none;color:#B91C1C">Keluar</a>';
         $html .= '<div class="side-user"><b>' . self::e($owner['nama'] ?? '') . '</b>'
-            . self::e(self::ownerSubtitle($db, $owner)) . '</div></aside>';
+            . 'Penyelenggara</div></aside>';
         return $html;
     }
 

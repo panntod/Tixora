@@ -2818,3 +2818,64 @@ select.input {
   gap: 12px;
   margin-top: 16px;
 }
+
+/* Pengaturan akun: profil komunitas */
+.profile-photo-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+}
+.avatar-lg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  flex: none;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #e4e0ff;
+  color: #3c29b8;
+  font-size: 24px;
+  font-weight: 700;
+}
+.avatar-lg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 24px;
+}
+@media (max-width: 700px) {
+  .form-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+.eo-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  max-width: 880px;
+  margin-top: 64px;
+  padding: 16px 0;
+  font-size: 14px;
+  color: #5f6483;
+}
+.eo-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+}
+.eo-footer a {
+  color: inherit;
+  text-decoration: none;
+}
+.eo-footer a:hover {
+  color: #4b34db;
+}

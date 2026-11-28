@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once defined('ROOT_DIR') ? ROOT_DIR . '/api/helpers/ViewHelper.php' : __DIR__ . '/../../api/helpers/ViewHelper.php';
+require_once __DIR__ . '/event-layout.php';
 $db = ViewHelper::getDb();
 
 $owner = ViewHelper::requireLogin(AuthHelper::ROLE_EVENT_OWNER);
@@ -72,23 +73,7 @@ $logs = $stmtLogs->fetchAll();
 <body>
     <div class="frame" style="width:1440px;min-height:808px;height:auto">
         <div class="app">
-            <aside class="sidebar">
-                <div class="logo">
-                    <img class="logo-img" src="<?= BASE_URL ?>/assets/logo.png" alt="Logo TIXORA">
-                </div>
-                <a href="<?= BASE_URL ?>/event-owner" class="side-item side-item-active"
-                    style="text-decoration:none">Dasbor</a>
-                <a href="<?= BASE_URL ?>/event-owner/acara-saya" class="side-item" style="text-decoration:none">Acara
-                    saya</a>
-                <a href="<?= BASE_URL ?>/event-owner/buat-acara" class="side-item" style="text-decoration:none">Buat
-                    acara</a>
-                <a href="<?= BASE_URL ?>/jelajah-acara" class="side-item" style="text-decoration:none">Jelajah Acara</a>
-                <a href="<?= BASE_URL ?>/logout" class="side-item" style="text-decoration:none;color:#B91C1C">Keluar</a>
-                <div class="side-user">
-                    <b><?= htmlspecialchars($owner['nama']) ?></b>
-                    <?= htmlspecialchars($owner['email']) ?>
-                </div>
-            </aside>
+            <?= EO::sidebar($db, $owner, 'dasbor') ?>
 
             <main class="main">
                 <p class="crumb">Dasbor</p>
